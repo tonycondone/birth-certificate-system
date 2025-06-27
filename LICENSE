@@ -1,0 +1,88 @@
+Proprietary Software License Agreement
+
+Digital Birth Certificate Registration Platform
+Copyright © 2023 [Your Organization]. All rights reserved.
+Patent Pending - Application in Process
+
+1. License Grant
+
+Subject to the terms and conditions of this Agreement, [Your Organization] grants you a limited, non-exclusive, non-transferable license to:
+
+a) Install and use the Software for its intended purpose
+b) Create necessary backups for disaster recovery
+c) Modify configuration files for deployment purposes
+d) Integrate with authorized systems
+
+2. Restrictions
+
+You may not, and you may not permit others to:
+
+a) Copy, modify, or distribute the Software
+b) Reverse engineer, decompile, or disassemble the Software
+c) Remove or alter any proprietary notices in the Software
+d) Transfer or sublicense the Software
+e) Use the Software for any unauthorized purpose
+
+3. Ownership
+
+The Software is owned and copyrighted by [Your Organization]. Your license confers no title or ownership in the Software and is not a sale of any rights in the Software.
+
+4. Patent Notice
+
+This Software is protected by pending patent applications. Use of the Software acknowledges these patent rights and the limitations they impose.
+
+5. Third-Party Components
+
+This Software includes third-party components under the following licenses:
+
+a) Bootstrap - MIT License
+b) Font Awesome - Font Awesome Free License
+c) SweetAlert2 - MIT License
+d) QR Scanner - Apache 2.0 License
+
+The terms of these licenses must be observed in addition to this Agreement.
+
+6. Warranty Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+7. Limitation of Liability
+
+IN NO EVENT SHALL [YOUR ORGANIZATION] BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+8. Term and Termination
+
+This license is effective until terminated. Your rights under this license will terminate automatically without notice if you fail to comply with any of its terms.
+
+9. Export Compliance
+
+You must comply with all domestic and international export laws and regulations that apply to the Software.
+
+10. Governing Law
+
+This Agreement shall be governed by and construed in accordance with the laws of [Your Jurisdiction].
+
+11. Entire Agreement
+
+This Agreement constitutes the entire agreement between the parties concerning the subject matter hereof.
+
+For licensing inquiries:
+[Your Organization]
+[Address]
+Email: licensing@birthcert.gov
+Phone: [Phone Number]
+
+Third-Party Licenses:
+
+MIT License (Bootstrap, SweetAlert2)
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Font Awesome Free License
+Font Awesome Free is free, open source, and GPL friendly. You can use it for commercial projects, open source projects, or really almost whatever you want.
+
+Apache License 2.0 (QR Scanner)
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
