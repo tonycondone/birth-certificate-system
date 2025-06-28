@@ -3,7 +3,7 @@ DROP TABLE IF EXISTS users;
 
 -- Create Users Table
 CREATE TABLE users (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     role VARCHAR(20) NOT NULL,
     username VARCHAR(50) NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -15,18 +15,18 @@ CREATE TABLE users (
     hospital_id VARCHAR(100), -- Only for hospital role
     registration_number VARCHAR(100), -- For hospital/registrar roles
     status VARCHAR(20) DEFAULT 'active',
-    email_verified_at DATETIME NULL,
-    phone_verified_at DATETIME NULL,
+    email_verified_at TIMESTAMP NULL,
+    phone_verified_at TIMESTAMP NULL,
     remember_token VARCHAR(100),
-    created_at DATETIME DEFAULT GETDATE(),
-    updated_at DATETIME DEFAULT GETDATE(),
-    deleted_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
     
-    CONSTRAINT UQ_username UNIQUE (username),
-    CONSTRAINT UQ_email UNIQUE (email),
-    CONSTRAINT UQ_national_id UNIQUE (national_id),
-    CONSTRAINT CHK_role CHECK (role IN ('parent', 'hospital', 'registrar', 'admin')),
-    CONSTRAINT CHK_status CHECK (status IN ('active', 'inactive', 'suspended'))
+    CONSTRAINT UQ_users_username UNIQUE (username),
+    CONSTRAINT UQ_users_email UNIQUE (email),
+    CONSTRAINT UQ_users_national_id UNIQUE (national_id),
+    CONSTRAINT CHK_users_role CHECK (role IN ('parent', 'hospital', 'registrar', 'admin')),
+    CONSTRAINT CHK_users_status CHECK (status IN ('active', 'inactive', 'suspended'))
 );
 
 -- Create indexes
@@ -52,4 +52,4 @@ INSERT INTO users (
     'System',
     'Administrator',
     'active'
-);
+); 

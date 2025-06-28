@@ -3,42 +3,48 @@ DROP TABLE IF EXISTS blockchain_hashes;
 
 -- Create Blockchain Hashes Table
 CREATE TABLE blockchain_hashes (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
-    certificate_id BIGINT NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     
     -- Hash Information
-    certificate_hash VARCHAR(255) NOT NULL,    -- Hash of the certificate content
-    blockchain_hash VARCHAR(255) NOT NULL,     -- Hash stored on blockchain
+    hash_value VARCHAR(255) NOT NULL,
+    hash_type VARCHAR(50) NOT NULL, -- 'sha256', 'sha512', etc.
     
-    -- Blockchain Transaction Details
-    transaction_id VARCHAR(255),               -- Blockchain transaction ID
-    block_number BIGINT,                       -- Block number where hash is stored
-    block_timestamp DATETIME,                  -- When the block was mined
-    network_id VARCHAR(50),                    -- Blockchain network identifier
+    -- Related Records
+    certificate_id BIGINT,
+    application_id BIGINT,
+    document_id BIGINT,
     
-    -- Verification History
-    last_verified_at DATETIME,                 -- Last successful verification
-    verification_count INT DEFAULT 0,          -- Number of verifications
-    last_verification_status VARCHAR(20),      -- Result of last verification
+    -- Blockchain Information
+    blockchain_name VARCHAR(100), -- 'ethereum', 'bitcoin', 'custom'
+    transaction_id VARCHAR(255),
+    block_number BIGINT,
+    block_hash VARCHAR(255),
+    
+    -- Verification Data
+    verification_url VARCHAR(500),
+    verification_status VARCHAR(20) DEFAULT 'pending',
+    verified_at TIMESTAMP NULL,
+    verification_attempts INT DEFAULT 0,
     
     -- Metadata
-    stored_by BIGINT NOT NULL,                -- User who initiated storage
-    verification_endpoint VARCHAR(255),        -- API endpoint for verification
+    description TEXT,
+    tags JSON, -- Additional metadata as JSON
     
-    created_at DATETIME DEFAULT GETDATE(),
-    updated_at DATETIME DEFAULT GETDATE(),
-    deleted_at DATETIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
     
-    CONSTRAINT UQ_certificate_hash UNIQUE (certificate_hash),
-    CONSTRAINT UQ_blockchain_hash UNIQUE (blockchain_hash),
-    CONSTRAINT CHK_verification_status CHECK (last_verification_status IN ('pending', 'verified', 'failed', 'invalid')),
-    CONSTRAINT FK_blockchain_certificate FOREIGN KEY (certificate_id) REFERENCES certificates(id),
-    CONSTRAINT FK_blockchain_stored_by FOREIGN KEY (stored_by) REFERENCES users(id)
+    CONSTRAINT UQ_blockchain_hash_value UNIQUE (hash_value),
+    CONSTRAINT CHK_blockchain_hash_type CHECK (hash_type IN ('sha256', 'sha512', 'md5', 'ripemd160')),
+    CONSTRAINT CHK_blockchain_verification_status CHECK (verification_status IN ('pending', 'verified', 'failed', 'expired')),
+    CONSTRAINT FK_certificate FOREIGN KEY (certificate_id) REFERENCES certificates(id),
+    CONSTRAINT FK_application FOREIGN KEY (application_id) REFERENCES birth_applications(id)
 );
 
 -- Create indexes
+CREATE INDEX idx_hash_value ON blockchain_hashes(hash_value);
 CREATE INDEX idx_certificate_id ON blockchain_hashes(certificate_id);
-CREATE INDEX idx_certificate_hash ON blockchain_hashes(certificate_hash);
-CREATE INDEX idx_blockchain_hash ON blockchain_hashes(blockchain_hash);
+CREATE INDEX idx_application_id ON blockchain_hashes(application_id);
 CREATE INDEX idx_transaction_id ON blockchain_hashes(transaction_id);
-CREATE INDEX idx_last_verified_at ON blockchain_hashes(last_verified_at);
+CREATE INDEX idx_verification_status ON blockchain_hashes(verification_status);
+CREATE INDEX idx_created_at ON blockchain_hashes(created_at);

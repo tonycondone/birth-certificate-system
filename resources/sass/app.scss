@@ -1,0 +1,168 @@
+// Main SCSS file for Birth Certificate System
+
+// Variables
+$primary-color: #2c3e50;
+$secondary-color: #3498db;
+$success-color: #27ae60;
+$warning-color: #f39c12;
+$danger-color: #e74c3c;
+$light-color: #ecf0f1;
+$dark-color: #34495e;
+
+// Custom styles
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    color: $primary-color !important;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border-radius: 0.5rem;
+}
+
+.card-header {
+    background-color: $primary-color;
+    color: white;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+}
+
+.btn-primary {
+    background-color: $primary-color;
+    border-color: $primary-color;
+    
+    &:hover {
+        background-color: darken($primary-color, 10%);
+        border-color: darken($primary-color, 10%);
+    }
+}
+
+.btn-secondary {
+    background-color: $secondary-color;
+    border-color: $secondary-color;
+    
+    &:hover {
+        background-color: darken($secondary-color, 10%);
+        border-color: darken($secondary-color, 10%);
+    }
+}
+
+.form-control:focus {
+    border-color: $secondary-color;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+.alert {
+    border-radius: 0.5rem;
+    border: none;
+}
+
+.alert-success {
+    background-color: rgba(39, 174, 96, 0.1);
+    color: $success-color;
+}
+
+.alert-danger {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: $danger-color;
+}
+
+.alert-warning {
+    background-color: rgba(243, 156, 18, 0.1);
+    color: $warning-color;
+}
+
+// Dashboard styles
+.dashboard-stats {
+    .stat-card {
+        background: linear-gradient(135deg, $primary-color, $secondary-color);
+        color: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+    }
+}
+
+// Certificate styles
+.certificate-preview {
+    border: 2px solid $primary-color;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    background: white;
+    position: relative;
+    
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" x="50" text-anchor="middle" fill="rgba(0,0,0,0.05)" font-size="20">BIRTH CERTIFICATE</text></svg>');
+        pointer-events: none;
+    }
+}
+
+// QR Code styles
+.qr-scanner-container {
+    position: relative;
+    max-width: 400px;
+    margin: 0 auto;
+    
+    video {
+        width: 100%;
+        border-radius: 0.5rem;
+    }
+    
+    .scanner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border: 2px solid $secondary-color;
+        border-radius: 0.5rem;
+        pointer-events: none;
+    }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+    .dashboard-stats .stat-card {
+        margin-bottom: 1rem;
+    }
+    
+    .certificate-preview {
+        padding: 1rem;
+    }
+}
+
+// Loading spinner
+.spinner-border {
+    color: $secondary-color;
+}
+
+// Custom animations
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+} 

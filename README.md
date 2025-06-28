@@ -102,48 +102,64 @@ This platform provides a comprehensive solution for digitizing the birth certifi
   - Status updates
   - Document requests
 
-## Quick Start
+## Quick Start (MySQL)
 
-1. Clone the repository:
+### 1. **System Requirements**
+- PHP 8.1+ (with extensions: pdo, pdo_mysql, json, gd, mbstring, xml, fileinfo)
+- Composer
+- Node.js 16+ and npm 8+
+- MySQL/MariaDB 10.4+
+- Apache/Nginx or PHP built-in server
 
+### 2. **Clone the Repository**
 ```bash
 git clone https://github.com/your-org/birth-certificate-system.git
 cd birth-certificate-system
 ```
 
-2. Configure environment:
-
+### 3. **Set Up Environment Variables**
 ```bash
-cp .env.example .env
-# Edit database credentials and other settings
+cp env.example .env
+# Edit .env and set your database credentials and other settings
 ```
 
-3. Install dependencies:
-
+### 4. **Install Dependencies**
 ```bash
 composer install
 npm install
 ```
 
-4. Set up database:
+### 5. **Set Up the Database (MySQL Workbench or CLI)**
+- Create the database:
+  ```sql
+  CREATE DATABASE birth_certificate_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  ```
+- Run each migration in `database/migrations/` in order (001 to 006).
+- (Optional) Create an initial admin user:
+  ```sql
+  INSERT INTO users (username, email, password_hash, role, first_name, last_name, status)
+  VALUES ('admin', 'admin@system.local', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'System', 'Administrator', 'active');
+  -- Default password: password
+  ```
 
-```sql
-CREATE DATABASE birth_certificate_system;
-USE birth_certificate_system;
--- Run migrations in order:
-source database/migrations/001_create_users_table.sql
-source database/migrations/002_create_birth_applications_table.sql
-source database/migrations/003_create_certificates_table.sql
-source database/migrations/004_create_certificate_verification_view.sql
-source database/migrations/005_create_notifications_table.sql
-source database/migrations/006_create_blockchain_hashes_table.sql
-```
-
-5. Build frontend assets:
-
+### 6. **Build Frontend Assets**
 ```bash
 npm run build
 ```
+
+### 7. **Set Up Storage and Upload Directories**
+```bash
+mkdir -p storage/logs storage/cache public/uploads
+chmod -R 775 storage public/uploads
+```
+
+### 8. **Run the Application**
+- For local development:
+  ```bash
+  php -S localhost:8000 -t public
+  ```
+  Then visit [http://localhost:8000](http://localhost:8000)
+- For production, configure Apache/Nginx to point the document root to `public/` and use the provided `.htaccess` or Nginx config.
 
 ## Project Structure
 
@@ -392,3 +408,10 @@ For support or questions, please contact:
 
 - Technical Support: support@birthcert.gov
 - General Inquiries: info@birthcert.gov
+
+## Troubleshooting
+
+- **Missing PHP extensions:** Enable in your `php.ini` (pdo, pdo_mysql, json, gd, mbstring, xml, fileinfo)
+- **Database errors:** Check your `.env` settings and that migrations ran successfully
+- **Frontend build errors:** Ensure `webpack.mix.js` exists and run `npm install` before `npm run build`
+- **Missing view/layout files:** Ensure all files in `resources/views/layouts/` exist (e.g., `footer.php`)

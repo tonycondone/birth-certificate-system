@@ -3,54 +3,48 @@ DROP TABLE IF EXISTS certificates;
 
 -- Create Certificates Table
 CREATE TABLE certificates (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     certificate_number VARCHAR(50) NOT NULL,
     application_id BIGINT NOT NULL,
     
     -- Certificate Details
-    issued_date DATETIME NOT NULL DEFAULT GETDATE(),
-    expiry_date DATETIME,
-    certificate_path VARCHAR(255) NOT NULL,
-    qr_code_path VARCHAR(255) NOT NULL,
+    issue_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expiry_date TIMESTAMP NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
     
-    -- Verification Data
-    verification_hash VARCHAR(255) NOT NULL, -- For blockchain/digital verification
-    blockchain_transaction_id VARCHAR(255),  -- Optional, for blockchain implementation
-    verification_url VARCHAR(255) NOT NULL,  -- Public verification URL
+    -- Digital Certificate Data
+    qr_code_data TEXT NOT NULL,
+    digital_signature VARCHAR(255),
+    blockchain_hash VARCHAR(255),
     
-    -- Certificate Status
-    status VARCHAR(20) NOT NULL,
-    is_valid BIT NOT NULL DEFAULT 1,
-    revoked_at DATETIME,
+    -- Certificate Content (JSON)
+    certificate_data JSON NOT NULL, -- Contains all certificate information
+    
+    -- File References
+    pdf_path VARCHAR(255),
+    watermark_path VARCHAR(255),
+    
+    -- Audit Information
+    issued_by BIGINT NOT NULL,
+    issued_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    revoked_at TIMESTAMP NULL,
     revoked_by BIGINT,
     revocation_reason TEXT,
     
-    -- Access Control
-    download_count INT NOT NULL DEFAULT 0,
-    last_downloaded_at DATETIME,
-    last_downloaded_by BIGINT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
     
-    -- Metadata
-    issued_by BIGINT NOT NULL,           -- Reference to registrar who issued
-    registrar_signature VARCHAR(255),     -- Digital signature of the registrar
-    registrar_seal_path VARCHAR(255),     -- Path to the digital seal image
-    
-    created_at DATETIME DEFAULT GETDATE(),
-    updated_at DATETIME DEFAULT GETDATE(),
-    deleted_at DATETIME,
-    
-    CONSTRAINT UQ_certificate_number UNIQUE (certificate_number),
-    CONSTRAINT UQ_verification_hash UNIQUE (verification_hash),
-    CONSTRAINT CHK_status CHECK (status IN ('active', 'expired', 'revoked')),
+    CONSTRAINT UQ_certificates_certificate_number UNIQUE (certificate_number),
+    CONSTRAINT CHK_certificates_status CHECK (status IN ('active', 'expired', 'revoked', 'suspended')),
     CONSTRAINT FK_application FOREIGN KEY (application_id) REFERENCES birth_applications(id),
     CONSTRAINT FK_issued_by FOREIGN KEY (issued_by) REFERENCES users(id),
-    CONSTRAINT FK_revoked_by FOREIGN KEY (revoked_by) REFERENCES users(id),
-    CONSTRAINT FK_last_downloaded_by FOREIGN KEY (last_downloaded_by) REFERENCES users(id)
+    CONSTRAINT FK_revoked_by FOREIGN KEY (revoked_by) REFERENCES users(id)
 );
 
 -- Create indexes
 CREATE INDEX idx_certificate_number ON certificates(certificate_number);
 CREATE INDEX idx_application_id ON certificates(application_id);
-CREATE INDEX idx_verification_hash ON certificates(verification_hash);
 CREATE INDEX idx_status ON certificates(status);
-CREATE INDEX idx_issued_date ON certificates(issued_date);
+CREATE INDEX idx_issue_date ON certificates(issue_date);
+CREATE INDEX idx_blockchain_hash ON certificates(blockchain_hash);
