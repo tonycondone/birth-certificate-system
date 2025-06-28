@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /contact
+Allow: /faq
+Allow: /verify
+Allow: /privacy
+Allow: /terms
+
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /storage/
+Disallow: /uploads/
+
+# Sitemaps
+Sitemap: https://your-domain.com/sitemap.xml

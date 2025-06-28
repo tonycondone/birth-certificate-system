@@ -37,8 +37,8 @@ CREATE TABLE blockchain_hashes (
     CONSTRAINT UQ_blockchain_hash_value UNIQUE (hash_value),
     CONSTRAINT CHK_blockchain_hash_type CHECK (hash_type IN ('sha256', 'sha512', 'md5', 'ripemd160')),
     CONSTRAINT CHK_blockchain_verification_status CHECK (verification_status IN ('pending', 'verified', 'failed', 'expired')),
-    CONSTRAINT FK_certificate FOREIGN KEY (certificate_id) REFERENCES certificates(id),
-    CONSTRAINT FK_application FOREIGN KEY (application_id) REFERENCES birth_applications(id)
+    CONSTRAINT FK_blockchain_hashes_certificate FOREIGN KEY (certificate_id) REFERENCES certificates(id),
+    CONSTRAINT FK_blockchain_hashes_application FOREIGN KEY (application_id) REFERENCES birth_applications(id)
 );
 
 -- Create indexes

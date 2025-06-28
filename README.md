@@ -1,417 +1,212 @@
-# Digital Birth Certificate Registration Platform
+# Digital Birth Certificate System
 
-Copyright © 2023 [Github: @tonycondone]. All rights reserved.
-Patent Pending - Application in Process
+A modern, secure, and user-friendly system for managing digital birth certificates with real-time updates and enhanced UI/UX.
 
-A secure and efficient system for managing digital birth certificate registration, verification, and issuance.
+## System Overview
 
-## Legal Notice
+The Digital Birth Certificate System is a comprehensive solution that enables:
+- Parents to apply for birth certificates
+- Hospitals to verify birth records
+- Registrars to process and approve certificates
+- Administrators to manage the entire system
 
-This software is protected by copyright and patent laws. Unauthorized reproduction or distribution of this software, or any portion of it, may result in severe civil and criminal penalties, and will be prosecuted to the maximum extent possible under law.
+## Features
 
-## Intellectual Property
+### Core Features (Implemented)
+- Complete authentication system with email verification
+- Role-based dashboards (Parent, Hospital, Registrar, Admin)
+- Multi-role authentication system (Parents, Hospitals, Registrars, Administrators)
+- Real-time notifications and updates via WebSocket
+- Certificate generation and verification with QR codes
+- Document management with secure file handling
+- Modern, responsive UI with Bootstrap 5+
+- Comprehensive admin dashboard
+- User profile management
+- Activity logging and audit trails
 
-### Copyright Protection
+### Security Features
+- Role-based access control (RBAC)
+- CSRF protection
+- XSS prevention
+- Input validation
+- Secure file handling
+- Session security
+- SSL/HTTPS configuration
 
-- Copyright © 2023 [Your Organization]
-- Registration Number: [Pending]
-- All rights reserved worldwide
-- Unauthorized reproduction or distribution prohibited
+### UI/UX Features
+- Responsive design (mobile-first approach)
+- Real-time updates and notifications
+- Loading states and feedback
+- Form validation with helpful messages
+- Toast notifications
+- Accessibility compliance (WCAG 2.1 AA)
+- Intuitive navigation
 
-### Patent Protection
-
-- Patent Application Number: [Pending]
-- Title: Digital Birth Certificate Registration and Verification System
-- Status: Patent Pending
-- Jurisdiction: [Country/Region]
-
-## Invention Overview
-
-### Background
-
-The traditional birth certificate registration process is prone to errors, delays, and fraud. This digital platform modernizes the process through secure, blockchain-verified digital certificates and a multi-stakeholder verification system.
-
-### Key Innovations
-
-1. Multi-stakeholder verification workflow
-2. Blockchain-based certificate validation
-3. Automated document verification
-4. Secure digital certificate generation
-5. Real-time status tracking
-
-## Current Status
-
-This is an MVP (Minimum Viable Product) implementation focusing on core functionality. Testing infrastructure and implementation will be added in future iterations.
-
-### Implementation Status
-
-✅ Core Features (MVP):
-
-✅ Implemented:
-
-- Complete authentication system with role-based access
-- Database structure and migrations
-- Frontend views and forms
-- Basic security measures
-- Certificate generation and verification
-- Document management
-
-🚧 In Progress:
-
+### Planned Features
 - Testing infrastructure
 - SMS integration
 - Blockchain implementation
-- Advanced search features
+- Advanced search capabilities
 
-## Overview
+## Technology Stack
 
-This platform provides a comprehensive solution for digitizing the birth certificate registration process, connecting parents, hospitals, and government registrars in a secure and efficient workflow.
+### Frontend
+- Bootstrap 5.3.0
+- Font Awesome 6.4.0
+- SweetAlert2 11.7.12
+- QR Scanner 1.4.2
+- WebSocket client
 
-### Key Features
+### Backend
+- PHP 8.1+
+- MySQL/MariaDB
+- WebSocket server
+- Apache/Nginx
 
-- **Multi-Role System**
+## Installation
 
-  - Parents: Submit birth certificate applications
-  - Hospitals: Verify birth records
-  - Registrars: Review and approve certificates
-  - Administrators: System management
-- **Secure Authentication**
-
-  - Role-based access control
-  - Session management
-  - Remember me functionality
-  - Password security
-- **Birth Certificate Management**
-
-  - Online application submission
-  - Document upload
-  - Hospital verification
-  - Digital certificate generation
-  - QR code integration
-  - Blockchain hash storage
-- **Verification System**
-
-  - Public certificate verification
-  - QR code scanning
-  - Blockchain verification
-  - Document authenticity checks
-- **Notifications**
-
-  - Email notifications
-  - SMS alerts (configurable)
-  - Status updates
-  - Document requests
-
-## Quick Start (MySQL)
-
-### 1. **System Requirements**
-- PHP 8.1+ (with extensions: pdo, pdo_mysql, json, gd, mbstring, xml, fileinfo)
-- Composer
-- Node.js 16+ and npm 8+
-- MySQL/MariaDB 10.4+
-- Apache/Nginx or PHP built-in server
-
-### 2. **Clone the Repository**
+1. Clone the repository:
 ```bash
 git clone https://github.com/your-org/birth-certificate-system.git
 cd birth-certificate-system
 ```
 
-### 3. **Set Up Environment Variables**
-```bash
-cp env.example .env
-# Edit .env and set your database credentials and other settings
-```
-
-### 4. **Install Dependencies**
+2. Install dependencies:
 ```bash
 composer install
 npm install
 ```
 
-### 5. **Set Up the Database (MySQL Workbench or CLI)**
-- Create the database:
-  ```sql
-  CREATE DATABASE birth_certificate_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  ```
-- Run each migration in `database/migrations/` in order (001 to 006).
-- (Optional) Create an initial admin user:
-  ```sql
-  INSERT INTO users (username, email, password_hash, role, first_name, last_name, status)
-  VALUES ('admin', 'admin@system.local', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'System', 'Administrator', 'active');
-  -- Default password: password
-  ```
+3. Configure environment:
+```bash
+cp .env.example .env
+# Edit .env with your settings
+```
 
-### 6. **Build Frontend Assets**
+4. Set up database:
+```bash
+# Run migrations in order
+mysql -u root -p birth_certificate_system < database/migrations/*.sql
+```
+
+5. Build assets:
 ```bash
 npm run build
 ```
 
-### 7. **Set Up Storage and Upload Directories**
-```bash
-mkdir -p storage/logs storage/cache public/uploads
-chmod -R 775 storage public/uploads
-```
+## Configuration
 
-### 8. **Run the Application**
-- For local development:
-  ```bash
-  php -S localhost:8000 -t public
-  ```
-  Then visit [http://localhost:8000](http://localhost:8000)
-- For production, configure Apache/Nginx to point the document root to `public/` and use the provided `.htaccess` or Nginx config.
-
-## Project Structure
-
-```
-birth-certificate-system/
-├── app/
-│   ├── Auth/              # Authentication system
-│   │   └── Authentication.php
-│   ├── Controllers/       # Request handlers
-│   │   └── AuthController.php
-│   ├── Database/         # Database connection
-│   │   └── Database.php
-│   └── Middleware/       # Request middleware
-│       └── AuthMiddleware.php
-├── config/              # Configuration files
-├── database/           # Database migrations
-│   └── migrations/     # SQL migration files
-├── public/            # Public assets
-│   ├── css/          # Compiled CSS
-│   ├── js/           # Compiled JavaScript
-│   └── uploads/      # Secure upload directory
-├── resources/        # View templates
-│   └── views/
-│       ├── auth/           # Authentication views
-│       ├── applications/   # Application forms
-│       ├── dashboard/      # Role-specific dashboards
-│       └── layouts/        # Base templates
-└── vendor/          # Composer dependencies
-```
-
-## Deployment Guide
-
-### Recommended Hosting: Render.com
-
-Render provides reliable PHP hosting with:
-
-- Automatic SSL certificates
-- Easy environment variable management
-- Continuous deployment from Git
-- Built-in DDos protection
-- Automatic scaling capabilities
-
-### Deployment Steps
-
-1. Create Render Account:
-
-   - Visit render.com
-   - Sign up with GitHub
-   - Create new Web Service
-2. Configure Web Service:
-
-   ```bash
-   # Build Command
-   composer install --no-dev && npm install && npm run build
-
-   # Start Command
-   php -S 0.0.0.0:$PORT public/index.php
-   ```
-3. Environment Variables:
-
-   - Copy variables from .env.example
-   - Add to Render environment
-   - Update production values
-4. Database Setup:
-
-   - Create managed PostgreSQL/MySQL database
-   - Run migrations via Render console
-   - Verify database connection
-5. Domain Configuration:
-
-   - Add custom domain
-   - Configure DNS records
-   - Enable HTTPS
-
-### Production Configuration
-
-Key settings in .env:
-
+### Environment Variables
 ```ini
 # Application
 APP_NAME="Digital Birth Certificate System"
-APP_ENV=local
-APP_DEBUG=true
-APP_URL=http://localhost:8000
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://your-domain.com
 
 # Database
-DB_HOST=127.0.0.1
+DB_HOST=localhost
 DB_NAME=birth_certificate_system
-DB_USER=root
-DB_PASS=
+DB_USER=your_database_user
+DB_PASS=your_database_password
 
-# Mail/SMS
-MAIL_HOST=smtp.mailtrap.io
-SMS_PROVIDER=twilio
-SMS_ACCOUNT_SID=your_sid
-SMS_AUTH_TOKEN=your_token
+# WebSocket
+WEBSOCKET_HOST=localhost
+WEBSOCKET_PORT=6001
+WEBSOCKET_SSL=true
 
 # Security
 SESSION_SECURE=true
+SESSION_HTTP_ONLY=true
 CSRF_LIFETIME=7200
 ```
 
-## API Endpoints
+## Usage
 
-### Authentication
+### Parent Role
+- Register with validated credentials
+- Submit birth certificate applications
+- Track application status in real-time
+- Download approved certificates
+- Receive notifications
 
-```
-POST /auth/register
-POST /auth/login
-POST /auth/logout
-```
+### Hospital Role
+- Verify birth records
+- Upload supporting documents
+- Process applications
+- Real-time status updates
 
-### Applications
+### Registrar Role
+- Review and verify applications
+- Generate certificates
+- Manage verifications
+- Track activities
 
-```
-POST /applications/submit
-GET  /applications/status/{id}
-PUT  /applications/review/{id}
-```
+### Admin Role
+- Comprehensive dashboard
+- User management
+- System configuration
+- Activity monitoring
+- Performance analytics
 
-### Certificates
+## Security
 
-```
-GET  /certificates/{id}
-POST /certificates/verify
-GET  /certificates/download/{id}
-```
+### Implementation
+- CSRF tokens on all forms
+- Input sanitization and validation
+- Secure file upload handling
+- Role-based access control
+- Session management
+- SSL/HTTPS enforcement
 
-## Security Measures
+### Best Practices
+- Regular security audits
+- Password policy enforcement
+- Activity logging
+- File permission management
+- Error handling
 
-1. **Authentication**
+## UI/UX Components
 
-   - Secure password hashing (bcrypt)
-   - Session management
-   - CSRF protection
-   - Remember me tokens
-2. **Authorization**
+### Navigation
+- Responsive header
+- Role-based menu items
+- Mobile-friendly navigation
+- Breadcrumb trails
 
-   - Role-based access control
-   - Resource ownership verification
-   - Route protection
-   - API authentication
-3. **Data Protection**
+### Forms
+- Real-time validation
+- Helpful error messages
+- Loading states
+- Success feedback
 
-   - Input validation
-   - SQL injection prevention
-   - XSS protection
-   - CSRF tokens
-4. **File Security**
+### Notifications
+- Real-time updates
+- Toast notifications
+- Status badges
+- Alert system
 
-   - Secure upload handling
-   - File type validation
-   - Size restrictions
-   - Path traversal prevention
+### Dashboard
+- Quick statistics
+- Recent activities
+- Status updates
+- Action items
 
-## Deployment
+## Contributing
 
-### Server Requirements
-
-- PHP 8.1+
-- MySQL/MariaDB
-- Node.js (for asset compilation)
-- Web server (Apache/Nginx)
-
-### Production Setup
-
-1. Configure environment:
-
-```bash
-# Set production environment
-APP_ENV=production
-APP_DEBUG=false
-
-# Configure secure sessions
-SESSION_SECURE=true
-SESSION_HTTP_ONLY=true
-```
-
-2. Optimize application:
-
-```bash
-composer install --optimize-autoloader --no-dev
-npm run build
-```
-
-3. Set up web server:
-
-```apache
-<VirtualHost *:80>
-    ServerName birth-certificates.example.com
-    DocumentRoot /var/www/birth-certificate-system/public
-  
-    <Directory /var/www/birth-certificate-system/public>
-        AllowOverride All
-        Require all granted
-    </Directory>
-</VirtualHost>
-```
-
-### Security Checklist
-
-- [ ] Configure HTTPS
-- [ ] Set secure file permissions
-- [ ] Enable error logging
-- [ ] Configure backup system
-- [ ] Set up monitoring
-- [ ] Enable rate limiting
-- [ ] Configure firewall rules
-
-## Development
-
-### Coding Standards
-
-- Follow PSR-12 for PHP
-- Use TypeScript for frontend
-- Document all public methods
-- Write meaningful commit messages
-
-## TODOs
-
-### High Priority
-
-- [ ] Implement testing infrastructure
-- [ ] Add SMS notification system
-- [ ] Complete blockchain integration
-- [ ] Add advanced search features
-
-### Future Enhancements
-
-- [ ] Two-factor authentication
-- [ ] Batch processing
-- [ ] API documentation
-- [ ] Mobile app integration
-- [ ] Real blockchain implementation
-- [ ] National ID verification
-- [ ] Hospital system integration
-- [ ] Government database sync
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
 ## License
 
-This project is licensed under the MIT License. See LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
-For support or questions, please contact:
+For support, please email support@birthcert.gov or visit our documentation at /docs.
 
-- Technical Support: support@birthcert.gov
-- General Inquiries: info@birthcert.gov
+## Acknowledgments
 
-## Troubleshooting
-
-- **Missing PHP extensions:** Enable in your `php.ini` (pdo, pdo_mysql, json, gd, mbstring, xml, fileinfo)
-- **Database errors:** Check your `.env` settings and that migrations ran successfully
-- **Frontend build errors:** Ensure `webpack.mix.js` exists and run `npm install` before `npm run build`
-- **Missing view/layout files:** Ensure all files in `resources/views/layouts/` exist (e.g., `footer.php`)
+- Modern PHP development practices
+- Bootstrap team for UI components
+- Security best practices
+- Accessibility guidelines

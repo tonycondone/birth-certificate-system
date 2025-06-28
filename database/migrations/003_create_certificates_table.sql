@@ -37,9 +37,9 @@ CREATE TABLE certificates (
     
     CONSTRAINT UQ_certificates_certificate_number UNIQUE (certificate_number),
     CONSTRAINT CHK_certificates_status CHECK (status IN ('active', 'expired', 'revoked', 'suspended')),
-    CONSTRAINT FK_application FOREIGN KEY (application_id) REFERENCES birth_applications(id),
-    CONSTRAINT FK_issued_by FOREIGN KEY (issued_by) REFERENCES users(id),
-    CONSTRAINT FK_revoked_by FOREIGN KEY (revoked_by) REFERENCES users(id)
+    CONSTRAINT FK_certificates_application FOREIGN KEY (application_id) REFERENCES birth_applications(id),
+    CONSTRAINT FK_certificates_issued_by FOREIGN KEY (issued_by) REFERENCES users(id),
+    CONSTRAINT FK_certificates_revoked_by FOREIGN KEY (revoked_by) REFERENCES users(id)
 );
 
 -- Create indexes
