@@ -6,12 +6,74 @@ use App\Database\Database;
 
 class ApplicationController
 {
+    public function create()
+    {
+        // Check if user is logged in and is a parent
+        if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'parent') {
+            header('Location: /login');
+            exit;
+        }
+        
+        // Render application form
+        include __DIR__ . '/../../resources/views/applications/create.php';
+    }
+
+    public function index()
+    {
+        // Check if user is logged in
+        if (!isset($_SESSION['user'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        // Render applications list
+        include __DIR__ . '/../../resources/views/applications/index.php';
+    }
+
+    public function show($id)
+    {
+        // Check if user is logged in
+        if (!isset($_SESSION['user'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        // Render application details
+        include __DIR__ . '/../../resources/views/applications/show.php';
+    }
+
+    public function update($id)
+    {
+        // Check if user is logged in and is a parent
+        if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'parent') {
+            http_response_code(403);
+            include __DIR__ . '/../../resources/views/errors/403.php';
+            return;
+        }
+        
+        // Handle application update
+        echo json_encode(['success' => true, 'message' => 'Application updated successfully']);
+    }
+
+    public function delete($id)
+    {
+        // Check if user is logged in and is a parent
+        if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'parent') {
+            http_response_code(403);
+            include __DIR__ . '/../../resources/views/errors/403.php';
+            return;
+        }
+        
+        // Handle application deletion
+        echo json_encode(['success' => true, 'message' => 'Application deleted successfully']);
+    }
+
     public function submit()
     {
         // Check if user is logged in and is a parent
-        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'parent') {
+        if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'parent') {
             http_response_code(403);
-            echo json_encode(['error' => 'Unauthorized']);
+            include __DIR__ . '/../../resources/views/errors/403.php';
             return;
         }
         
@@ -37,7 +99,7 @@ class ApplicationController
             ");
             
             $stmt->execute([
-                $_SESSION['user_id'],
+                $_SESSION['user']['id'],
                 $childName,
                 $dateOfBirth,
                 $placeOfBirth,

@@ -14,7 +14,7 @@ class Authentication
     private const PASSWORD_HISTORY_LIMIT = 5;
     private const PASSWORD_EXPIRY_DAYS = 90;
     
-    public function __construct(PDO $db = null)
+    public function __construct(?PDO $db = null)
     {
         if ($db === null) {
             // Get database connection from Database class if not provided

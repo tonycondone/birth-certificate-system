@@ -1,0 +1,12 @@
+
+services:
+  - type: web
+    runtime: docker
+    name: digital-birth-certificate
+    # Removed the invalid property 'env'
+    plan: free
+    buildCommand: composer install
+    startCommand: php -S 0.0.0.0:80 -t public
+    envVars:
+      - key: APP_ENV
+        value: production

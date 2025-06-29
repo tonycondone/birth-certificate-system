@@ -12,7 +12,12 @@ require_once __DIR__ . '/layouts/base.php';
                 <p class="lead mb-4">Register births, obtain certificates, and verify documents - all in one secure platform.</p>
                 <div class="d-grid gap-2 d-md-flex justify-content-md-start">
                     <a href="/register" class="btn btn-light btn-lg px-4 me-md-2">Get Started</a>
-                    <a href="/verify" class="btn btn-outline-light btn-lg px-4">Verify Certificate</a>
+                    <a href="/verify" class="btn btn-outline-light btn-lg px-4 me-md-2">Verify Certificate</a>
+                    <a href="/contact" class="btn btn-outline-light btn-lg px-4 me-md-2">Contact Us</a>
+                    <a href="/api-docs" class="btn btn-outline-light btn-lg px-4 me-md-2">API Docs</a>
+                    <?php if ($isLoggedIn): ?>
+                        <a href="/profile" class="btn btn-outline-light btn-lg px-4">My Profile</a>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="col-lg-6 d-none d-lg-block">
@@ -21,6 +26,18 @@ require_once __DIR__ . '/layouts/base.php';
         </div>
     </div>
 </section>
+
+<!-- Welcome Message Section -->
+<?php if (isset($welcomeMessage)): ?>
+<section class="welcome-message py-3 bg-light">
+    <div class="container">
+        <div class="alert alert-info border-0 text-center mb-0" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <?php echo htmlspecialchars($welcomeMessage); ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
 
 <!-- Features Section -->
 <section class="features py-5">
@@ -88,16 +105,45 @@ require_once __DIR__ . '/layouts/base.php';
     <div class="container">
         <div class="row text-center">
             <div class="col-md-4 mb-4 mb-md-0">
-                <div class="display-4 fw-bold text-primary mb-2" data-count="50000">50,000+</div>
+                <div class="display-4 fw-bold text-primary mb-2">
+                    <?php echo htmlspecialchars($statistics['approved_certificates']); ?>
+                </div>
                 <p class="lead">Certificates Issued</p>
             </div>
             <div class="col-md-4 mb-4 mb-md-0">
-                <div class="display-4 fw-bold text-primary mb-2" data-count="1000">1,000+</div>
-                <p class="lead">Registered Hospitals</p>
+                <div class="display-4 fw-bold text-primary mb-2">
+                    <?php echo htmlspecialchars($statistics['total_users']); ?>
+                </div>
+                <p class="lead">Registered Users</p>
             </div>
             <div class="col-md-4">
-                <div class="display-4 fw-bold text-primary mb-2" data-count="99">99%</div>
-                <p class="lead">Satisfaction Rate</p>
+                <div class="display-4 fw-bold text-warning mb-2">
+                    <?php echo htmlspecialchars($statistics['pending_applications']); ?>
+                </div>
+                <p class="lead">Pending Applications</p>
+            </div>
+        </div>
+        <!-- Additional Statistics Row -->
+        <div class="row text-center mt-4">
+            <div class="col-md-6 mb-4 mb-md-0">
+                <div class="h3 fw-bold text-info mb-2">
+                    <?php echo htmlspecialchars($statistics['total_applications']); ?>
+                </div>
+                <p class="lead">Total Applications</p>
+            </div>
+            <div class="col-md-6">
+                <div class="h3 fw-bold text-success mb-2">
+                    <?php 
+                    // Calculate success rate
+                    if (is_numeric($statistics['total_applications']) && is_numeric($statistics['approved_certificates']) && $statistics['total_applications'] > 0) {
+                        $successRate = round(($statistics['approved_certificates'] / $statistics['total_applications']) * 100);
+                        echo $successRate . '%';
+                    } else {
+                        echo 'N/A';
+                    }
+                    ?>
+                </div>
+                <p class="lead">Success Rate</p>
             </div>
         </div>
     </div>

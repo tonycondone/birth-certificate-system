@@ -16,7 +16,7 @@ class RateLimitMiddleware
         'default' => ['requests' => 30, 'window' => 60] // 30 requests per minute
     ];
 
-    public function __construct(PDO $db = null)
+    public function __construct(?PDO $db = null)
     {
         if ($db === null) {
             require_once __DIR__ . '/../Database/Database.php';

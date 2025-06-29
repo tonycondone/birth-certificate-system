@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "vscode-mcp-server": {
+        "command": "npx",
+        "args": ["mcp-remote@next", "http://localhost:3000/mcp"]
+    },
+    "serena": {
+        "command": "/abs/path/to/uv",
+        "args": ["run", "--directory", "/abs/path/to/serena", "serena-mcp-server"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem", "--root", "."]
+    },
+    "terminal": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-terminal"]
+    }
+  }
+} 

@@ -1,74 +1,57 @@
--- Drop table if exists
-DROP TABLE IF EXISTS birth_applications;
-
--- Create Birth Applications Table
-CREATE TABLE birth_applications (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    application_number VARCHAR(50) NOT NULL,
-    parent_id BIGINT NOT NULL,
-    hospital_id BIGINT,
-    
-    -- Child Details
-    child_first_name VARCHAR(100) NOT NULL,
-    child_middle_name VARCHAR(100),
-    child_last_name VARCHAR(100) NOT NULL,
+-- Create birth_applications table
+CREATE TABLE IF NOT EXISTS birth_applications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    application_number VARCHAR(50) UNIQUE NOT NULL,
+    user_id INT NOT NULL,
+    child_first_name VARCHAR(50) NOT NULL,
+    child_last_name VARCHAR(50) NOT NULL,
+    child_middle_name VARCHAR(50),
     date_of_birth DATE NOT NULL,
-    time_of_birth TIME NOT NULL,
-    gender VARCHAR(20) NOT NULL,
-    weight_in_grams INT,
-    place_of_birth VARCHAR(255) NOT NULL,
+    time_of_birth TIME,
+    place_of_birth VARCHAR(200) NOT NULL,
+    gender ENUM('male', 'female', 'other') NOT NULL,
+    weight_at_birth DECIMAL(4,2),
+    length_at_birth DECIMAL(4,2),
     
-    -- Parents Details
-    father_national_id VARCHAR(50),
-    father_first_name VARCHAR(100),
-    father_last_name VARCHAR(100),
-    father_nationality VARCHAR(100),
+    -- Parent Information
+    father_first_name VARCHAR(50),
+    father_last_name VARCHAR(50),
+    father_national_id VARCHAR(20),
+    father_phone VARCHAR(20),
+    father_email VARCHAR(100),
     
-    mother_national_id VARCHAR(50) NOT NULL,
-    mother_first_name VARCHAR(100) NOT NULL,
-    mother_last_name VARCHAR(100) NOT NULL,
-    mother_nationality VARCHAR(100) NOT NULL,
+    mother_first_name VARCHAR(50) NOT NULL,
+    mother_last_name VARCHAR(50) NOT NULL,
+    mother_national_id VARCHAR(20),
+    mother_phone VARCHAR(20),
+    mother_email VARCHAR(100),
     
-    -- Address Information
-    address_line1 VARCHAR(255) NOT NULL,
-    address_line2 VARCHAR(255),
-    city VARCHAR(100) NOT NULL,
-    state_province VARCHAR(100) NOT NULL,
-    postal_code VARCHAR(20),
-    country VARCHAR(100) NOT NULL,
+    -- Hospital Information
+    hospital_name VARCHAR(200),
+    hospital_id VARCHAR(50),
+    attending_physician VARCHAR(100),
+    physician_license VARCHAR(50),
     
     -- Application Status
-    status VARCHAR(50) NOT NULL,
-    submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    hospital_verified_at TIMESTAMP NULL,
-    hospital_verified_by BIGINT,
-    registrar_verified_at TIMESTAMP NULL,
-    registrar_verified_by BIGINT,
-    rejected_at TIMESTAMP NULL,
-    rejected_by BIGINT,
-    rejection_reason TEXT,
+    status ENUM('draft', 'submitted', 'under_review', 'approved', 'rejected', 'certificate_issued') DEFAULT 'draft',
+    submitted_at TIMESTAMP NULL,
+    reviewed_at TIMESTAMP NULL,
+    reviewed_by INT NULL,
+    review_notes TEXT,
     
-    -- Document References
-    supporting_documents TEXT, -- JSON array of document paths
-    hospital_documents TEXT,   -- JSON array of hospital-provided document paths
+    -- Documents
+    birth_notification_document VARCHAR(255),
+    parent_id_documents VARCHAR(255),
+    medical_records VARCHAR(255),
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL,
     
-    CONSTRAINT UQ_applications_application_number UNIQUE (application_number),
-    CONSTRAINT CHK_applications_gender CHECK (gender IN ('male', 'female', 'other')),
-    CONSTRAINT CHK_applications_status CHECK (status IN ('draft', 'submitted', 'hospital_verified', 'registrar_verified', 'rejected', 'approved')),
-    CONSTRAINT FK_parent_user FOREIGN KEY (parent_id) REFERENCES users(id),
-    CONSTRAINT FK_hospital_verified_by FOREIGN KEY (hospital_verified_by) REFERENCES users(id),
-    CONSTRAINT FK_registrar_verified_by FOREIGN KEY (registrar_verified_by) REFERENCES users(id),
-    CONSTRAINT FK_rejected_by FOREIGN KEY (rejected_by) REFERENCES users(id)
-);
-
--- Create indexes
-CREATE INDEX idx_application_number ON birth_applications(application_number);
-CREATE INDEX idx_parent_id ON birth_applications(parent_id);
-CREATE INDEX idx_hospital_id ON birth_applications(hospital_id);
-CREATE INDEX idx_status ON birth_applications(status);
-CREATE INDEX idx_mother_national_id ON birth_applications(mother_national_id);
-CREATE INDEX idx_submitted_at ON birth_applications(submitted_at);
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+    
+    INDEX idx_application_number (application_number),
+    INDEX idx_user_id (user_id),
+    INDEX idx_status (status),
+    INDEX idx_date_of_birth (date_of_birth)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

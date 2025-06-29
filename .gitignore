@@ -6,12 +6,8 @@
 /public/js/
 
 # Environment and Configuration
-.env
-.env.*
-!.env.example
-.env.production
-.env.local
-.env.backup
+
+.roomodes
 
 # Test files
 /tests/
@@ -83,3 +79,6 @@ yarn.lock
 # Backup files
 *.bak
 *.backup
+
+# Environment variables
+.env

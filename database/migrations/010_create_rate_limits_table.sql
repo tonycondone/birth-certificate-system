@@ -1,13 +1,12 @@
-CREATE TABLE rate_limits (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    route NVARCHAR(255) NOT NULL,
-    ip_address NVARCHAR(45) NOT NULL,
-    timestamp DATETIME DEFAULT GETDATE(),
-    CONSTRAINT idx_route_ip UNIQUE (route, ip_address)
-);
-
-CREATE INDEX idx_timestamp ON rate_limits (timestamp);
-
--- Add indexes to login_attempts table for better rate limiting performance
-CREATE INDEX idx_email_time ON login_attempts (email, attempted_at);
-CREATE INDEX idx_ip_time ON login_attempts (ip_address, attempted_at);
+-- Create rate limits table for security
+CREATE TABLE IF NOT EXISTS rate_limits (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ip_address VARCHAR(45) NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    attempts INT DEFAULT 1,
+    first_attempt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_attempt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    blocked_until TIMESTAMP NULL,
+    INDEX idx_ip_action (ip_address, action),
+    INDEX idx_blocked_until (blocked_until)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

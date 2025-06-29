@@ -1,3 +1,11 @@
+# PHP Handler Configuration
+<FilesMatch "\.php$">
+    SetHandler application/x-httpd-php
+</FilesMatch>
+
+# Ensure PHP files are executed
+AddType application/x-httpd-php .php
+
 RewriteEngine On
 
 # Handle Authorization Header
