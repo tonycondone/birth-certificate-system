@@ -3,6 +3,14 @@
 namespace App\Controllers;
 
 use App\Database\Database;
+use App\Models\Certificate;
+use App\Models\BirthApplication;
+use App\Models\User;
+use App\Services\AuthService;
+use App\Services\CertificateVerificationService;
+use App\Middleware\AuthMiddleware;
+use App\Middleware\RoleMiddleware;
+use PDO;
 
 /**
  * Class CertificateController
@@ -12,33 +20,171 @@ use App\Database\Database;
  */
 class CertificateController
 {
+    private $db;
+    private $authService;
+    private $verificationService;
+
+    public function __construct(PDO $db, AuthService $authService, CertificateVerificationService $verificationService) {
+        $this->db = $db;
+        $this->authService = $authService;
+        $this->verificationService = $verificationService;
+
+        // Get the current request path
+        $currentPath = $_SERVER['REQUEST_URI'] ?? '/';
+
+        // Apply middleware for authentication and role-based access
+        (new AuthMiddleware())->handle($currentPath, ['registrar', 'admin']);
+        (new RoleMiddleware(['registrar', 'admin']))->handle();
+    }
+
+    /**
+     * Display the certificate verification page
+     * Accessible only to registrars and admins
+     */
+    public function showVerify() {
+        // Get the current user
+        $user = $this->authService->getCurrentUser();
+        
+        // Fetch pending applications for verification
+        $pendingApplications = $this->getPendingApplications($user);
+
+        // Render the verification view
+        require_once __DIR__ . '/../Views/certificates/verify.php';
+    }
+
+    /**
+     * Retrieve pending applications based on user role
+     * 
+     * @param User $user
+     * @return array
+     */
+    private function getPendingApplications(User $user): array {
+        $query = "
+            SELECT 
+                ba.id, 
+                ba.user_id, 
+                ba.child_first_name, 
+                ba.child_last_name, 
+                ba.status, 
+                u.first_name AS parent_first_name, 
+                u.last_name AS parent_last_name,
+                ba.created_at
+            FROM 
+                birth_applications ba
+            JOIN 
+                users u ON ba.user_id = u.id
+            WHERE 
+                ba.status = 'pending'
+            ORDER BY 
+                ba.created_at ASC
+        ";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Verify a specific certificate/application
+     * 
+     * @param int $applicationId
+     */
+    public function verifyCertificate(int $applicationId) {
+        // Validate input
+        if (!$applicationId) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid application ID']);
+            exit;
+        }
+
+        try {
+            // Get the current user
+            $user = $this->authService->getCurrentUser();
+
+            // Verify the application
+            $verificationResult = $this->verificationService->verifyApplication(
+                $applicationId, 
+                $user->getId()
+            );
+
+            // Return verification result
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Application verified successfully',
+                'details' => $verificationResult
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Reject a certificate/application
+     * 
+     * @param int $applicationId
+     * @param string $reason
+     */
+    public function rejectCertificate(int $applicationId, string $reason = '') {
+        try {
+            // Get the current user
+            $user = $this->authService->getCurrentUser();
+
+            // Reject the application
+            $rejectionResult = $this->verificationService->rejectApplication(
+                $applicationId, 
+                $user->getId(),
+                $reason
+            );
+
+            // Return rejection result
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Application rejected successfully',
+                'details' => $rejectionResult
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Validate a certificate's authenticity
+     * 
+     * @param string $certificateNumber
+     */
+    public function validateCertificate(string $certificateNumber) {
+        try {
+            // Validate certificate
+            $validationResult = $this->verificationService->validateCertificate($certificateNumber);
+
+            // Return validation result
+            echo json_encode([
+                'status' => 'success',
+                'valid' => $validationResult['valid'],
+                'details' => $validationResult['details']
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
     /**
      * Display the certificate verification form.
      * Generates CSRF token and includes the verify view.
      *
-     * @return void
-     */
-    public function showVerify()
-    {
-        $pageTitle = 'Verify Certificate - Digital Birth Certificate System';
-        
-        // Generate CSRF token if not exists
-        if (!isset($_SESSION['csrf_token'])) {
-            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-        }
-        
-        // Initialize certificate variable to avoid undefined variable errors
-        $certificate = null;
-        
-        include BASE_PATH . '/resources/views/verify.php';
-    }
-    
-    /**
-     * Process certificate verification by certificate number.
-     * Validates input, enforces rate limits, queries database,
-     * updates verification count, and prepares certificate data.
-     *
-     * @param string|null $certificateId Optional certificate number from URL.
      * @return void
      */
     public function verify($certificateId = null)

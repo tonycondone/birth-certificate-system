@@ -4,6 +4,10 @@
  * Main Entry Point
  */
 
+// Enable detailed error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 define('BASE_PATH', dirname(__DIR__));
 
 // Load environment variables
@@ -58,7 +62,8 @@ if ($_ENV['APP_DEBUG'] ?? false) {
 require_once __DIR__ . '/../vendor/autoload.php';
 
 // Load database connection
-require_once __DIR__ . '/../app/Database/Database.php';
+use App\Services\DependencyContainer;
+use App\Controllers\CertificateController;
 
 // Simple routing
 $request_uri = $_SERVER['REQUEST_URI'];
@@ -178,7 +183,58 @@ $routes = [
     
     // Settings routes
     '/dashboard/registrar' => 'App\Controllers\DashboardController@registrar',
+
+    // Certificate Verification Routes
+    '/verify/certificate/[*:number]' => 'CertificateController@validateCertificate',
+    '/certificates/verify/[i:id]' => 'CertificateController@verifyCertificate',
+    '/certificates/reject/[i:id]' => 'CertificateController@rejectCertificate',
 ];
+
+// Comprehensive error handling for dependency injection
+function createCertificateController() {
+    try {
+        // Get dependencies from the container
+        $container = DependencyContainer::getInstance();
+        
+        // Detailed logging of dependency creation
+        try {
+            $db = $container->getDatabase();
+        } catch (Exception $e) {
+            error_log("Database Connection Error in createCertificateController: " . $e->getMessage());
+            throw $e;
+        }
+
+        try {
+            $authService = $container->getAuthService();
+        } catch (Exception $e) {
+            error_log("Auth Service Creation Error in createCertificateController: " . $e->getMessage());
+            throw $e;
+        }
+
+        try {
+            $verificationService = $container->getCertificateVerificationService();
+        } catch (Exception $e) {
+            error_log("Certificate Verification Service Creation Error in createCertificateController: " . $e->getMessage());
+            throw $e;
+        }
+        
+        // Create and return CertificateController with dependencies
+        return new CertificateController($db, $authService, $verificationService);
+    } catch (Exception $e) {
+        // Log the full error details
+        error_log("Fatal Error in createCertificateController: " . $e->getMessage());
+        error_log("Trace: " . $e->getTraceAsString());
+        
+        // Depending on environment, either show a generic error or detailed error
+        if ($_ENV['APP_DEBUG'] ?? false) {
+            throw $e; // Rethrow for detailed error display
+        } else {
+            // Show a generic error page
+            http_response_code(500);
+            die('An internal server error occurred. Please contact support.');
+        }
+    }
+}
 
 // Check if route exists
 if (isset($routes[$path])) {
@@ -196,11 +252,13 @@ if (isset($routes[$path])) {
         exit;
     }
     
-    // No need to manually require files with a proper autoloader
-    // $controller_file = __DIR__ . "/../app/Controllers/{$controller_name}.php";
-    
     if (class_exists($controller_class)) {
-        $controller = new $controller_class();
+        // Special handling for CertificateController
+        if ($controller_class === \App\Controllers\CertificateController::class) {
+            $controller = createCertificateController();
+        } else {
+            $controller = new $controller_class();
+        }
         
         if (method_exists($controller, $method_name)) {
             try {
