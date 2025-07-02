@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS users (
     remember_token VARCHAR(100) NULL,
     password_expires_at TIMESTAMP NULL,
     last_login_at TIMESTAMP NULL,
+    account_locked TINYINT(1) DEFAULT 0,
+    lock_expires_at DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     

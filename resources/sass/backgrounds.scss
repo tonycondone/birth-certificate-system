@@ -1,0 +1,98 @@
+// Background Styles for Birth Certificate System
+
+// Variables
+$primary-gradient: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+$secondary-gradient: linear-gradient(to right, #434343 0%, black 100%);
+$light-gradient: linear-gradient(to right, #f5f7fa 0%, #c3cfe2 100%);
+
+// Mixins
+@mixin background-overlay($color, $opacity: 0.6) {
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba($color, $opacity);
+    z-index: 1;
+  }
+}
+
+// Background Classes
+.site-background {
+  background: $primary-gradient;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: white;
+}
+
+.home-background {
+  background: url('/images/hero-image.svg') no-repeat center center;
+  background-size: cover;
+  @include background-overlay(#000, 0.5);
+}
+
+.dashboard-background {
+  background: $secondary-gradient;
+  background-size: cover;
+  background-attachment: fixed;
+  color: white;
+}
+
+.application-background {
+  background: $light-gradient;
+  background-size: cover;
+  background-position: center;
+}
+
+.verify-background {
+  background: url('/images/scanner-bg.jpg') no-repeat center center;
+  background-size: cover;
+  @include background-overlay(#2c3e50, 0.7);
+}
+
+.profile-background {
+  background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+// Responsive Adjustments
+@media (max-width: 768px) {
+  .site-background,
+  .dashboard-background,
+  .profile-background {
+    background-attachment: scroll;
+  }
+}
+
+// Utility Classes
+.bg-overlay {
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1;
+  }
+}
+
+// Dark Mode Support
+@media (prefers-color-scheme: dark) {
+  .site-background {
+    background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+  }
+  
+  .dashboard-background {
+    background: linear-gradient(to right, #232526, #414345);
+  }
+} 

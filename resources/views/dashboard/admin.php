@@ -54,9 +54,7 @@ if (!$currentUser || $currentUser['role'] !== 'admin') {
                         <div class="col">
                             <div class="text-xs fw-bold text-primary text-uppercase mb-1">Total Users</div>
                             <div class="h5 mb-0 fw-bold text-gray-800" id="totalUsers">
-                                <div class="spinner-border spinner-border-sm" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
+                                <?php echo htmlspecialchars($statistics['totalUsers'] ?? 0); ?>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -75,9 +73,7 @@ if (!$currentUser || $currentUser['role'] !== 'admin') {
                         <div class="col">
                             <div class="text-xs fw-bold text-success text-uppercase mb-1">Total Applications</div>
                             <div class="h5 mb-0 fw-bold text-gray-800" id="totalApplications">
-                                <div class="spinner-border spinner-border-sm" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
+                                <?php echo htmlspecialchars($statistics['totalApplications'] ?? 0); ?>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -96,9 +92,7 @@ if (!$currentUser || $currentUser['role'] !== 'admin') {
                         <div class="col">
                             <div class="text-xs fw-bold text-warning text-uppercase mb-1">Pending Verifications</div>
                             <div class="h5 mb-0 fw-bold text-gray-800" id="pendingVerifications">
-                                <div class="spinner-border spinner-border-sm" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
+                                <?php echo htmlspecialchars($statistics['pendingApplications'] ?? 0); ?>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -117,9 +111,7 @@ if (!$currentUser || $currentUser['role'] !== 'admin') {
                         <div class="col">
                             <div class="text-xs fw-bold text-info text-uppercase mb-1">Certificates Issued</div>
                             <div class="h5 mb-0 fw-bold text-gray-800" id="certificatesIssued">
-                                <div class="spinner-border spinner-border-sm" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
+                                <?php echo htmlspecialchars($statistics['approvedCertificates'] ?? 0); ?>
                             </div>
                         </div>
                         <div class="col-auto">

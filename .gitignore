@@ -81,4 +81,3 @@ yarn.lock
 *.backup
 
 # Environment variables
-.env

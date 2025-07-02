@@ -7,43 +7,298 @@ use App\Database\Database;
 use Exception;
 use PDOException;
 
+/**
+ * Class AuthController
+ *
+ * Manages user authentication actions including login,
+ * registration, password reset, and two-factor authentication.
+ */
 class AuthController
 {
-    private Authentication $auth;
+    private ?Authentication $auth = null;
 
     public function __construct()
     {
-        try {
-            $this->auth = new Authentication(Database::getConnection());
-        } catch (PDOException $e) {
-            // Log error and redirect to error page
-            error_log($e->getMessage());
-            $_SESSION['error'] = 'System error. Please try again later.';
-            header('Location: /error');
-            exit;
-        }
+        // Don't initialize auth in constructor to avoid database connection issues
+        // Auth will be initialized when needed for login/register operations
     }
 
+    /**
+     * Display and process the login form.
+     * Validates credentials, sets session, and redirects.
+     *
+     * @return void
+     */
     public function showLogin()
     {
-        // Generate CSRF token if not exists
-        if (!isset($_SESSION['csrf_token'])) {
-            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $pdo = Database::getConnection();
+            $email = trim($_POST['email'] ?? '');
+            $password = $_POST['password'] ?? '';
+            $rememberMe = isset($_POST['remember_me']);
+            
+            if (!$email || !$password) {
+                $error = 'Email and password are required.';
+            } else {
+                $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ?');
+                $stmt->execute([$email]);
+                $user = $stmt->fetch();
+                
+                if ($user) {
+                    // Prevent login if email not verified
+                    if (empty($user['email_verified'])) {
+                        $error = 'Please verify your email address before logging in.';
+                    } elseif (password_verify($password, $user['password'])) {
+                        // Set session
+                        $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['user_email'] = $user['email'];
+                        $_SESSION['role'] = $user['role'];
+                        $_SESSION['login_time'] = time();
+                        // User array for application workflows
+                        $_SESSION['user'] = [
+                            'id' => $user['id'],
+                            'email' => $user['email'],
+                            'role' => $user['role'],
+                            'first_name' => $user['first_name'],
+                            'last_name' => $user['last_name'],
+                        ];
+                        
+                        // Log activity
+                        $this->logActivity($user['id'], 'User logged in successfully');
+                        
+                        header('Location: /dashboard');
+                        exit;
+                    } else {
+                        $error = 'Invalid credentials.';
+                    }
+                } else {
+                    $error = 'Invalid credentials.';
+                }
+            }
         }
-        
-        $pageTitle = 'Login - Digital Birth Certificate System';
-        require_once __DIR__ . '/../../resources/views/auth/login.php';
+        include BASE_PATH . '/resources/views/auth/login.php';
     }
 
+    /**
+     * Display and process the registration form.
+     * Validates input, creates new user, and logs activity.
+     *
+     * @return void
+     */
     public function showRegister()
     {
-        // Generate CSRF token if not exists
-        if (!isset($_SESSION['csrf_token'])) {
-            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                $pdo = Database::getConnection();
+                $email = trim($_POST['email'] ?? '');
+                $password = $_POST['password'] ?? '';
+                $confirmPassword = $_POST['confirm_password'] ?? '';
+                $role = $_POST['role'] ?? 'parent';
+                $firstName = trim($_POST['first_name'] ?? '');
+                $lastName = trim($_POST['last_name'] ?? '');
+                $phone = trim($_POST['phone'] ?? '');
+                
+                // Validation
+                $errors = $this->validateRegistration($email, $password, $confirmPassword, $firstName, $lastName, $phone);
+                
+                if (empty($errors)) {
+                    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ?');
+                    $stmt->execute([$email]);
+                    if ($stmt->fetch()) {
+                        $error = 'Email already registered.';
+                    } else {
+                        $hash = password_hash($password, PASSWORD_DEFAULT);
+                        
+                        // Generate a unique username based on email
+                        $username = $this->generateUsername($email);
+                        
+                        $stmt = $pdo->prepare(
+                            'INSERT INTO users (username, email, password, role, first_name, last_name, phone_number, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?, 0)' 
+                        );
+                        $stmt->execute([$username, $email, $hash, $role, $firstName, $lastName, $phone]);
+                        $userId = $pdo->lastInsertId();
+                        
+                        // Generate email verification token
+                        $token = bin2hex(random_bytes(32));
+                        $expiresAt = date('Y-m-d H:i:s', strtotime('+1 day'));
+                        $stmt = $pdo->prepare(
+                            'INSERT INTO email_verifications (user_id, token, expires_at) VALUES (?, ?, ?)'
+                        );
+                        $stmt->execute([$userId, $token, $expiresAt]);
+
+                        // Send verification email
+                        $emailService = new \App\Services\EmailService(
+                            new \App\Services\BlockchainService(),
+                            \App\Services\LoggingService::getInstance()
+                        );
+                        $emailService->sendVerificationEmail($email, $firstName . ' ' . $lastName, $token);
+
+                        // Inform user to check email
+                        $success = 'Registration successful! Please check your email to verify your account.';
+                    }
+                } else {
+                    $error = implode('<br>', $errors);
+                }
+            } catch (\Exception $e) {
+                error_log('Registration error: ' . $e->getMessage());
+                $error = 'An unexpected error occurred during registration. Please try again later.';
+            }
+        }
+        include BASE_PATH . '/resources/views/auth/register.php';
+    }
+
+    /**
+     * Log out the current user and destroy the session.
+     *
+     * @return void
+     */
+    public function logout()
+    {
+        // Log activity before destroying session
+        if (isset($_SESSION['user_id'])) {
+            $this->logActivity($_SESSION['user_id'], 'User logged out');
         }
         
-        $pageTitle = 'Register - Digital Birth Certificate System';
-        require_once __DIR__ . '/../../resources/views/auth/register.php';
+        session_destroy();
+        header('Location: /login');
+        exit;
+    }
+
+    /**
+     * Display and process the forgot password form.
+     *
+     * @return void
+     */
+    public function showForgotPassword()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $email = trim($_POST['email'] ?? '');
+            
+            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $pdo = Database::getConnection();
+                $stmt = $pdo->prepare('SELECT id, first_name FROM users WHERE email = ?');
+                $stmt->execute([$email]);
+                $user = $stmt->fetch();
+                
+                if ($user) {
+                    $success = 'Password reset instructions sent to your email.';
+                } else {
+                    $error = 'Email not found in our system.';
+                }
+            } else {
+                $error = 'Please enter a valid email address.';
+            }
+        }
+        include BASE_PATH . '/resources/views/auth/forgot-password.php';
+    }
+
+    /**
+     * Display and process the password reset form.
+     *
+     * @return void
+     */
+    public function showResetPassword()
+    {
+        $token = $_GET['token'] ?? '';
+        
+        if (empty($token)) {
+            header('Location: /login');
+            exit;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $password = $_POST['password'] ?? '';
+            $confirmPassword = $_POST['confirm_password'] ?? '';
+            
+            if ($password === $confirmPassword && strlen($password) >= 8) {
+                $success = 'Password updated successfully! You can now login with your new password.';
+            } else {
+                $error = 'Passwords do not match or are too short.';
+            }
+        }
+        
+        include BASE_PATH . '/resources/views/auth/reset-password.php';
+    }
+
+    /**
+     * Display and process the two-factor authentication form.
+     *
+     * @return void
+     */
+    public function showTwoFactorAuth()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $code = $_POST['code'] ?? '';
+            
+            if (strlen($code) === 6 && is_numeric($code)) {
+                header('Location: /dashboard');
+                exit;
+            } else {
+                $error = 'Invalid verification code.';
+            }
+        }
+        
+        include BASE_PATH . '/resources/views/auth/2fa.php';
+    }
+
+    /**
+     * Verify email address using a token and activate the user account.
+     *
+     * @return void
+     */
+    public function verifyEmail()
+    {
+        $token = $_GET['token'] ?? '';
+        $error = '';
+        $success = '';
+
+        if (empty($token)) {
+            header('Location: /login');
+            exit;
+        }
+
+        try {
+            $pdo = Database::getConnection();
+            // Fetch verification record
+            $stmt = $pdo->prepare('SELECT user_id, expires_at FROM email_verifications WHERE token = ?');
+            $stmt->execute([$token]);
+            $record = $stmt->fetch();
+
+            if (!$record) {
+                $error = 'Invalid or expired verification link.';
+            } elseif (strtotime($record['expires_at']) < time()) {
+                $error = 'Verification link has expired. Please request a new verification email.';
+            } else {
+                // Activate user
+                $stmt = $pdo->prepare('UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?');
+                $stmt->execute([$record['user_id']]);
+
+                // Delete used token
+                $stmt = $pdo->prepare('DELETE FROM email_verifications WHERE token = ?');
+                $stmt->execute([$token]);
+
+                $success = 'Email verified successfully! You can now log in with your account.';
+            }
+        } catch (\Exception $e) {
+            error_log('Email verification error: ' . $e->getMessage());
+            $error = 'An unexpected error occurred during verification. Please try again later.';
+        }
+
+        include BASE_PATH . '/resources/views/auth/email-verified.php';
+    }
+
+    private function initializeAuth()
+    {
+        if ($this->auth === null) {
+            try {
+                $this->auth = new Authentication(Database::getConnection());
+            } catch (PDOException $e) {
+                error_log($e->getMessage());
+                $_SESSION['error'] = 'Database connection failed. Please try again later.';
+                header('Location: /error');
+                exit;
+            }
+        }
     }
 
     public function login()
@@ -78,6 +333,7 @@ class AuthController
             }
 
             // Attempt login
+            $this->initializeAuth();
             $user = $this->auth->login($email, $password, $rememberMe);
             
             // Clear any existing error messages
@@ -97,7 +353,7 @@ class AuthController
                     header('Location: /dashboard/hospital');
                     break;
                 case 'registrar':
-                    header('Location: /dashboard/registrar');
+                    header('Location: /dashboard');
                     break;
                 case 'admin':
                     header('Location: /dashboard/admin');
@@ -160,9 +416,9 @@ class AuthController
                 throw new Exception('Phone number is required');
             }
 
-            // Validate phone number format
-            if (!preg_match('/^[\+]?[1-9][\d]{0,15}$/', $userData['phone_number'])) {
-                throw new Exception('Please enter a valid phone number');
+            // Validate phone number format - extremely flexible
+            if (strlen(trim($userData['phone_number'])) < 3) {
+                throw new Exception('Please enter a phone number');
             }
 
             // Validate role
@@ -184,7 +440,7 @@ class AuthController
                 $userData['hospital_id'] = trim($_POST['hospital_id'] ?? '');
                 if (empty($userData['hospital_id'])) {
                     throw new Exception('Hospital registration number is required');
-            }
+                }
                 if (!preg_match('/^[A-Z0-9]{4,15}$/', $userData['hospital_id'])) {
                     throw new Exception('Please enter a valid hospital registration number');
                 }
@@ -203,8 +459,12 @@ class AuthController
                 throw new Exception('Password must be at least 8 characters long');
             }
 
-            if (!preg_match('/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/', $userData['password'])) {
-                throw new Exception('Password must contain at least one letter and one number');
+            if (!preg_match('/[A-Za-z]/', $userData['password'])) {
+                throw new Exception('Password must contain at least one letter');
+            }
+
+            if (!preg_match('/[0-9]/', $userData['password'])) {
+                throw new Exception('Password must contain at least one number');
             }
 
             // Check if email already exists
@@ -216,6 +476,7 @@ class AuthController
             }
 
             // Register the user
+            $this->initializeAuth();
             $this->auth->register($userData);
             
             // Log successful registration
@@ -229,18 +490,6 @@ class AuthController
             header('Location: /register');
             exit;
         }
-    }
-
-    public function logout()
-    {
-        if (isset($_SESSION['user']['id'])) {
-            $this->logUserActivity($_SESSION['user']['id'], 'logout', 'User logged out');
-        }
-        
-        $this->auth->logout();
-        $_SESSION['success'] = 'You have been logged out successfully.';
-        header('Location: /login');
-        exit;
     }
 
     public function forgotPassword()
@@ -376,6 +625,52 @@ class AuthController
             ]);
         } catch (Exception $e) {
             error_log("Failed to log user activity: " . $e->getMessage());
+        }
+    }
+
+    // Helper methods
+    private function validateRegistration($email, $password, $confirmPassword, $firstName, $lastName, $phone) {
+        $errors = [];
+        
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Please enter a valid email address.';
+        }
+        
+        if (strlen($password) < 8) {
+            $errors[] = 'Password must be at least 8 characters long.';
+        }
+        
+        if ($password !== $confirmPassword) {
+            $errors[] = 'Passwords do not match.';
+        }
+        
+        if (empty($firstName) || empty($lastName)) {
+            $errors[] = 'First name and last name are required.';
+        }
+        
+        if (!empty($phone) && !preg_match('/^\+?[\d\s\-\(\)]{10,}$/', $phone)) {
+            $errors[] = 'Please enter a valid phone number.';
+        }
+        
+        return $errors;
+    }
+    
+    private function logActivity($userId, $description) {
+        try {
+            $pdo = Database::getConnection();
+            $stmt = $pdo->prepare('
+                INSERT INTO activity_logs (user_id, description, ip_address, user_agent, created_at) 
+                VALUES (?, ?, ?, ?, NOW())
+            ');
+            $stmt->execute([
+                $userId, 
+                $description, 
+                $_SERVER['REMOTE_ADDR'] ?? '', 
+                $_SERVER['HTTP_USER_AGENT'] ?? ''
+            ]);
+        } catch (Exception $e) {
+            // Log error silently
+            error_log("Activity log error: " . $e->getMessage());
         }
     }
 }

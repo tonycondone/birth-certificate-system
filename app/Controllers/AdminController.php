@@ -8,6 +8,13 @@ use App\Middleware\AuthMiddleware;
 use PDO;
 use Exception;
 
+/**
+ * Class AdminController
+ *
+ * Provides administrative functions such as system dashboard,
+ * user management, application management, reports, and settings.
+ * Protected by role-based access control for admins and registrars.
+ */
 class AdminController
 {
     private PDO $db;
@@ -30,8 +37,8 @@ class AdminController
     private function checkAdminAccess(): void
     {
         $currentUser = $this->auth->getCurrentUser();
-        if (!$currentUser || $currentUser['role'] !== 'admin') {
-            header('Location: /auth/login');
+        if (!$currentUser || !in_array($currentUser['role'], ['admin', 'registrar'])) {
+            header('Location: /login');
             exit;
         }
     }
@@ -47,7 +54,7 @@ class AdminController
             $pendingApplications = $this->getPendingApplications();
             
             // Include the dashboard view
-            include __DIR__ . '/../../resources/views/dashboard/admin.php';
+            include BASE_PATH . '/resources/views/dashboard/admin.php';
         } catch (Exception $e) {
             error_log("Admin Dashboard Error: " . $e->getMessage());
             $_SESSION['error'] = "Error loading dashboard data";
@@ -539,6 +546,32 @@ class AdminController
             header('Content-Type: application/json');
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Error updating settings']);
+        }
+    }
+
+    /**
+     * Display the list of generic applications in the admin panel.
+     * Retrieves applications joined with user data and renders the view.
+     *
+     * @return void
+     */
+    public function genericApplications(): void
+    {
+        try {
+            $stmt = $this->db->query(
+                'SELECT a.*, u.first_name, u.last_name, u.email 
+                 FROM applications a 
+                 JOIN users u ON a.user_id = u.id 
+                 ORDER BY a.created_at DESC'
+            );
+            $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            include BASE_PATH . '/resources/views/admin/generic_applications.php';
+        } catch (Exception $e) {
+            error_log("Admin Generic Applications Error: " . $e->getMessage());
+            $_SESSION['error'] = "Error loading applications data";
+            header('Location: /error/500');
+            exit;
         }
     }
 }

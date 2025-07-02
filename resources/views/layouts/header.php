@@ -41,13 +41,21 @@ $pageUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "
     <meta property="twitter:image" content="/images/og-image.jpg">
     
     <!-- Favicon -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" href="/images/favicon/favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
+    <link rel="mask-icon" href="/images/favicon/safari-pinned-tab.svg" color="#5bbad5">
     
-    <!-- Preload Critical Resources -->
-    <link rel="preload" href="/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+    <!-- Preload Fonts -->
+    <!-- Note: Removed preload for Inter font as it's not currently used and was causing 404 errors. 
+         To re-enable, ensure the font files are in the correct /public/fonts directory and uncomment the line below.
+    -->
+    <!-- <link rel="preload" href="/fonts/inter.woff2" as="font" type="font/woff2" crossorigin> -->
+
+    <!-- Template CSS -->
+    <link rel="stylesheet" href="/assets/template/css/bootstrap.css">
     
     <!-- Schema.org Markup -->
     <script type="application/ld+json">
@@ -69,6 +77,24 @@ $pageUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "
     </script>
 </head>
 <body>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Birth Certificate System</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">
+                                <i class="fas fa-home me-1"></i>Home
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        
 <header class="bg-white shadow-sm" role="banner">
     <nav class="container mx-auto px-4 py-3" role="navigation" aria-label="Main navigation">
         <div class="flex justify-between items-center">
@@ -96,7 +122,7 @@ $pageUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "
                         <a href="/dashboard/hospital" class="nav-link">Dashboard</a>
                         <a href="/applications/hospital-form" class="nav-link">Verify Birth</a>
                     <?php elseif ($userRole === 'registrar'): ?>
-                        <a href="/dashboard/registrar" class="nav-link">Dashboard</a>
+                        <a href="/dashboard" class="nav-link">Dashboard</a>
                     <?php elseif ($userRole === 'admin'): ?>
                         <a href="/dashboard/admin" class="nav-link">Admin Dashboard</a>
                     <?php endif; ?>
@@ -163,7 +189,7 @@ $pageUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "
                     <a href="/dashboard/hospital" class="block py-2 text-gray-700 hover:text-gray-900">Dashboard</a>
                     <a href="/applications/hospital-form" class="block py-2 text-gray-700 hover:text-gray-900">Verify Birth</a>
                 <?php elseif ($userRole === 'registrar'): ?>
-                    <a href="/dashboard/registrar" class="block py-2 text-gray-700 hover:text-gray-900">Dashboard</a>
+                    <a href="/dashboard" class="block py-2 text-gray-700 hover:text-gray-900">Dashboard</a>
                 <?php elseif ($userRole === 'admin'): ?>
                     <a href="/dashboard/admin" class="block py-2 text-gray-700 hover:text-gray-900">Admin Dashboard</a>
                 <?php endif; ?>

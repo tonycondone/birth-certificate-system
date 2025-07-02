@@ -4,9 +4,5 @@
 			"path": "."
 		}
 	],
-	"settings": {
-		"dataworkspace.excludedProjects": [
-			"birth certificate system/birth certificate system.sqlproj"
-		]
-	}
+	"settings": {}
 }

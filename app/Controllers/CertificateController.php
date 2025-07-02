@@ -4,20 +4,43 @@ namespace App\Controllers;
 
 use App\Database\Database;
 
+/**
+ * Class CertificateController
+ *
+ * Handles birth certificate verification, issuance, listing,
+ * approval, and PDF download functionality.
+ */
 class CertificateController
 {
+    /**
+     * Display the certificate verification form.
+     * Generates CSRF token and includes the verify view.
+     *
+     * @return void
+     */
     public function showVerify()
     {
-        $pageTitle = 'Verify Birth Certificate';
+        $pageTitle = 'Verify Certificate - Digital Birth Certificate System';
         
         // Generate CSRF token if not exists
         if (!isset($_SESSION['csrf_token'])) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
         
-        include __DIR__ . '/../../resources/views/verify.php';
+        // Initialize certificate variable to avoid undefined variable errors
+        $certificate = null;
+        
+        include BASE_PATH . '/resources/views/verify.php';
     }
     
+    /**
+     * Process certificate verification by certificate number.
+     * Validates input, enforces rate limits, queries database,
+     * updates verification count, and prepares certificate data.
+     *
+     * @param string|null $certificateId Optional certificate number from URL.
+     * @return void
+     */
     public function verify($certificateId = null)
     {
         $pageTitle = 'Verify Birth Certificate';
@@ -25,7 +48,7 @@ class CertificateController
         // Rate limiting for verification attempts
         if ($this->isRateLimited($_SERVER['REMOTE_ADDR'], 'verify')) {
             $error = "Too many verification attempts. Please wait 5 minutes before trying again.";
-            include __DIR__ . '/../../resources/views/verify.php';
+            include BASE_PATH . '/resources/views/verify.php';
             return;
         }
         
@@ -36,14 +59,14 @@ class CertificateController
         // Validate certificate number format
         if (empty($certificateId)) {
             $error = "Certificate number is required";
-            include __DIR__ . '/../../resources/views/verify.php';
+            include BASE_PATH . '/resources/views/verify.php';
             return;
         }
         
         // Validate certificate number format (12 characters, alphanumeric)
         if (!preg_match('/^[A-Z0-9]{12}$/', $certificateId)) {
             $error = "Invalid certificate number format. Please enter a 12-character alphanumeric code.";
-            include __DIR__ . '/../../resources/views/verify.php';
+            include BASE_PATH . '/resources/views/verify.php';
             return;
         }
         
@@ -161,7 +184,46 @@ class CertificateController
             ];
         }
         
-        include __DIR__ . '/../../resources/views/verify.php';
+        include BASE_PATH . '/resources/views/verify.php';
+    }
+    
+    /**
+     * Alternative verification method for requests with query parameter.
+     * Returns JSON-like structure for API usage.
+     *
+     * @return void
+     */
+    public function verifyFromRequest() 
+    {
+        $certificate = null;
+        
+        if (isset($_GET['certificate_number'])) {
+            $pdo = Database::getConnection();
+            $certNumber = trim($_GET['certificate_number']);
+            
+            try {
+                $stmt = $pdo->prepare('
+                    SELECT c.*, ba.child_name, ba.date_of_birth, ba.gender, ba.place_of_birth,
+                           ba.mother_name, ba.father_name
+                    FROM certificates c 
+                    JOIN birth_applications ba ON c.application_id = ba.id 
+                    WHERE c.certificate_number = ?
+                ');
+                $stmt->execute([$certNumber]);
+                $certificate = $stmt->fetch();
+                
+                if ($certificate) {
+                    $certificate['is_valid'] = true;
+                } else {
+                    $certificate = ['is_valid' => false, 'message' => 'Certificate not found'];
+                }
+            } catch (Exception $e) {
+                $certificate = ['is_valid' => false, 'message' => 'Error verifying certificate'];
+                error_log("Verification error: " . $e->getMessage());
+            }
+        }
+        
+        include BASE_PATH . '/resources/views/verify.php';
     }
     
     /**
@@ -306,5 +368,265 @@ class CertificateController
         } catch (Exception $e) {
             error_log("Failed to log failed verification: " . $e->getMessage());
         }
+    }
+
+    public function apply() {
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        $success = null;
+        $error = null;
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $pdo = Database::getConnection();
+            $childName = trim($_POST['child_name'] ?? '');
+            $dob = $_POST['date_of_birth'] ?? '';
+            $gender = $_POST['gender'] ?? '';
+            $placeOfBirth = trim($_POST['place_of_birth'] ?? '');
+            $motherName = trim($_POST['mother_name'] ?? '');
+            $fatherName = trim($_POST['father_name'] ?? '');
+            $parentEmail = trim($_POST['parent_email'] ?? '');
+            $parentPhone = trim($_POST['parent_phone'] ?? '');
+            $address = trim($_POST['address'] ?? '');
+            
+            if (!$childName || !$dob || !$gender || !$placeOfBirth || !$motherName) {
+                $error = 'Please fill in all required fields.';
+            } else {
+                try {
+                    $stmt = $pdo->prepare('
+                        INSERT INTO birth_applications (
+                            user_id, child_name, date_of_birth, gender, place_of_birth, 
+                            mother_name, father_name, parent_email, parent_phone, address, status
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "pending")
+                    ');
+                    $stmt->execute([
+                        $_SESSION['user_id'], $childName, $dob, $gender, $placeOfBirth,
+                        $motherName, $fatherName, $parentEmail, $parentPhone, $address
+                    ]);
+                    
+                    $success = 'Application submitted successfully! You will be notified once it\'s processed.';
+                } catch (Exception $e) {
+                    $error = 'Error submitting application. Please try again.';
+                    error_log("Application error: " . $e->getMessage());
+                }
+            }
+        }
+        
+        include BASE_PATH . '/resources/views/certificates/apply.php';
+    }
+
+    public function listCertificates() {
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        $pdo = Database::getConnection();
+        $certificates = [];
+        $applications = [];
+        
+        try {
+            if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'registrar') {
+                // Admin/Registrar can see all certificates
+                $stmt = $pdo->prepare('
+                    SELECT c.*, ba.child_name, ba.date_of_birth, u.email as applicant_email
+                    FROM certificates c 
+                    JOIN birth_applications ba ON c.application_id = ba.id 
+                    JOIN users u ON ba.user_id = u.id 
+                    ORDER BY c.issued_at DESC
+                ');
+                $stmt->execute();
+                $certificates = $stmt->fetchAll();
+                
+                // Get pending applications
+                $stmt = $pdo->prepare('
+                    SELECT ba.*, u.email as applicant_email
+                    FROM birth_applications ba 
+                    JOIN users u ON ba.user_id = u.id 
+                    WHERE ba.status = "pending"
+                    ORDER BY ba.created_at ASC
+                ');
+                $stmt->execute();
+                $applications = $stmt->fetchAll();
+            } else {
+                // Regular users see only their certificates
+                $stmt = $pdo->prepare('
+                    SELECT c.*, ba.child_name, ba.date_of_birth
+                    FROM certificates c 
+                    JOIN birth_applications ba ON c.application_id = ba.id 
+                    WHERE ba.user_id = ?
+                    ORDER BY c.issued_at DESC
+                ');
+                $stmt->execute([$_SESSION['user_id']]);
+                $certificates = $stmt->fetchAll();
+                
+                // Get user's applications
+                $stmt = $pdo->prepare('
+                    SELECT * FROM birth_applications 
+                    WHERE user_id = ? 
+                    ORDER BY created_at DESC
+                ');
+                $stmt->execute([$_SESSION['user_id']]);
+                $applications = $stmt->fetchAll();
+            }
+        } catch (Exception $e) {
+            error_log("List certificates error: " . $e->getMessage());
+        }
+        
+        include BASE_PATH . '/resources/views/certificates/list.php';
+    }
+    
+    public function approveApplication() {
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'registrar'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Unauthorized']);
+            return;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $pdo = Database::getConnection();
+            $applicationId = $_POST['application_id'] ?? '';
+            $action = $_POST['action'] ?? ''; // 'approve' or 'reject'
+            $comments = trim($_POST['comments'] ?? '');
+            
+            try {
+                if ($action === 'approve') {
+                    // Generate certificate
+                    $certificateNumber = $this->generateCertificateNumber();
+                    
+                    $stmt = $pdo->prepare('
+                        INSERT INTO certificates (
+                            application_id, certificate_number, issued_by, issued_at, status
+                        ) VALUES (?, ?, ?, NOW(), "active")
+                    ');
+                    $stmt->execute([$applicationId, $certificateNumber, $_SESSION['user_id']]);
+                    
+                    // Update application status
+                    $stmt = $pdo->prepare('UPDATE birth_applications SET status = "approved" WHERE id = ?');
+                    $stmt->execute([$applicationId]);
+                    
+                    echo json_encode(['success' => 'Application approved', 'certificate_number' => $certificateNumber]);
+                } elseif ($action === 'reject') {
+                    // Update application status
+                    $stmt = $pdo->prepare('UPDATE birth_applications SET status = "rejected", comments = ? WHERE id = ?');
+                    $stmt->execute([$comments, $applicationId]);
+                    
+                    echo json_encode(['success' => 'Application rejected']);
+                }
+            } catch (Exception $e) {
+                error_log("Approval error: " . $e->getMessage());
+                echo json_encode(['error' => 'Error processing request']);
+            }
+        }
+    }
+    
+    public function downloadCertificate() {
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        $certificateId = $_GET['id'] ?? '';
+        if (empty($certificateId)) {
+            header('Location: /certificates');
+            exit;
+        }
+        
+        $pdo = Database::getConnection();
+        
+        try {
+            $stmt = $pdo->prepare('
+                SELECT c.*, ba.*, u.email as applicant_email
+                FROM certificates c 
+                JOIN birth_applications ba ON c.application_id = ba.id 
+                JOIN users u ON ba.user_id = u.id 
+                WHERE c.id = ?
+            ');
+            $stmt->execute([$certificateId]);
+            $certificate = $stmt->fetch();
+            
+            if (!$certificate) {
+                header('Location: /certificates');
+                exit;
+            }
+            
+            // Check if user has permission to download this certificate
+            if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'registrar' && $certificate['user_id'] != $_SESSION['user_id']) {
+                http_response_code(403);
+                echo 'Unauthorized';
+                return;
+            }
+            
+            // Generate PDF certificate
+            $this->generatePDFCertificate($certificate);
+        } catch (Exception $e) {
+            error_log("Download error: " . $e->getMessage());
+            header('Location: /certificates');
+            exit;
+        }
+    }
+    
+    // Helper methods
+    private function generateCertificateNumber() {
+        $prefix = 'BC';
+        $year = date('Y');
+        $random = strtoupper(substr(md5(uniqid()), 0, 6));
+        return $prefix . $year . $random;
+    }
+    
+    private function generatePDFCertificate($certificate) {
+        // In a real implementation, you would use a PDF library like TCPDF or FPDF
+        // For now, we'll just output the certificate data as HTML
+        
+        header('Content-Type: text/html');
+        header('Content-Disposition: inline; filename="certificate_' . $certificate['certificate_number'] . '.html"');
+        
+        echo '<!DOCTYPE html>
+        <html>
+        <head>
+            <title>Birth Certificate</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; }
+                .certificate { border: 2px solid #000; padding: 30px; text-align: center; }
+                .header { font-size: 24px; font-weight: bold; margin-bottom: 30px; }
+                .content { text-align: left; line-height: 1.6; }
+                .field { margin-bottom: 15px; }
+                .label { font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <div class="certificate">
+                <div class="header">BIRTH CERTIFICATE</div>
+                <div class="content">
+                    <div class="field">
+                        <span class="label">Certificate Number:</span> ' . htmlspecialchars($certificate['certificate_number']) . '
+                    </div>
+                    <div class="field">
+                        <span class="label">Child Name:</span> ' . htmlspecialchars($certificate['child_name']) . '
+                    </div>
+                    <div class="field">
+                        <span class="label">Date of Birth:</span> ' . htmlspecialchars($certificate['date_of_birth']) . '
+                    </div>
+                    <div class="field">
+                        <span class="label">Gender:</span> ' . htmlspecialchars($certificate['gender']) . '
+                    </div>
+                    <div class="field">
+                        <span class="label">Place of Birth:</span> ' . htmlspecialchars($certificate['place_of_birth']) . '
+                    </div>
+                    <div class="field">
+                        <span class="label">Mother Name:</span> ' . htmlspecialchars($certificate['mother_name']) . '
+                    </div>
+                    <div class="field">
+                        <span class="label">Father Name:</span> ' . htmlspecialchars($certificate['father_name']) . '
+                    </div>
+                    <div class="field">
+                        <span class="label">Issue Date:</span> ' . htmlspecialchars($certificate['issued_at']) . '
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>';
     }
 } 

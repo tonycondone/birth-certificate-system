@@ -64,6 +64,12 @@ class Authentication
             throw new Exception('Invalid email or password');
         }
 
+        // Removed email verification check
+        // Uncomment the following block if you want to restore email verification later
+        // if (empty($user['email_verified'])) {
+        //     throw new Exception('Please verify your email address before logging in.');
+        // }
+
         // Check if password is expired
         if ($this->isPasswordExpired($user)) {
             throw new Exception('Password has expired. Please reset your password.');
@@ -139,6 +145,10 @@ class Authentication
         $expiryDate->modify('+' . self::PASSWORD_EXPIRY_DAYS . ' days');
         $data['password_expires_at'] = $expiryDate->format('Y-m-d H:i:s');
 
+        // Automatically set email_verified to 1
+        $data['email_verified'] = 1;
+        $data['email_verified_at'] = date('Y-m-d H:i:s');
+
         // Prepare SQL
         $fields = array_keys($data);
         $placeholders = str_repeat('?,', count($fields) - 1) . '?';
@@ -170,27 +180,24 @@ class Authentication
     /**
      * Validate password against security requirements
      */
-    private function validatePassword(string $password): void
+    public function validatePassword(string $password): void
     {
-        if (strlen($password) < 12) {
-            throw new Exception('Password must be at least 12 characters long');
+        if (strlen($password) < 8) {
+            throw new Exception('Password must be at least 8 characters long');
         }
         
-        if (!preg_match('/[A-Z]/', $password)) {
-            throw new Exception('Password must contain at least one uppercase letter');
-        }
-        
-        if (!preg_match('/[a-z]/', $password)) {
-            throw new Exception('Password must contain at least one lowercase letter');
+        if (!preg_match('/[A-Za-z]/', $password)) {
+            throw new Exception('Password must contain at least one letter');
         }
         
         if (!preg_match('/[0-9]/', $password)) {
             throw new Exception('Password must contain at least one number');
         }
         
-        if (!preg_match('/[^A-Za-z0-9]/', $password)) {
-            throw new Exception('Password must contain at least one special character');
-        }
+        // Optional: Check for special characters but don't require them
+        // if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+        //     throw new Exception('Password must contain at least one special character');
+        // }
     }
 
     /**
@@ -421,20 +428,14 @@ class Authentication
         }
 
         // Validate new password
-        if (strlen($newPassword) < 12) {
-            throw new Exception('Password must be at least 12 characters long');
+        if (strlen($newPassword) < 8) {
+            throw new Exception('Password must be at least 8 characters long');
         }
-        if (!preg_match('/[A-Z]/', $newPassword)) {
-            throw new Exception('Password must contain at least one uppercase letter');
-        }
-        if (!preg_match('/[a-z]/', $newPassword)) {
-            throw new Exception('Password must contain at least one lowercase letter');
+        if (!preg_match('/[A-Za-z]/', $newPassword)) {
+            throw new Exception('Password must contain at least one letter');
         }
         if (!preg_match('/[0-9]/', $newPassword)) {
             throw new Exception('Password must contain at least one number');
-        }
-        if (!preg_match('/[^A-Za-z0-9]/', $newPassword)) {
-            throw new Exception('Password must contain at least one special character');
         }
 
         // Check password history

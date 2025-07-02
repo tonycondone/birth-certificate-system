@@ -1,168 +1,564 @@
-// Main SCSS file for Birth Certificate System
+/*
+ * Main SCSS file for Birth Certificate System - Modern Redesign
+ *
+ * This stylesheet implements a modern, clean, and responsive design
+ * with a focus on user experience and visual appeal.
+ */
 
-// Variables
-$primary-color: #2c3e50;
-$secondary-color: #3498db;
-$success-color: #27ae60;
-$warning-color: #f39c12;
-$danger-color: #e74c3c;
-$light-color: #ecf0f1;
-$dark-color: #34495e;
+// 1. Variables & Global Settings
+// Define a modern color palette using CSS variables for easy theming
+:root {
+    --primary-color: #007bff;       // A vibrant blue for primary actions and branding
+    --primary-color-dark: #0056b3;  // Darker shade of primary for hover/active states
+    --secondary-color: #6c757d;     // A muted grey for secondary elements
+    --secondary-color-dark: #545b62; // Darker shade of secondary for hover/active states
+    --accent-color: #28a745;        // A green for success/positive actions
+    --danger-color: #dc3545;        // A red for errors/destructive actions
+    --warning-color: #ffc107;       // A yellow for warnings
+    --info-color: #17a2b8;          // A cyan for informational messages
+    --light-bg: #f8f9fa;            // Light background for general sections
+    --dark-bg: #343a40;             // Dark background for footers/headers
+    --text-color: #333;             // General text color
+    --light-text: #fff;             // Text color on dark backgrounds
+    --border-color: #dee2e6;        // Standard border color
+    --shadow-light: rgba(0, 0, 0, 0.08); // Light shadow for cards
+    --shadow-medium: rgba(0, 0, 0, 0.15); // Medium shadow for interactive elements
+}
 
-// Custom styles
+// Typography - Using Google Fonts (ensure these are linked in your HTML <head>)
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Roboto:wght@300;400;500&display=swap');
+
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f8f9fa;
+    font-family: 'Roboto', sans-serif;
+    // background: linear-gradient(rgba(248, 249, 250, 0.9), rgba(248, 249, 250, 0.9)), url('../images/gettyimages-10149321-612x612.jpg') no-repeat center center/cover;
+    background: linear-gradient(rgba(248, 249, 250, 0.9), rgba(248, 249, 250, 0.9));
+    color: var(--text-color);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth; /* Smooth scrolling for anchor links */
 }
 
-.navbar-brand {
-    font-weight: bold;
-    color: $primary-color !important;
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', sans-serif;
+    color: var(--dark-bg);
+    margin-bottom: 0.5em;
+    line-height: 1.2;
 }
 
+p {
+    margin-bottom: 1em;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+
+    &:hover {
+        color: var(--primary-color-dark);
+        text-decoration: underline;
+    }
+}
+
+// 2. Layout & Global Components
+
+// Container for content
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+// Section padding
+section {
+    padding: 60px 0; /* Default section padding */
+}
+
+// GLOBAL IMAGE STYLES
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 4px;
+    box-shadow: none;
+}
+
+// Card styles - Modernized with subtle shadows and hover effects
 .card {
-    border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    border-radius: 0.5rem;
-}
+    // background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), url('../images/gettyimages-78454811-612x612.jpg') no-repeat center center/cover;
+    background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9));
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 2px 6px var(--shadow-light);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
 
-.card-header {
-    background-color: $primary-color;
-    color: white;
-    border-radius: 0.5rem 0.5rem 0 0 !important;
-}
-
-.btn-primary {
-    background-color: $primary-color;
-    border-color: $primary-color;
-    
     &:hover {
-        background-color: darken($primary-color, 10%);
-        border-color: darken($primary-color, 10%);
+        transform: translateY(-5px); /* Subtle lift effect on hover */
+        box-shadow: 0 8px 20px var(--shadow-medium); /* More pronounced shadow on hover */
+    }
+
+    .card-header {
+        background-color: var(--primary-color);
+        color: var(--light-text);
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--primary-color-dark);
+        border-radius: 5px 5px 0 0;
+        font-weight: 600;
+        font-size: 1.1em;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .card-footer {
+        padding: 15px 20px;
+        background-color: var(--light-bg);
+        border-top: 1px solid var(--border-color);
+        border-radius: 0 0 5px 5px;
     }
 }
 
-.btn-secondary {
-    background-color: $secondary-color;
-    border-color: $secondary-color;
-    
-    &:hover {
-        background-color: darken($secondary-color, 10%);
-        border-color: darken($secondary-color, 10%);
-    }
-}
-
-.form-control:focus {
-    border-color: $secondary-color;
-    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
-}
-
-.alert {
-    border-radius: 0.5rem;
+// Buttons - Interactive and visually appealing
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 0.97em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
     border: none;
-}
+    box-shadow: 0 1px 3px var(--shadow-light);
 
-.alert-success {
-    background-color: rgba(39, 174, 96, 0.1);
-    color: $success-color;
-}
-
-.alert-danger {
-    background-color: rgba(231, 76, 60, 0.1);
-    color: $danger-color;
-}
-
-.alert-warning {
-    background-color: rgba(243, 156, 18, 0.1);
-    color: $warning-color;
-}
-
-// Dashboard styles
-.dashboard-stats {
-    .stat-card {
-        background: linear-gradient(135deg, $primary-color, $secondary-color);
-        color: white;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px var(--shadow-medium);
+    }
+    &:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px var(--shadow-light);
+    }
+    &.btn-primary {
+        background-color: var(--primary-color);
+        color: var(--light-text);
+        &:hover { background-color: var(--primary-color-dark); }
+    }
+    &.btn-secondary {
+        background-color: var(--secondary-color);
+        color: var(--light-text);
+        &:hover { background-color: var(--secondary-color-dark); }
+    }
+    &.btn-outline-primary {
+        background-color: transparent;
+        color: var(--primary-color);
+        border: 1.5px solid var(--primary-color);
+        box-shadow: none;
+        &:hover {
+            background-color: var(--primary-color);
+            color: var(--light-text);
+            box-shadow: 0 1px 3px var(--shadow-light);
         }
-        
+    }
+}
+
+// Slightly larger button for main actions
+.btn-lg {
+    padding: 9px 22px;
+    font-size: 1.08em;
+    border-radius: 5px;
+}
+
+// Remove any pill-shaped overrides
+.hero-section .btn,
+.hero-section .btn-lg {
+    border-radius: 5px;
+    font-size: 1em;
+    padding: 9px 22px;
+}
+
+// Form controls - Clean and modern
+.form-control {
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    font-size: 1em;
+    line-height: 1.5;
+    color: var(--text-color);
+    background-color: var(--light-text);
+    background-clip: padding-box;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+    &:focus {
+        color: var(--text-color);
+        background-color: var(--light-text);
+        border-color: var(--primary-color);
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(var(--primary-color), 0.25);
+    }
+
+    &.is-invalid {
+        border-color: var(--danger-color);
+        padding-right: calc(1.5em + 0.75rem);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+}
+
+// Alerts - Clean and informative
+.alert {
+    padding: 15px 20px;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 0.95em;
+
+    &.alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+    &.alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+    &.alert-warning {
+        color: #856404;
+        background-color: #fff3cd;
+        border-color: #ffeeba;
+    }
+    &.alert-info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+    }
+}
+
+// 3. Specific Section Styles
+
+// Navigation Bar
+.navbar {
+    background-color: var(--light-text);
+    padding: 15px 0;
+    box-shadow: 0 2px 8px var(--shadow-light);
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: 1000; /* Ensure it stays on top */
+
+    .navbar-brand {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 700;
+        font-size: 1.8em;
+        color: var(--primary-color) !important;
+        transition: color 0.3s ease;
+        &:hover {
+            color: var(--primary-color-dark) !important;
+        }
+    }
+
+    .navbar-nav {
+        display: flex;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+
+        .nav-item {
+            margin-left: 25px;
+
+            .nav-link {
+                color: var(--text-color);
+                font-weight: 500;
+                padding: 8px 0;
+                position: relative;
+                transition: color 0.3s ease;
+
+                &:hover {
+                    color: var(--primary-color);
+                }
+
+                &::after { /* Underline effect on hover */
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    bottom: 0;
+                    width: 0;
+                    height: 2px;
+                    background-color: var(--primary-color);
+                    transition: width 0.3s ease;
+                }
+
+                &:hover::after {
+                    width: 100%;
+                }
+            }
+        }
+    }
+}
+
+// Hero Section - Compelling background and animated text
+.hero-section {
+    // background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('../images/gettyimages-78453892-612x612.jpg') no-repeat center center/cover;
+    background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6));
+    color: var(--light-text);
+    text-align: center;
+    padding: 100px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh; /* Minimum height for hero */
+
+    .hero-content {
+        max-width: 800px;
+        animation: fadeInUp 1s ease-out forwards; /* Animation for content */
+
+        h1 {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            color: var(--light-text);
+            font-weight: 700;
+        }
+
+        p {
+            font-size: 1.3em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .btn {
+            font-size: 1.1em;
+            padding: 12px 35px;
+            border-radius: 50px; /* Pill-shaped buttons */
+        }
+    }
+}
+
+// Dashboard styles - Enhanced stat cards
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Responsive grid */
+    gap: 25px; /* Spacing between cards */
+    margin-top: 30px;
+
+    .stat-card {
+        background: linear-gradient(135deg, var(--primary-color), #339cff);
+        color: var(--light-text);
+        border-radius: 6px;
+        padding: 25px;
+        text-align: center;
+        box-shadow: 0 6px 15px var(--shadow-medium);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+        &:hover {
+            transform: translateY(-7px) scale(1.02); /* More pronounced lift and slight scale */
+            box-shadow: 0 10px 25px var(--shadow-medium);
+        }
+
+        .stat-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.8;
+        }
+
+        .stat-number {
+            font-size: 3em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
         .stat-label {
-            font-size: 0.9rem;
+            font-size: 1.1em;
             opacity: 0.9;
         }
     }
 }
 
-// Certificate styles
+// Certificate styles - Refined preview
 .certificate-preview {
-    border: 2px solid $primary-color;
-    border-radius: 0.5rem;
-    padding: 2rem;
-    background: white;
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    padding: 30px;
+    background: var(--light-text);
     position: relative;
-    
-    &::before {
-        content: '';
+    box-shadow: 0 8px 20px var(--shadow-light);
+    overflow: hidden; /* Ensure watermark stays within bounds */
+
+    &::before { /* Watermark effect */
+        content: 'BIRTH CERTIFICATE';
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" x="50" text-anchor="middle" fill="rgba(0,0,0,0.05)" font-size="20">BIRTH CERTIFICATE</text></svg>');
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-45deg);
+        font-size: 4em;
+        color: rgba(0, 0, 0, 0.05);
         pointer-events: none;
+        white-space: nowrap;
+        z-index: 0;
+    }
+
+    h2 {
+        color: var(--primary-color);
+        text-align: center;
+        margin-bottom: 25px;
+        position: relative;
+        z-index: 1;
+    }
+
+    p {
+        font-size: 1.1em;
+        margin-bottom: 10px;
+        position: relative;
+        z-index: 1;
     }
 }
 
-// QR Code styles
+// QR Code styles - Improved visual feedback
 .qr-scanner-container {
+    // background: linear-gradient(rgba(52, 58, 64, 0.8), rgba(52, 58, 64, 0.8)), url('../images/gettyimages-82842381-612x612.jpg') no-repeat center center/cover;
+    background: linear-gradient(rgba(52, 58, 64, 0.8), rgba(52, 58, 64, 0.8));
     position: relative;
-    max-width: 400px;
-    margin: 0 auto;
-    
+    max-width: 500px;
+    margin: 30px auto;
+    border-radius: 6px;
+    padding: 20px;
+    box-shadow: 0 8px 20px var(--shadow-medium);
+    overflow: hidden;
+
     video {
         width: 100%;
-        border-radius: 0.5rem;
+        border-radius: 4px;
+        display: block;
+        background-color: black; /* Ensure black background for video */
     }
-    
+
     .scanner-overlay {
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        border: 2px solid $secondary-color;
-        border-radius: 0.5rem;
+        top: 20px; /* Match padding */
+        left: 20px; /* Match padding */
+        right: 20px; /* Match padding */
+        bottom: 20px; /* Match padding */
+        border: 2px solid var(--accent-color); /* More prominent scanner border */
+        border-radius: 4px;
         pointer-events: none;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7); /* Darken outside scan area */
+        animation: pulseBorder 1.5s infinite alternate; /* Pulsing effect */
+    }
+
+    .scan-line {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        right: 20px;
+        height: 2px;
+        background: linear-gradient(to right, transparent, var(--accent-color), transparent);
+        animation: scanLine 2s infinite linear;
     }
 }
 
-// Responsive design
-@media (max-width: 768px) {
-    .dashboard-stats .stat-card {
-        margin-bottom: 1rem;
-    }
-    
-    .certificate-preview {
-        padding: 1rem;
-    }
-}
-
-// Loading spinner
+// Loading spinner - More prominent
 .spinner-border {
-    color: $secondary-color;
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    vertical-align: -0.125em;
+    border: 0.25em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: .75s linear infinite spinner-border;
+    color: var(--primary-color); /* Use primary color */
 }
 
-// Custom animations
-.fade-in {
-    animation: fadeIn 0.5s ease-in;
+@keyframes spinner-border {
+    to { transform: rotate(360deg); }
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-} 
+// 4. Animations
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes pulseBorder {
+    from { border-color: var(--accent-color); }
+    to { border-color: #5be37d; }
+}
+
+@keyframes scanLine {
+    0% { top: 20px; }
+    50% { top: calc(100% - 20px - 2px); }
+    100% { top: 20px; }
+}
+
+// 5. Responsive Design (Mobile-first approach)
+@media (min-width: 576px) {
+    .container {
+        padding: 0 20px;
+    }
+    .hero-section .hero-content h1 {
+        font-size: 4em;
+    }
+}
+
+@media (min-width: 768px) {
+    section {
+        padding: 80px 0;
+    }
+    .navbar .navbar-nav {
+        margin-left: auto; /* Push nav items to the right */
+    }
+    .hero-section {
+        min-height: 70vh;
+    }
+    .hero-section .hero-content h1 {
+        font-size: 4.5em;
+    }
+    .dashboard-stats {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+}
+
+@media (min-width: 992px) {
+    section {
+        padding: 100px 0;
+    }
+    .hero-section {
+        min-height: 80vh;
+    }
+    .hero-section .hero-content h1 {
+        font-size: 5em;
+    }
+}
+
+@media (min-width: 1200px) {
+    .container {
+        padding: 0; /* No horizontal padding on very large screens */
+    }
+}

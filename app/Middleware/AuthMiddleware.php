@@ -74,7 +74,11 @@ class AuthMiddleware
         if ($message) {
             $_SESSION['error'] = $message;
         }
-        header("Location: {$url}");
+        // Validate URL: must be a relative path starting with '/', no protocol allowed
+        if (strpos($url, '/') !== 0 || preg_match('/https?:\/\//i', $url) || strpos($url, "\n") !== false) {
+            $url = '/';
+        }
+        header('Location: ' . $url);
         exit;
     }
 }

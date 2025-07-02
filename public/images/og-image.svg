@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="ogBgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a90e2" />
+      <stop offset="50%" style="stop-color:#6a5acd" />
+      <stop offset="100%" style="stop-color:#50e3c2" />
+    </linearGradient>
+    <linearGradient id="certGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff" />
+      <stop offset="100%" style="stop-color:#f8f9fa" />
+    </linearGradient>
+    <filter id="ogShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#ogBgGradient)"/>
+  
+  <!-- Background Pattern -->
+  <g opacity="0.1">
+    <circle cx="200" cy="150" r="80" fill="white"/>
+    <circle cx="1000" cy="480" r="120" fill="white"/>
+    <circle cx="150" cy="500" r="60" fill="white"/>
+    <circle cx="1050" cy="150" r="100" fill="white"/>
+  </g>
+  
+  <!-- Main Certificate -->
+  <g transform="translate(300, 150)">
+    <rect x="0" y="0" width="600" height="330" rx="20" fill="url(#certGradient)" filter="url(#ogShadow)"/>
+    
+    <!-- Certificate Border -->
+    <rect x="0" y="0" width="600" height="330" rx="20" fill="none" stroke="#4a90e2" stroke-width="4"/>
+    
+    <!-- Header -->
+    <rect x="40" y="40" width="520" height="8" rx="4" fill="#4a90e2"/>
+    <text x="300" y="80" text-anchor="middle" fill="#4a90e2" font-family="Poppins, sans-serif" font-size="24" font-weight="700">DIGITAL BIRTH CERTIFICATE</text>
+    
+    <!-- Content Lines -->
+    <rect x="40" y="100" width="400" height="6" rx="3" fill="#6c757d"/>
+    <rect x="40" y="120" width="350" height="6" rx="3" fill="#6c757d"/>
+    <rect x="40" y="140" width="380" height="6" rx="3" fill="#6c757d"/>
+    <rect x="40" y="160" width="320" height="6" rx="3" fill="#6c757d"/>
+    <rect x="40" y="180" width="360" height="6" rx="3" fill="#6c757d"/>
+    <rect x="40" y="200" width="340" height="6" rx="3" fill="#6c757d"/>
+    
+    <!-- Official Seal -->
+    <circle cx="500" cy="200" r="40" fill="#4a90e2"/>
+    <circle cx="500" cy="200" r="32" fill="white"/>
+    <circle cx="500" cy="200" r="24" fill="#4a90e2"/>
+    <text x="500" y="210" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">OFFICIAL</text>
+    
+    <!-- Security Icons -->
+    <g transform="translate(40, 240)">
+      <circle cx="0" cy="0" r="20" fill="#50e3c2"/>
+      <path d="M-8 -8 L8 -8 L8 8 L-8 8 Z" fill="white"/>
+      <path d="M-4 -4 L4 -4 L4 4 L-4 4 Z" fill="#50e3c2"/>
+    </g>
+    
+    <g transform="translate(100, 240)">
+      <circle cx="0" cy="0" r="20" fill="#f5a623"/>
+      <rect x="-8" y="2" width="16" height="12" rx="2" fill="white"/>
+      <path d="M-4 14 L-4 8 C-4 5 -2 3 0 3 C2 3 4 5 4 8 L4 14" stroke="white" stroke-width="2" fill="none"/>
+    </g>
+    
+    <g transform="translate(160, 240)">
+      <circle cx="0" cy="0" r="20" fill="#4a90e2"/>
+      <path d="M-6 0 L-2 4 L6 -4" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+  
+  <!-- Title -->
+  <text x="600" y="80" text-anchor="middle" fill="white" font-family="Poppins, sans-serif" font-size="48" font-weight="700">Digital Birth Certificate</text>
+  <text x="600" y="120" text-anchor="middle" fill="white" font-family="Poppins, sans-serif" font-size="24" font-weight="400">Secure • Reliable • Digital</text>
+  
+  <!-- Bottom Text -->
+  <text x="600" y="580" text-anchor="middle" fill="white" font-family="Poppins, sans-serif" font-size="18" font-weight="500">Register • Verify • Access</text>
+  
+  <!-- Floating Elements -->
+  <g opacity="0.3">
+    <circle cx="150" cy="200" r="4" fill="white"/>
+    <circle cx="1050" cy="300" r="3" fill="white"/>
+    <circle cx="200" cy="450" r="5" fill="white"/>
+    <circle cx="1000" cy="200" r="4" fill="white"/>
+  </g>
+</svg> 

@@ -12,7 +12,15 @@ require_once __DIR__ . '/../layouts/base.php';
                     <div class="d-flex align-items-center mb-3">
                         <i class="fas fa-user-tie fa-3x text-primary me-3"></i>
                         <div>
-                            <h5 class="mb-1"><?php echo htmlspecialchars($_SESSION['user']['first_name'] . ' ' . $_SESSION['user']['last_name']); ?></h5>
+                            <h5 class="mb-1">
+                                <?php 
+                                if (isset($_SESSION['user']) && isset($_SESSION['user']['first_name']) && isset($_SESSION['user']['last_name'])) {
+                                    echo htmlspecialchars($_SESSION['user']['first_name'] . ' ' . $_SESSION['user']['last_name']);
+                                } else {
+                                    echo 'Registrar';
+                                }
+                                ?>
+                            </h5>
                             <small class="text-muted">Registrar Portal</small>
                         </div>
                     </div>
@@ -212,16 +220,88 @@ require_once __DIR__ . '/../layouts/base.php';
                 </div>
             </div>
 
+            <!-- Recent Approvals -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recently Approved</h5>
+                        <a href="/registrar/approved" class="btn btn-sm btn-primary">View All</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <?php if (empty($approvedCertificates)): ?>
+                        <div class="text-center py-5">
+                            <i class="fas fa-info-circle fa-3x text-info mb-3"></i>
+                            <h5>No Recent Approvals</h5>
+                            <p class="text-muted">You haven't approved any applications recently</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Reference</th>
+                                        <th>Child Name</th>
+                                        <th>Hospital</th>
+                                        <th>Approved On</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($approvedCertificates as $app): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($app['reference']); ?></td>
+                                            <td><?php echo htmlspecialchars($app['child_name']); ?></td>
+                                            <td><?php echo htmlspecialchars($app['hospital_name']); ?></td>
+                                            <td><?php echo date('M d, Y', strtotime($app['approved_at'])); ?></td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <a href="/registrar/view/<?php echo $app['id']; ?>" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        View
+                                                    </a>
+                                                    <a href="/registrar/print/<?php echo $app['id']; ?>" 
+                                                       class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-print"></i> Print
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
             <!-- Recent Activity -->
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="mb-0">Recent Activity</h5>
                 </div>
                 <div class="card-body">
+                    <?php if (empty($recentActivities)): ?>
+                        <div class="text-center py-5">
+                            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                            <h5>No Recent Activity</h5>
+                            <p class="text-muted">Your recent activities will appear here</p>
+                        </div>
+                    <?php else: ?>
                     <div class="timeline">
-                        <?php foreach ($recentActivity ?? [] as $activity): ?>
+                            <?php foreach ($recentActivities as $activity): ?>
                             <div class="timeline-item">
-                                <div class="timeline-marker bg-<?php echo $activity['status_class']; ?>"></div>
+                                    <?php 
+                                    $statusClass = 'primary';
+                                    if (strpos(strtolower($activity['action']), 'approve') !== false) {
+                                        $statusClass = 'success';
+                                    } elseif (strpos(strtolower($activity['action']), 'reject') !== false) {
+                                        $statusClass = 'danger';
+                                    } elseif (strpos(strtolower($activity['action']), 'review') !== false) {
+                                        $statusClass = 'warning';
+                                    }
+                                    ?>
+                                    <div class="timeline-marker bg-<?php echo $statusClass; ?>"></div>
                                 <div class="timeline-content">
                                     <h6 class="mb-1"><?php echo htmlspecialchars($activity['action']); ?></h6>
                                     <p class="text-muted mb-0">
@@ -234,6 +314,7 @@ require_once __DIR__ . '/../layouts/base.php';
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

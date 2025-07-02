@@ -1,366 +1,273 @@
-<?php
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Get current user
-$auth = new \App\Auth\Authentication();
-$currentUser = $auth->getCurrentUser();
-
-// Redirect if not authenticated
-if (!$currentUser) {
-    header('Location: /auth/login');
-    exit;
-}
-
-$pageTitle = 'My Profile - Digital Birth Certificate System';
-require_once __DIR__ . '/layouts/base.php';
-?>
-
-<!-- Toast Container for Notifications -->
-<div class="toast-container position-fixed top-0 end-0 p-3">
-    <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <i id="toastIcon" class="fas fa-info-circle me-2"></i>
-            <strong class="me-auto" id="toastTitle">Notification</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-        <div class="toast-body" id="toastMessage"></div>
-    </div>
-</div>
-
-<!-- Profile Section -->
-<section class="profile-section py-5">
-    <div class="container">
-        <div class="row">
-            <!-- Profile Information -->
-            <div class="col-lg-8">
-                <div class="card shadow mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h4 class="mb-0">
-                            <i class="fas fa-user me-2"></i>
-                            My Profile
-                        </h4>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Digital Birth Certificate System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Birth Certificate System</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">
+                                <i class="fas fa-home me-1"></i>Home
+                            </a>
+                        </li>
+                    </ul>
                 </div>
-                <div class="card-body">
-                        <!-- Profile Form -->
-                        <form id="profileForm" method="POST" action="/profile/update" class="needs-validation" novalidate>
-                            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
-                            
-                            <div class="row">
-                                <!-- First Name -->
-                                <div class="col-md-6 mb-3">
-                                    <label for="firstName" class="form-label">
-                                        <i class="fas fa-user me-1"></i>First Name
-                                    </label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="firstName" 
-                                           name="first_name" 
-                                       value="<?php echo htmlspecialchars($currentUser['first_name']); ?>" 
-                                           required 
-                                           minlength="2" 
-                                           maxlength="100">
-                                    <div class="invalid-feedback">
-                                        Please enter your first name.
+            </div>
+        </nav>
+        
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-certificate me-2"></i>
+                Birth Certificate System
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">
+                    <i class="fas fa-home me-1"></i>Dashboard
+                </a>
+                <a class="nav-link" href="/certificates">
+                    <i class="fas fa-list me-1"></i>Certificates
+                </a>
+                <a class="nav-link" href="/settings">
+                    <i class="fas fa-cog me-1"></i>Settings
+                </a>
+                <a class="nav-link" href="/auth/logout">
+                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>
+                        <i class="fas fa-user me-2"></i>My Profile
+                    </h2>
+                    <a href="/settings" class="btn btn-outline-primary">
+                        <i class="fas fa-cog me-2"></i>Settings
+                    </a>
+                </div>
+                
+                <?php if (!empty($success)): ?>
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <?= htmlspecialchars($success) ?>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($error)): ?>
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <?= htmlspecialchars($error) ?>
+                    </div>
+                <?php endif; ?>
+
+                <div class="row">
+                    <!-- Profile Information -->
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-user-edit me-2"></i>Profile Information
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <form method="post" class="needs-validation" novalidate>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="first_name" class="form-label">
+                                                <i class="fas fa-user me-1"></i>First Name *
+                                            </label>
+                                            <input type="text" class="form-control" id="first_name" name="first_name" 
+                                                   value="<?= htmlspecialchars($user['first_name'] ?? '') ?>" required>
+                                            <div class="invalid-feedback">Please enter your first name.</div>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="last_name" class="form-label">
+                                                <i class="fas fa-user me-1"></i>Last Name *
+                                            </label>
+                                            <input type="text" class="form-control" id="last_name" name="last_name" 
+                                                   value="<?= htmlspecialchars($user['last_name'] ?? '') ?>" required>
+                                            <div class="invalid-feedback">Please enter your last name.</div>
+                                        </div>
                                     </div>
-                                </div>
-
-                                <!-- Last Name -->
-                                <div class="col-md-6 mb-3">
-                                    <label for="lastName" class="form-label">
-                                        <i class="fas fa-user me-1"></i>Last Name
-                                    </label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="lastName" 
-                                           name="last_name" 
-                                           value="<?php echo htmlspecialchars($currentUser['last_name']); ?>"
-                                           required 
-                                           minlength="2" 
-                                           maxlength="100">
-                                    <div class="invalid-feedback">
-                                        Please enter your last name.
+                                    
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">
+                                            <i class="fas fa-envelope me-1"></i>Email Address
+                                        </label>
+                                        <input type="email" class="form-control" id="email" 
+                                               value="<?= htmlspecialchars($user['email'] ?? '') ?>" readonly>
+                                        <div class="form-text">Email address cannot be changed. Contact support if needed.</div>
                                     </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="phone" class="form-label">
+                                            <i class="fas fa-phone me-1"></i>Phone Number
+                                        </label>
+                                        <input type="tel" class="form-control" id="phone" name="phone" 
+                                               value="<?= htmlspecialchars($user['phone'] ?? '') ?>">
+                                        <div class="form-text">For important notifications and communications</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="role" class="form-label">
+                                            <i class="fas fa-user-tag me-1"></i>Account Role
+                                        </label>
+                                        <input type="text" class="form-control" id="role" 
+                                               value="<?= htmlspecialchars(ucfirst($user['role'] ?? '')) ?>" readonly>
+                                        <div class="form-text">Your account role determines your system permissions</div>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Update Profile
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Summary -->
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <i class="fas fa-user-circle fa-4x text-primary"></i>
+                                </div>
+                                <h5><?= htmlspecialchars($user['first_name'] ?? '') ?> <?= htmlspecialchars($user['last_name'] ?? '') ?></h5>
+                                <p class="text-muted"><?= htmlspecialchars(ucfirst($user['role'] ?? '')) ?></p>
+                                <span class="badge bg-success">Active Account</span>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-info-circle me-2"></i>Account Details
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <small class="text-muted">Member Since</small><br>
+                                    <strong><?= date('F j, Y', strtotime($user['created_at'] ?? '')) ?></strong>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">Last Login</small><br>
+                                    <strong><?= isset($_SESSION['login_time']) ? date('F j, Y g:i A', $_SESSION['login_time']) : 'N/A' ?></strong>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">Account Status</small><br>
+                                    <span class="badge bg-success">Active</span>
                                 </div>
                             </div>
-
-                            <!-- Email (Read-only) -->
-                            <div class="mb-3">
-                                <label for="email" class="form-label">
-                                    <i class="fas fa-envelope me-1"></i>Email Address
-                                </label>
-                                <input type="email" 
-                                       class="form-control" 
-                                       id="email" 
-                                       value="<?php echo htmlspecialchars($currentUser['email']); ?>"
-                                       readonly>
-                                <div class="form-text">
-                                    Email address cannot be changed. Contact support if needed.
-                                </div>
-                            </div>
-
-                            <!-- Phone Number -->
-                            <div class="mb-3">
-                                <label for="phone" class="form-label">
-                                    <i class="fas fa-phone me-1"></i>Phone Number
-                                </label>
-                                <input type="tel" 
-                                       class="form-control" 
-                                       id="phone" 
-                                       name="phone_number" 
-                                       value="<?php echo htmlspecialchars($currentUser['phone_number'] ?? ''); ?>"
-                                       required 
-                                       minlength="10" 
-                                       maxlength="20">
-                                <div class="invalid-feedback">
-                                    Please enter a valid phone number.
                         </div>
-                        </div>
-                        
-                            <!-- Role Information (Read-only) -->
-                            <div class="mb-4">
-                                <label class="form-label">
-                                    <i class="fas fa-user-tag me-1"></i>Account Type
-                                </label>
-                                <div class="form-control-plaintext">
-                                    <span class="badge bg-<?php echo getRoleBadgeColor($currentUser['role']); ?>">
-                                        <?php echo ucfirst($currentUser['role']); ?>
-                                    </span>
-                        </div>
-                        </div>
-
-                            <!-- Submit Button -->
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-save me-2"></i>
-                                    Update Profile
-                        </button>
-                            </div>
-                    </form>
                     </div>
                 </div>
-            </div>
-
-            <!-- Sidebar -->
-            <div class="col-lg-4">
-                <!-- Account Status -->
-                <div class="card shadow mb-4">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Account Status
-                        </h5>
-                </div>
-                <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <i class="fas fa-circle text-success me-2"></i>
-                            <span>Status: <strong>Active</strong></span>
-                        </div>
-                        <div class="d-flex align-items-center mb-3">
-                            <i class="fas fa-calendar me-2"></i>
-                            <span>Member since: <strong><?php echo date('M j, Y', strtotime($currentUser['created_at'])); ?></strong></span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-clock me-2"></i>
-                            <span>Last updated: <strong><?php echo date('M j, Y', strtotime($currentUser['updated_at'])); ?></strong></span>
-                        </div>
-                </div>
-            </div>
 
                 <!-- Quick Actions -->
-                <div class="card shadow mb-4">
-                    <div class="card-header bg-warning text-dark">
+                <div class="card mt-4">
+                    <div class="card-header">
                         <h5 class="mb-0">
-                            <i class="fas fa-bolt me-2"></i>
-                            Quick Actions
+                            <i class="fas fa-bolt me-2"></i>Quick Actions
                         </h5>
-                </div>
-                <div class="card-body">
-                        <div class="d-grid gap-2">
-                            <?php if ($currentUser['role'] === 'parent'): ?>
-                                <a href="/applications/new" class="btn btn-outline-primary">
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <a href="/certificate/apply" class="btn btn-outline-primary w-100">
                                     <i class="fas fa-plus me-2"></i>New Application
                                 </a>
-                                <a href="/applications" class="btn btn-outline-info">
-                                    <i class="fas fa-list me-2"></i>My Applications
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <a href="/certificates" class="btn btn-outline-info w-100">
+                                    <i class="fas fa-list me-2"></i>View Certificates
                                 </a>
-                            <?php elseif ($currentUser['role'] === 'hospital'): ?>
-                                <a href="/verifications" class="btn btn-outline-primary">
-                                    <i class="fas fa-check me-2"></i>Pending Verifications
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <a href="/settings" class="btn btn-outline-warning w-100">
+                                    <i class="fas fa-lock me-2"></i>Change Password
                                 </a>
-                                <a href="/verifications/history" class="btn btn-outline-info">
-                                    <i class="fas fa-history me-2"></i>Verification History
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <a href="/dashboard" class="btn btn-outline-success w-100">
+                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                                 </a>
-                            <?php endif; ?>
-                            <a href="/settings" class="btn btn-outline-secondary">
-                                <i class="fas fa-cog me-2"></i>Account Settings
-                            </a>
+                            </div>
                         </div>
                     </div>
                 </div>
-                </div>
-            </div>
 
-            <!-- Recent Activity -->
-        <?php if (!empty($recentActivity)): ?>
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card shadow">
-                    <div class="card-header bg-success text-white">
+                <!-- Account Security -->
+                <div class="card mt-4">
+                    <div class="card-header">
                         <h5 class="mb-0">
-                            <i class="fas fa-history me-2"></i>
-                            Recent Activity
+                            <i class="fas fa-shield-alt me-2"></i>Account Security
                         </h5>
-                </div>
-                <div class="card-body">
-                        <div class="timeline">
-                            <?php foreach ($recentActivity as $activity): ?>
-                            <div class="timeline-item">
-                                <div class="timeline-icon bg-<?php echo getActivityColor($activity['type']); ?>">
-                                    <i class="<?php echo $activity['icon']; ?>"></i>
-                                </div>
-                                <div class="timeline-content">
-                                    <h6 class="mb-1"><?php echo htmlspecialchars($activity['title']); ?></h6>
-                                    <p class="mb-1 text-muted"><?php echo htmlspecialchars($activity['description']); ?></p>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="badge bg-<?php echo getStatusColor($activity['status']); ?>">
-                                            <?php echo htmlspecialchars($activity['status']); ?>
-                                        </span>
-                                        <small class="text-muted"><?php echo $activity['date']; ?></small>
-                                    </div>
-                                </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-lock me-2"></i>Password</h6>
+                                <p class="text-muted">Last changed: <?= date('F j, Y') ?></p>
+                                <a href="/settings" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-key me-1"></i>Change Password
+                                </a>
                             </div>
-                            <?php endforeach; ?>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-mobile-alt me-2"></i>Two-Factor Authentication</h6>
+                                <p class="text-muted">Status: <span class="badge bg-secondary">Not Enabled</span></p>
+                                <button class="btn btn-sm btn-outline-secondary" disabled>
+                                    <i class="fas fa-cog me-1"></i>Setup 2FA
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <?php endif; ?>
     </div>
-</section>
 
-<style>
-.profile-section {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-}
-
-.timeline {
-    position: relative;
-    padding-left: 30px;
-}
-
-.timeline::before {
-    content: '';
-    position: absolute;
-    left: 15px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: #dee2e6;
-}
-
-.timeline-item {
-    position: relative;
-    margin-bottom: 30px;
-}
-
-.timeline-icon {
-    position: absolute;
-    left: -22px;
-    top: 0;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 12px;
-}
-
-.timeline-content {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-    border-left: 4px solid #0d6efd;
-}
-
-.form-control:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-}
-
-.btn-primary {
-    background: linear-gradient(45deg, #0d6efd, #0b5ed7);
-    border: none;
-    transition: all 0.3s ease;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('profileForm');
-    
-    // Form validation
-    form.addEventListener('submit', function(event) {
-        if (!form.checkValidity()) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Form validation
+        (function() {
+            'use strict';
+            window.addEventListener('load', function() {
+                var forms = document.getElementsByClassName('needs-validation');
+                var validation = Array.prototype.filter.call(forms, function(form) {
+                    form.addEventListener('submit', function(event) {
+                        if (form.checkValidity() === false) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        form.classList.add('was-validated');
+                    }, false);
+                });
+            }, false);
+        })();
         
-        // Show loading state
-        const submitBtn = form.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
-        submitBtn.disabled = true;
-        
-        // Re-enable after 3 seconds (in case of error)
-        setTimeout(() => {
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        }, 3000);
-        
-        form.classList.add('was-validated');
-    });
-});
-</script>
-
-<?php
-// Helper functions for the view
-function getRoleBadgeColor($role) {
-    switch ($role) {
-        case 'admin': return 'danger';
-        case 'registrar': return 'warning';
-        case 'hospital': return 'info';
-        case 'parent': return 'success';
-        default: return 'secondary';
-    }
-}
-
-function getActivityColor($type) {
-    switch ($type) {
-        case 'application': return 'primary';
-        case 'verification': return 'success';
-        case 'certificate': return 'info';
-        default: return 'secondary';
-    }
-}
-
-function getStatusColor($status) {
-    switch (strtolower($status)) {
-        case 'approved': return 'success';
-        case 'pending': return 'warning';
-        case 'rejected': return 'danger';
-        case 'verified': return 'info';
-        default: return 'secondary';
-    }
-}
-?>
+        // Phone number formatting
+        document.getElementById('phone').addEventListener('input', function() {
+            let value = this.value.replace(/\D/g, '');
+            if (value.length > 0) {
+                value = value.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+            }
+            this.value = value;
+        });
+    </script>
+</body>
+</html>

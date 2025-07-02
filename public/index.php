@@ -4,6 +4,8 @@
  * Main Entry Point
  */
 
+define('BASE_PATH', dirname(__DIR__));
+
 // Load environment variables
 if (file_exists(__DIR__ . '/../env.example')) {
     $envFile = __DIR__ . '/../env.example';
@@ -58,155 +60,180 @@ require_once __DIR__ . '/../vendor/autoload.php';
 // Load database connection
 require_once __DIR__ . '/../app/Database/Database.php';
 
-// Simple router
-$requestUri = $_SERVER['REQUEST_URI'];
-$requestMethod = $_SERVER['REQUEST_METHOD'];
+// Simple routing
+$request_uri = $_SERVER['REQUEST_URI'];
+$path = parse_url($request_uri, PHP_URL_PATH);
 
-// Remove query string
-$path = parse_url($requestUri, PHP_URL_PATH);
+// Remove trailing slash
+$path = rtrim($path, '/');
 
-// Default route
-if ($path === '' || $path === '/') {
-    $path = '/home';
+// If path is empty, set to home
+if (empty($path)) {
+    $path = '/';
 }
 
 // Debug information
 if ($_ENV['APP_DEBUG'] ?? false) {
-    echo "<!-- Debug Info: Path=$path, Method=$requestMethod -->\n";
+    // echo "<!-- Debug Info: Path=$path, Method=$requestMethod -->\n";
 }
 
 // Route definitions
 $routes = [
-    'GET' => [
-        '/home' => 'App\Controllers\HomeController@index',
-        '/login' => 'App\Controllers\AuthController@showLogin',
-        '/register' => 'App\Controllers\AuthController@showRegister',
-        '/auth/forgot-password' => 'App\Controllers\AuthController@forgotPassword',
-        '/dashboard' => 'App\Controllers\DashboardController@index',
-        '/verify' => 'App\Controllers\CertificateController@showVerify',
-        '/verify/{id}' => 'App\Controllers\CertificateController@verify',
-        
-        // Static pages
-        '/about' => 'App\Controllers\StaticPageController@about',
-        '/contact' => 'App\Controllers\StaticPageController@contact',
-        '/faq' => 'App\Controllers\StaticPageController@faq',
-        '/privacy' => 'App\Controllers\StaticPageController@privacy',
-        '/terms' => 'App\Controllers\StaticPageController@terms',
-        '/api-docs' => 'App\Controllers\StaticPageController@apiDocs',
-        
-        // User profile and settings
-        '/profile' => 'App\Controllers\UserController@profile',
-        '/notifications' => 'App\Controllers\NotificationController@index',
-        
-        // Application routes
-        '/applications/new' => 'App\Controllers\ApplicationController@create',
-        '/applications' => 'App\Controllers\ApplicationController@index',
-        '/applications/{id}' => 'App\Controllers\ApplicationController@show',
-        
-        // Hospital routes
-        '/hospital/submissions' => 'App\Controllers\AdminController@hospitalSubmissions',
-        '/hospital/dashboard' => 'App\Controllers\AdminController@hospitalDashboard',
-        '/hospital/records' => 'App\Controllers\AdminController@hospitalRecords',
-        '/hospital/records/new' => 'App\Controllers\AdminController@hospitalRecordCreate',
-        '/hospital/records/{id}' => 'App\Controllers\AdminController@hospitalRecordShow',
-        '/hospital/records/{id}/edit' => 'App\Controllers\AdminController@hospitalRecordEdit',
-        '/hospital/verifications' => 'App\Controllers\AdminController@hospitalVerifications',
-        '/hospital/verify/{id}' => 'App\Controllers\AdminController@hospitalVerify',
-        '/hospital/settings' => 'App\Controllers\AdminController@hospitalSettings',
-        
-        // Registrar routes
-        '/registrar/applications' => 'App\Controllers\AdminController@registrarApplications',
-        '/registrar/dashboard' => 'App\Controllers\AdminController@registrarDashboard',
-        '/registrar/pending' => 'App\Controllers\AdminController@registrarPending',
-        '/registrar/approved' => 'App\Controllers\AdminController@registrarApproved',
-        '/registrar/reports' => 'App\Controllers\AdminController@registrarReports',
-        '/registrar/settings' => 'App\Controllers\AdminController@registrarSettings',
-        '/registrar/review/{id}' => 'App\Controllers\AdminController@registrarReview',
-        
-        // Admin routes
-        '/admin/dashboard' => 'App\Controllers\AdminController@dashboard',
-        '/admin/users' => 'App\Controllers\AdminController@users',
-        '/admin/applications' => 'App\Controllers\AdminController@applications',
-        '/admin/certificates' => 'App\Controllers\AdminController@certificates',
-        '/admin/reports' => 'App\Controllers\AdminController@reports',
-        '/admin/settings' => 'App\Controllers\AdminController@settings',
-        
-        // Certificate routes
-        '/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
-        '/certificates/{id}' => 'App\Controllers\CertificateController@show',
-        
-        // Verification routes
-        '/verifications' => 'App\Controllers\CertificateController@verifications',
-        '/verifications/history' => 'App\Controllers\CertificateController@verificationHistory',
-        
-        // Settings routes
-        '/settings' => 'App\Controllers\UserController@settings',
-    ],
-    'POST' => [
-        '/auth/login' => 'App\Controllers\AuthController@login',
-        '/auth/register' => 'App\Controllers\AuthController@register',
-        '/auth/logout' => 'App\Controllers\AuthController@logout',
-        '/auth/reset-password' => 'App\Controllers\AuthController@resetPassword',
-        '/applications/submit' => 'App\Controllers\ApplicationController@submit',
-        '/applications/{id}/update' => 'App\Controllers\ApplicationController@update',
-        '/applications/{id}/delete' => 'App\Controllers\ApplicationController@delete',
-        '/profile/update' => 'App\Controllers\UserController@updateProfile',
-        '/settings/update' => 'App\Controllers\UserController@updateSettings',
-        '/notifications/mark-read' => 'App\Controllers\NotificationController@markAsRead',
-        '/hospital/records/submit' => 'App\Controllers\AdminController@hospitalRecordSubmit',
-        '/hospital/records/{id}/update' => 'App\Controllers\AdminController@hospitalRecordUpdate',
-        '/hospital/verify/submit' => 'App\Controllers\AdminController@hospitalVerifySubmit',
-        '/registrar/review/submit' => 'App\Controllers\AdminController@registrarReviewSubmit',
-        '/admin/users/create' => 'App\Controllers\AdminController@createUser',
-        '/admin/users/{id}/update' => 'App\Controllers\AdminController@updateUser',
-        '/admin/users/{id}/delete' => 'App\Controllers\AdminController@deleteUser',
-    ]
+    '/' => 'App\Controllers\HomeController@index',
+    '/login' => 'App\Controllers\AuthController@showLogin',
+    '/register' => 'App\Controllers\AuthController@showRegister',
+    '/auth/logout' => 'App\Controllers\AuthController@logout',
+    '/auth/forgot-password' => 'App\Controllers\AuthController@showForgotPassword',
+    '/auth/reset-password' => 'App\Controllers\AuthController@showResetPassword',
+    '/auth/2fa' => 'App\Controllers\AuthController@showTwoFactorAuth',
+    '/auth/verify' => 'App\Controllers\AuthController@verifyEmail',
+    '/auth/verify-email' => 'App\Controllers\AuthController@verifyEmail',
+    '/dashboard' => 'App\Controllers\DashboardController@index',
+    '/dashboard/pending' => 'App\Controllers\DashboardController@pending',
+    '/dashboard/approved' => 'App\Controllers\DashboardController@approved',
+    '/dashboard/reports' => 'App\Controllers\DashboardController@reports',
+    '/dashboard/settings' => 'App\Controllers\DashboardController@settings',
+    '/profile' => 'App\Controllers\UserController@profile',
+    '/settings' => 'App\Controllers\UserController@settings',
+    '/user/delete-account' => 'App\Controllers\UserController@deleteAccount',
+    '/certificate/apply' => 'App\Controllers\CertificateController@apply',
+    '/certificate/verify' => 'App\Controllers\CertificateController@verifyFromRequest',
+    '/certificate/approve' => 'App\Controllers\CertificateController@approveApplication',
+    '/certificate/download' => 'App\Controllers\CertificateController@downloadCertificate',
+    '/certificates' => 'App\Controllers\CertificateController@listCertificates',
+    '/verify' => 'App\Controllers\CertificateController@showVerify',
+    '/reports' => 'App\Controllers\ReportController@index',
+    '/reports/export' => 'App\Controllers\ReportController@exportData',
+    
+    // Static pages
+    '/about' => 'App\Controllers\StaticPageController@about',
+    '/contact' => 'App\Controllers\StaticPageController@contact',
+    '/faq' => 'App\Controllers\StaticPageController@faq',
+    '/privacy' => 'App\Controllers\StaticPageController@privacy',
+    '/terms' => 'App\Controllers\StaticPageController@terms',
+    '/api-docs' => 'App\Controllers\StaticPageController@apiDocs',
+    
+    // User profile and settings
+    '/notifications' => 'App\Controllers\NotificationController@index',
+    
+    // Application routes
+    '/applications/new' => 'App\Controllers\ApplicationController@create',
+    '/applications' => 'App\Controllers\ApplicationController@index',
+    '/applications/{id}' => 'App\Controllers\ApplicationController@show',
+    
+    // Generic Application Submission
+    '/applications/submit' => 'App\Controllers\GenericApplicationController@create',
+    '/applications/submit/store' => 'App\Controllers\GenericApplicationController@store',
+
+    // Payment routes
+    '/applications/{id}/pay' => 'App\Controllers\PaymentController@pay',
+    '/applications/{id}/payment-callback' => 'App\Controllers\PaymentController@callback',
+
+    // Tracking lookup form and handler (Phase 3)
+    '/track' => 'App\Controllers\TrackingController@form',
+    '/track/search' => 'App\Controllers\TrackingController@search',
+    // Actual tracking detail route
+    '/track/{tracking_number}' => 'App\Controllers\TrackingController@show',
+
+    // Feedback routes
+    '/applications/{id}/feedback' => 'App\Controllers\FeedbackController@create',
+    '/applications/feedback/store' => 'App\Controllers\FeedbackController@store',
+    
+    // Hospital routes
+    '/hospital/submissions' => 'App\Controllers\AdminController@hospitalSubmissions',
+    '/hospital/dashboard' => 'App\Controllers\AdminController@hospitalDashboard',
+    '/hospital/records' => 'App\Controllers\AdminController@hospitalRecords',
+    '/hospital/records/new' => 'App\Controllers\AdminController@hospitalRecordCreate',
+    '/hospital/records/{id}' => 'App\Controllers\AdminController@hospitalRecordShow',
+    '/hospital/records/{id}/edit' => 'App\Controllers\AdminController@hospitalRecordEdit',
+    '/hospital/verifications' => 'App\Controllers\AdminController@hospitalVerifications',
+    '/hospital/verify/{id}' => 'App\Controllers\AdminController@hospitalVerify',
+    '/hospital/settings' => 'App\Controllers\AdminController@hospitalSettings',
+    
+    // Registrar routes
+    '/registrar/applications' => 'App\Controllers\AdminController@registrarApplications',
+    '/registrar/dashboard' => 'App\Controllers\AdminController@registrarDashboard',
+    '/registrar/pending' => 'App\Controllers\AdminController@registrarPending',
+    '/registrar/approved' => 'App\Controllers\AdminController@registrarApproved',
+    '/registrar/reports' => 'App\Controllers\AdminController@registrarReports',
+    '/registrar/settings' => 'App\Controllers\AdminController@registrarSettings',
+    '/registrar/review/{id}' => 'App\Controllers\AdminController@registrarReview',
+    
+    // Admin routes
+    '/admin/dashboard' => 'App\Controllers\AdminController@dashboard',
+    '/admin/users' => 'App\Controllers\AdminController@users',
+    '/admin/applications' => 'App\Controllers\AdminController@applications',
+    '/admin/generic-applications' => 'App\Controllers\AdminController@genericApplications',
+    '/admin/certificates' => 'App\Controllers\AdminController@certificates',
+    '/admin/reports' => 'App\Controllers\AdminController@reports',
+    '/admin/settings' => 'App\Controllers\AdminController@settings',
+    
+    // Certificate routes
+    '/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
+    '/certificates/{id}' => 'App\Controllers\CertificateController@show',
+    
+    // Verification routes
+    '/verifications' => 'App\Controllers\CertificateController@verifications',
+    '/verifications/history' => 'App\Controllers\CertificateController@verificationHistory',
+    
+    // Settings routes
+    '/dashboard/registrar' => 'App\Controllers\DashboardController@registrar',
 ];
 
-// Route matching
-$matchedRoute = null;
-$params = [];
-
-foreach ($routes[$requestMethod] ?? [] as $route => $handler) {
-    $pattern = preg_replace('/\{([^}]+)\}/', '([^/]+)', $route);
-    $pattern = '#^' . $pattern . '$#';
+// Check if route exists
+if (isset($routes[$path])) {
+    $handler = $routes[$path];
     
-    if (preg_match($pattern, $path, $matches)) {
-        $matchedRoute = $handler;
-        array_shift($matches); // Remove full match
-        $params = $matches;
-        break;
+    if (is_string($handler) && strpos($handler, '@') !== false) {
+        [$controller_class, $method_name] = explode('@', $handler);
+    } else if (is_array($handler)) {
+        // Fallback for old array-based routes
+        [$controller_name, $method_name] = $handler;
+        $controller_class = "App\\Controllers\\{$controller_name}";
+    } else {
+        http_response_code(500);
+        echo "Invalid route handler configuration.";
+        exit;
     }
-}
-
-// Debug information
-if ($_ENV['APP_DEBUG'] ?? false) {
-    echo "<!-- Debug Info: Matched Route=$matchedRoute -->\n";
-}
-
-// Handle route
-if ($matchedRoute) {
-    list($controller, $method) = explode('@', $matchedRoute);
     
-    try {
-        if (class_exists($controller)) {
-            $controllerInstance = new $controller();
-            if (method_exists($controllerInstance, $method)) {
-                call_user_func_array([$controllerInstance, $method], $params);
-            } else {
-                http_response_code(404);
-                include __DIR__ . '/../resources/views/errors/404.php';
+    // No need to manually require files with a proper autoloader
+    // $controller_file = __DIR__ . "/../app/Controllers/{$controller_name}.php";
+    
+    if (class_exists($controller_class)) {
+        $controller = new $controller_class();
+        
+        if (method_exists($controller, $method_name)) {
+            try {
+                $controller->$method_name();
+            } catch (Exception $e) {
+                error_log("Controller error: " . $e->getMessage());
+                http_response_code(500);
+                echo "Internal Server Error";
             }
         } else {
             http_response_code(404);
-            include __DIR__ . '/../resources/views/errors/404.php';
+            echo "Method not found";
         }
-    } catch (Exception $e) {
-        http_response_code(500);
-        include __DIR__ . '/../resources/views/errors/500.php';
+    } else {
+        http_response_code(404);
+        echo "Controller class not found";
     }
 } else {
-    // Show 404 instead of redirecting to prevent loops
+    // 404 Not Found
     http_response_code(404);
-    include __DIR__ . '/../resources/views/errors/404.php';
+    echo "<!DOCTYPE html>
+    <html>
+    <head>
+        <title>404 - Page Not Found</title>
+        <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'>
+    </head>
+    <body class='bg-light'>
+        <div class='container mt-5 text-center'>
+            <h1 class='display-1 text-muted'>404</h1>
+            <h2>Page Not Found</h2>
+            <p class='lead'>The page you're looking for doesn't exist.</p>
+            <a href='/' class='btn btn-primary'>Go Home</a>
+        </div>
+    </body>
+    </html>";
 } 

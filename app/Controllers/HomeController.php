@@ -8,18 +8,21 @@ class HomeController
 {
     public function index()
     {
-        // Check if user is logged in
-        $isLoggedIn = isset($_SESSION['user']);
-        $userRole = $_SESSION['user']['role'] ?? null;
+        // Check if user is logged in - but don't redirect automatically to dashboard
+        // This prevents redirect loops between home and dashboard
+        $isLoggedIn = isset($_SESSION['user_id']);
         
-        // Create a personalized welcome message
+        // Get user role if logged in
+        $userRole = $_SESSION['role'] ?? null;
+        
+        // Create welcome message
         $welcomeMessage = $this->createWelcomeMessage($isLoggedIn, $userRole);
         
-        // Get some basic statistics from the database
+        // Get system statistics
         $statistics = $this->getSystemStatistics();
         
-        // Include the home view
-        include __DIR__ . '/../../resources/views/home.php';
+        // Pass the login status and other data to the view
+        include BASE_PATH . '/resources/views/home.php';
     }
     
     /**
@@ -111,130 +114,6 @@ class HomeController
     }
     
     /**
-     * Handles contact form submissions
-     * This method demonstrates:
-     * - Form data processing
-     * - Input validation
-     * - Error handling
-     * - User feedback
-     */
-    public function contact()
-    {
-        // Check if this is a form submission (POST request)
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->processContactForm();
-        } else {
-            // Show the contact form
-            $this->showContactForm();
-        }
-    }
-    
-    /**
-     * Displays the contact form
-     */
-    private function showContactForm()
-    {
-        $pageTitle = 'Contact Us - Digital Birth Certificate System';
-        require_once __DIR__ . '/../../resources/views/contact.php';
-    }
-    
-    /**
-     * Processes the contact form submission
-     */
-    private function processContactForm()
-    {
-        try {
-            // Get form data with validation
-            $name = $this->validateInput($_POST['name'] ?? '', 'Name is required', 2, 100);
-            $email = $this->validateEmail($_POST['email'] ?? '');
-            $subject = $this->validateInput($_POST['subject'] ?? '', 'Subject is required', 5, 200);
-            $message = $this->validateInput($_POST['message'] ?? '', 'Message is required', 10, 1000);
-            
-            // In a real application, you would:
-            // 1. Save to database
-            // 2. Send email notification
-            // 3. Log the contact request
-            
-            // For now, we'll just simulate success
-            $this->logContactRequest($name, $email, $subject, $message);
-            
-            // Set success message
-            $_SESSION['success'] = 'Thank you for your message! We will get back to you within 24 hours.';
-            
-            // Redirect back to home page
-            header('Location: /');
-            exit;
-            
-        } catch (Exception $e) {
-            // Set error message
-            $_SESSION['error'] = $e->getMessage();
-            
-            // Redirect back to contact form
-            header('Location: /contact');
-            exit;
-        }
-    }
-    
-    /**
-     * Validates text input
-     */
-    private function validateInput($input, $errorMessage, $minLength = 1, $maxLength = 255)
-    {
-        // Remove extra whitespace
-        $input = trim($input);
-        
-        // Check if empty
-        if (empty($input)) {
-            throw new Exception($errorMessage);
-        }
-        
-        // Check length
-        if (strlen($input) < $minLength) {
-            throw new Exception("$errorMessage (minimum $minLength characters)");
-        }
-        
-        if (strlen($input) > $maxLength) {
-            throw new Exception("$errorMessage (maximum $maxLength characters)");
-        }
-        
-        // Sanitize input (remove potentially harmful characters)
-        return htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
-    }
-    
-    /**
-     * Validates email address
-     */
-    private function validateEmail($email)
-    {
-        $email = trim($email);
-        
-        if (empty($email)) {
-            throw new Exception('Email address is required');
-        }
-        
-        // Check if email format is valid
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception('Please enter a valid email address');
-        }
-        
-        return $email;
-    }
-    
-    /**
-     * Logs contact request (simulated)
-     */
-    private function logContactRequest($name, $email, $subject, $message)
-    {
-        // In a real application, you would save this to a database
-        // For now, we'll just log it to a file
-        $logEntry = date('Y-m-d H:i:s') . " - Contact from: $name ($email) - Subject: $subject\n";
-        $logEntry .= "Message: $message\n";
-        $logEntry .= "----------------------------------------\n";
-        
-        file_put_contents(__DIR__ . '/../../storage/logs/contact_requests.log', $logEntry, FILE_APPEND | LOCK_EX);
-    }
-    
-    /**
      * Shows user profile page (requires authentication)
      * This method demonstrates:
      * - Session management
@@ -303,7 +182,7 @@ class HomeController
             // Validate and sanitize input
             $firstName = $this->validateInput($_POST['first_name'] ?? '', 'First name is required', 2, 100);
             $lastName = $this->validateInput($_POST['last_name'] ?? '', 'Last name is required', 2, 100);
-            $phoneNumber = $this->validateInput($_POST['phone_number'] ?? '', 'Phone number is required', 10, 20);
+            $phoneNumber = $this->validateInput($_POST['phone_number'] ?? '', 'Phone number is required', 5, 50);
             
             // Update user in database
             $pdo = Database::getConnection();

@@ -15,7 +15,7 @@ class ApplicationController
         }
         
         // Render application form
-        include __DIR__ . '/../../resources/views/applications/create.php';
+        include BASE_PATH . '/resources/views/applications/create.php';
     }
 
     public function index()
@@ -27,7 +27,7 @@ class ApplicationController
         }
         
         // Render applications list
-        include __DIR__ . '/../../resources/views/applications/index.php';
+        include BASE_PATH . '/resources/views/applications/index.php';
     }
 
     public function show($id)
@@ -39,7 +39,7 @@ class ApplicationController
         }
         
         // Render application details
-        include __DIR__ . '/../../resources/views/applications/show.php';
+        include BASE_PATH . '/resources/views/applications/show.php';
     }
 
     public function update($id)
@@ -47,7 +47,7 @@ class ApplicationController
         // Check if user is logged in and is a parent
         if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'parent') {
             http_response_code(403);
-            include __DIR__ . '/../../resources/views/errors/403.php';
+            include BASE_PATH . '/resources/views/errors/403.php';
             return;
         }
         
@@ -60,7 +60,7 @@ class ApplicationController
         // Check if user is logged in and is a parent
         if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'parent') {
             http_response_code(403);
-            include __DIR__ . '/../../resources/views/errors/403.php';
+            include BASE_PATH . '/resources/views/errors/403.php';
             return;
         }
         
@@ -73,7 +73,7 @@ class ApplicationController
         // Check if user is logged in and is a parent
         if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'parent') {
             http_response_code(403);
-            include __DIR__ . '/../../resources/views/errors/403.php';
+            include BASE_PATH . '/resources/views/errors/403.php';
             return;
         }
         
@@ -132,7 +132,7 @@ class ApplicationController
     
     private function handleFileUploads($applicationId, $files)
     {
-        $uploadDir = __DIR__ . '/../../public/uploads/';
+        $uploadDir = BASE_PATH . '/public/uploads/';
         
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);

@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" fill="none">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a90e2;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#50e3c2;stop-opacity:0.05" />
+    </linearGradient>
+    <linearGradient id="certGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a90e2" />
+      <stop offset="100%" style="stop-color:#6a5acd" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="600" height="400" fill="url(#bgGradient)"/>
+  
+  <!-- Certificate Base -->
+  <rect x="150" y="100" width="300" height="200" rx="15" fill="white" filter="url(#shadow)"/>
+  
+  <!-- Certificate Border -->
+  <rect x="150" y="100" width="300" height="200" rx="15" fill="none" stroke="url(#certGradient)" stroke-width="3"/>
+  
+  <!-- Certificate Content -->
+  <rect x="170" y="130" width="260" height="8" rx="4" fill="#4a90e2"/>
+  <rect x="170" y="150" width="200" height="6" rx="3" fill="#e9ecef"/>
+  <rect x="170" y="165" width="180" height="6" rx="3" fill="#e9ecef"/>
+  <rect x="170" y="180" width="220" height="6" rx="3" fill="#e9ecef"/>
+  
+  <!-- Official Seal -->
+  <circle cx="450" cy="180" r="25" fill="url(#certGradient)"/>
+  <circle cx="450" cy="180" r="20" fill="white"/>
+  <circle cx="450" cy="180" r="15" fill="url(#certGradient)"/>
+  <text x="450" y="185" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">OFFICIAL</text>
+  
+  <!-- Digital Elements -->
+  <g opacity="0.6">
+    <!-- Binary Code Background -->
+    <text x="50" y="50" fill="#4a90e2" font-family="monospace" font-size="8">10101010</text>
+    <text x="500" y="350" fill="#50e3c2" font-family="monospace" font-size="8">11001100</text>
+    <text x="80" y="380" fill="#4a90e2" font-family="monospace" font-size="8">10011001</text>
+    <text x="520" y="80" fill="#50e3c2" font-family="monospace" font-size="8">00110011</text>
+  </g>
+  
+  <!-- Security Icons -->
+  <g transform="translate(180, 220)">
+    <!-- Shield -->
+    <path d="M0 0 L8 -8 L16 0 L16 12 L8 20 L0 12 Z" fill="#4a90e2"/>
+    <path d="M4 4 L8 0 L12 4 L12 10 L8 14 L4 10 Z" fill="white"/>
+  </g>
+  
+  <g transform="translate(220, 220)">
+    <!-- Lock -->
+    <rect x="2" y="8" width="12" height="8" rx="2" fill="#50e3c2"/>
+    <path d="M4 8 L4 5 C4 2 6 0 8 0 C10 0 12 2 12 5 L12 8" stroke="#50e3c2" stroke-width="2" fill="none"/>
+  </g>
+  
+  <g transform="translate(260, 220)">
+    <!-- Check Mark -->
+    <circle cx="8" cy="8" r="8" fill="#f5a623"/>
+    <path d="M3 8 L6 11 L13 4" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  
+  <!-- Floating Elements -->
+  <g opacity="0.3">
+    <circle cx="100" cy="120" r="3" fill="#4a90e2"/>
+    <circle cx="520" cy="150" r="2" fill="#50e3c2"/>
+    <circle cx="80" cy="280" r="2" fill="#f5a623"/>
+    <circle cx="540" cy="320" r="3" fill="#4a90e2"/>
+  </g>
+  
+  <!-- Connection Lines -->
+  <g opacity="0.2">
+    <line x1="100" y1="120" x2="150" y2="200" stroke="#4a90e2" stroke-width="1"/>
+    <line x1="520" y1="150" x2="450" y2="200" stroke="#50e3c2" stroke-width="1"/>
+    <line x1="80" y1="280" x2="150" y2="280" stroke="#f5a623" stroke-width="1"/>
+    <line x1="540" y1="320" x2="450" y2="280" stroke="#4a90e2" stroke-width="1"/>
+  </g>
+</svg> 

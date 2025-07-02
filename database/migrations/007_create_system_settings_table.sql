@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS system_settings (
     INDEX idx_setting_key (setting_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insert default settings
+-- Insert default settings (safe for rerun)
 INSERT INTO system_settings (setting_key, setting_value, setting_type, description, is_public) VALUES
 ('app_name', 'Digital Birth Certificate System', 'string', 'Application name', TRUE),
 ('app_version', '1.0.0', 'string', 'Application version', TRUE),
@@ -23,4 +23,9 @@ INSERT INTO system_settings (setting_key, setting_value, setting_type, descripti
 ('login_attempts_limit', '5', 'integer', 'Maximum login attempts before lockout', FALSE),
 ('lockout_duration', '900', 'integer', 'Account lockout duration in seconds', FALSE),
 ('certificate_prefix', 'BC', 'string', 'Certificate number prefix', FALSE),
-('qr_code_size', '300', 'integer', 'QR code size in pixels', TRUE);
+('qr_code_size', '300', 'integer', 'QR code size in pixels', TRUE)
+ON DUPLICATE KEY UPDATE
+    setting_value = VALUES(setting_value),
+    setting_type = VALUES(setting_type),
+    description = VALUES(description),
+    is_public = VALUES(is_public);

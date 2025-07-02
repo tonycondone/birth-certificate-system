@@ -1,4 +1,22 @@
-<?php
+
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Birth Certificate System</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">
+                                <i class="fas fa-home me-1"></i>Home
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <?php
 $pageTitle = 'Submit Birth Record';
 require_once __DIR__ . '/../layouts/base.php';
 ?>
@@ -159,35 +177,62 @@ require_once __DIR__ . '/../layouts/base.php';
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('hospitalSubmissionForm');
-    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    let submitBtnText = submitBtn.querySelector('span') || submitBtn;
+    let submitBtnSpinner = submitBtn.querySelector('.spinner-border');
+    if (!submitBtnSpinner) {
+        submitBtnSpinner = document.createElement('span');
+        submitBtnSpinner.className = 'spinner-border spinner-border-sm ms-2';
+        submitBtnSpinner.style.display = 'none';
+        submitBtn.appendChild(submitBtnSpinner);
+    }
+    function resetButtonState() {
+        submitBtn.disabled = false;
+        if (submitBtnText) submitBtnText.textContent = 'Submit Birth Record';
+        submitBtnSpinner.style.display = 'none';
+    }
+    function setLoadingState() {
+        submitBtn.disabled = true;
+        if (submitBtnText) submitBtnText.textContent = 'Submitting...';
+        submitBtnSpinner.style.display = 'inline-block';
+    }
+    function validateFormAndUpdateButton() {
+        if (form.checkValidity()) {
+            resetButtonState();
+        }
+    }
+    const inputs = form.querySelectorAll('input[required], input[pattern], select[required], textarea[required]');
+    inputs.forEach(input => {
+        input.addEventListener('input', validateFormAndUpdateButton);
+        input.addEventListener('blur', validateFormAndUpdateButton);
+    });
     form.addEventListener('submit', function(event) {
         if (!form.checkValidity()) {
             event.preventDefault();
             event.stopPropagation();
+            resetButtonState();
+        } else {
+            setLoadingState();
         }
-        
         // File size validation
         const maxSize = 5 * 1024 * 1024; // 5MB
         const files = [
             document.getElementById('medicalRecord').files[0],
             document.getElementById('deliveryNotes').files[0]
         ];
-        
         for (const file of files) {
             if (file && file.size > maxSize) {
                 event.preventDefault();
                 alert('File size must not exceed 5MB');
+                resetButtonState();
                 return;
             }
         }
-
         form.classList.add('was-validated');
     });
-
     // Date validation
     const dateOfBirth = document.getElementById('dateOfBirth');
     dateOfBirth.max = new Date().toISOString().split('T')[0];
-
     // Weight validation
     const weight = document.getElementById('weight');
     weight.addEventListener('input', function() {

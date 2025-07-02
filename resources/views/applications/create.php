@@ -1,4 +1,22 @@
-<?php
+
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Birth Certificate System</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">
+                                <i class="fas fa-home me-1"></i>Home
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <?php
 $pageTitle = 'New Application - Digital Birth Certificate System';
 include __DIR__ . '/../layouts/base.php';
 ?>
@@ -79,42 +97,80 @@ include __DIR__ . '/../layouts/base.php';
 </div>
 
 <script>
-document.getElementById('applicationForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    
-    fetch('/applications/submit', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: data.message,
-                confirmButtonText: 'OK'
-            }).then(() => {
-                window.location.href = '/applications';
-            });
-        } else {
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('applicationForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    let submitBtnText = submitBtn.querySelector('span') || submitBtn;
+    let submitBtnSpinner = submitBtn.querySelector('.spinner-border');
+    if (!submitBtnSpinner) {
+        submitBtnSpinner = document.createElement('span');
+        submitBtnSpinner.className = 'spinner-border spinner-border-sm ms-2';
+        submitBtnSpinner.style.display = 'none';
+        submitBtn.appendChild(submitBtnSpinner);
+    }
+    function resetButtonState() {
+        submitBtn.disabled = false;
+        if (submitBtnText) submitBtnText.textContent = 'Submit Application';
+        submitBtnSpinner.style.display = 'none';
+    }
+    function setLoadingState() {
+        submitBtn.disabled = true;
+        if (submitBtnText) submitBtnText.textContent = 'Submitting...';
+        submitBtnSpinner.style.display = 'inline-block';
+    }
+    function validateFormAndUpdateButton() {
+        if (form.checkValidity()) {
+            resetButtonState();
+        }
+    }
+    const inputs = form.querySelectorAll('input[required], input[pattern], select[required], textarea[required]');
+    inputs.forEach(input => {
+        input.addEventListener('input', validateFormAndUpdateButton);
+        input.addEventListener('blur', validateFormAndUpdateButton);
+    });
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!form.checkValidity()) {
+            resetButtonState();
+            form.classList.add('was-validated');
+            return;
+        }
+        setLoadingState();
+        const formData = new FormData(form);
+        fetch('/applications/submit', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            resetButtonState();
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: data.message,
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    window.location.href = '/applications';
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: data.error || 'An error occurred while submitting the application.',
+                    confirmButtonText: 'OK'
+                });
+            }
+        })
+        .catch(error => {
+            resetButtonState();
+            console.error('Error:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error!',
-                text: data.error || 'An error occurred while submitting the application.',
+                text: 'An error occurred while submitting the application.',
                 confirmButtonText: 'OK'
             });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error!',
-            text: 'An error occurred while submitting the application.',
-            confirmButtonText: 'OK'
         });
     });
 });

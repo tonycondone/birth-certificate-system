@@ -1,4 +1,22 @@
-<?php
+
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Birth Certificate System</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">
+                                <i class="fas fa-home me-1"></i>Home
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <?php
 $pageTitle = 'Contact Us - Digital Birth Certificate System';
 require_once __DIR__ . '/layouts/base.php';
 ?>
@@ -21,6 +39,20 @@ require_once __DIR__ . '/layouts/base.php';
                             We're here to help! Fill out the form below and we'll get back to you within 24 hours.
                         </p>
                         
+                        <?php if (isset($_SESSION['success'])): ?>
+                            <div class="alert alert-success">
+                                <?= $_SESSION['success'] ?>
+                            </div>
+                            <?php unset($_SESSION['success']); ?>
+                        <?php endif; ?>
+
+                        <?php if (isset($_SESSION['error'])): ?>
+                            <div class="alert alert-danger">
+                                <?= $_SESSION['error'] ?>
+                            </div>
+                            <?php unset($_SESSION['error']); ?>
+                        <?php endif; ?>
+
                         <form id="contactForm" method="POST" action="/contact" class="needs-validation" novalidate>
                             <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
                             
@@ -30,16 +62,19 @@ require_once __DIR__ . '/layouts/base.php';
                                     <i class="fas fa-user me-1"></i>Full Name
                                 </label>
                                 <input type="text" 
-                                       class="form-control" 
+                                       class="form-control <?= isset($errors['name']) ? 'is-invalid' : '' ?>" 
                                        id="name" 
                                        name="name" 
                                        placeholder="Enter your full name"
                                        required 
                                        minlength="2" 
-                                       maxlength="100">
-                                <div class="invalid-feedback">
-                                    Please enter your full name (minimum 2 characters).
-                                </div>
+                                       maxlength="100"
+                                       value="<?= htmlspecialchars($old['name'] ?? '') ?>">
+                                <?php if (isset($errors['name'])): ?>
+                                    <div class="invalid-feedback">
+                                        <?= $errors['name'] ?>
+                                    </div>
+                                <?php endif; ?>
         </div>
 
                             <!-- Email Field -->
@@ -48,14 +83,17 @@ require_once __DIR__ . '/layouts/base.php';
                                     <i class="fas fa-envelope me-1"></i>Email Address
                                 </label>
                                 <input type="email" 
-                                       class="form-control" 
+                                       class="form-control <?= isset($errors['email']) ? 'is-invalid' : '' ?>" 
                                        id="email" 
                                        name="email" 
                                        placeholder="Enter your email address"
-                                       required>
-                                <div class="invalid-feedback">
-                                    Please enter a valid email address.
-                                </div>
+                                       required
+                                       value="<?= htmlspecialchars($old['email'] ?? '') ?>">
+                                <?php if (isset($errors['email'])): ?>
+                                    <div class="invalid-feedback">
+                                        <?= $errors['email'] ?>
+                                    </div>
+                                <?php endif; ?>
         </div>
 
                             <!-- Subject Field -->
@@ -63,7 +101,7 @@ require_once __DIR__ . '/layouts/base.php';
                                 <label for="subject" class="form-label">
                                     <i class="fas fa-tag me-1"></i>Subject
                                 </label>
-                                <select class="form-select" id="subject" name="subject" required>
+                                <select class="form-select <?= isset($errors['subject']) ? 'is-invalid' : '' ?>" id="subject" name="subject" required>
                                     <option value="">Choose a subject...</option>
                                     <option value="General Inquiry">General Inquiry</option>
                                     <option value="Technical Support">Technical Support</option>
@@ -72,9 +110,11 @@ require_once __DIR__ . '/layouts/base.php';
                                     <option value="Account Issues">Account Issues</option>
                                     <option value="Other">Other</option>
                                 </select>
-                                <div class="invalid-feedback">
-                                    Please select a subject.
-                                </div>
+                                <?php if (isset($errors['subject'])): ?>
+                                    <div class="invalid-feedback">
+                                        <?= $errors['subject'] ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Message Field -->
@@ -82,19 +122,23 @@ require_once __DIR__ . '/layouts/base.php';
                                 <label for="message" class="form-label">
                                     <i class="fas fa-comment me-1"></i>Message
                                 </label>
-                                <textarea class="form-control" 
+                                <textarea class="form-control <?= isset($errors['message']) ? 'is-invalid' : '' ?>" 
                                           id="message" 
                                           name="message" 
                                           rows="5" 
                                           placeholder="Please describe your inquiry in detail..."
                                           required 
                                           minlength="10" 
-                                          maxlength="1000"></textarea>
+                                          maxlength="1000">
+                                    <?= htmlspecialchars($old['message'] ?? '') ?>
+                                </textarea>
+                                <?php if (isset($errors['message'])): ?>
+                                    <div class="invalid-feedback">
+                                        <?= $errors['message'] ?>
+                                    </div>
+                                <?php endif; ?>
                                 <div class="form-text">
                                     <span id="charCount">0</span> / 1000 characters
-                                </div>
-                                <div class="invalid-feedback">
-                                    Please enter your message (minimum 10 characters).
                                 </div>
                             </div>
 
