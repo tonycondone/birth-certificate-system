@@ -75,15 +75,27 @@ class AuthController
                 header('Location: /dashboard');
                 exit;
             } else {
-                $_SESSION['error'] = 'Invalid email or password';
                 header('Location: /login');
                 exit;
             }
         } catch (Exception $e) {
             error_log("Login error: " . $e->getMessage());
-            $_SESSION['error'] = 'Login failed. Please try again.';
             header('Location: /login');
             exit;
         }
+    }
+
+    /**
+     * Logout user
+     */
+    public function logout()
+    {
+        // Clear all session data
+        $_SESSION = array();
+        session_destroy();
+
+        // Redirect to login page
+        header('Location: /login');
+        exit;
     }
 }
