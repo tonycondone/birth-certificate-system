@@ -1,0 +1,19 @@
+{
+  "ignorePatterns": ["node_modules", ".git", "dist"],
+  "associations": {
+    "COMPREHENSIVE_DOCUMENTATION_PLAN.md": ["COMPREHENSIVE_DOCUMENTATION_PLAN.md"],
+    "COMPREHENSIVE_DOCUMENTATION_SUMMARY.md": ["COMPREHENSIVE_DOCUMENTATION_SUMMARY.md"],
+    "BIRTH_CERTIFICATE_SYSTEM_DOCUMENTATION.md": ["BIRTH_CERTIFICATE_SYSTEM_DOCUMENTATION.md"],
+    "documentation.md": ["documentation.md"],
+    "PROJECT_SUMMARY.md": ["PROJECT_SUMMARY.md"],
+    "VERIFICATION_SYSTEM.md": ["VERIFICATION_SYSTEM.md"],
+    "README.md": ["README.md"],
+    "SETUP_GUIDE.md": ["SETUP_GUIDE.md"],
+    "CONTRIBUTING.md": ["CONTRIBUTING.md"],
+    "docs/": [
+      "docs/README.md",
+      "docs/architecture/",
+      "docs/developer-guide/"
+    ]
+  }
+}
