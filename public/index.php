@@ -101,12 +101,36 @@ $routes = [
     '/profile' => 'App\Controllers\UserController@profile',
     '/settings' => 'App\Controllers\UserController@settings',
     '/user/delete-account' => 'App\Controllers\UserController@deleteAccount',
+    // Certificate routes (comprehensive)
     '/certificate/apply' => 'App\Controllers\CertificateController@apply',
     '/certificate/verify' => 'App\Controllers\CertificateController@verifyFromRequest',
     '/certificate/approve' => 'App\Controllers\CertificateController@approveApplication',
     '/certificate/download' => 'App\Controllers\CertificateController@downloadCertificate',
+    '/certificate/sample' => 'App\Controllers\CertificateController@sample',
+    '/certificate/generate/{id}' => 'App\Controllers\CertificateController@generate',
+    '/certificate/list' => 'App\Controllers\CertificateController@listCertificates',
+    
+    // Certificates (plural) routes
     '/certificates' => 'App\Controllers\CertificateController@listCertificates',
-    '/verify' => 'App\Controllers\CertificateController@showVerify',
+    '/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
+    '/certificates/generate/{id}' => 'App\Controllers\CertificateController@generate',
+    '/certificates/verify/{id}' => 'App\Controllers\CertificateController@verifyCertificate',
+    '/certificates/reject/{id}' => 'App\Controllers\CertificateController@rejectCertificate',
+    '/certificates/approve/{id}' => 'App\Controllers\CertificateController@approveApplication',
+    '/certificates/{id}' => 'App\Controllers\CertificateController@show',
+    
+    // Verification routes
+    '/verify' => 'App\Controllers\CertificateController@verify',
+    '/verify/{number}' => 'App\Controllers\CertificateController@verify',
+    '/verify/certificate/{number}' => 'App\Controllers\CertificateController@validateCertificate',
+    '/verifications' => 'App\Controllers\CertificateController@verifications',
+    '/verifications/history' => 'App\Controllers\CertificateController@verificationHistory',
+    
+    // API routes for certificates
+    '/api/certificate/verify' => 'App\Controllers\CertificateController@apiVerify',
+    '/api/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
+    '/api/certificates/generate/{id}' => 'App\Controllers\CertificateController@generate',
+    
     '/reports' => 'App\Controllers\ReportController@index',
     '/reports/export' => 'App\Controllers\ReportController@exportData',
     
@@ -125,6 +149,9 @@ $routes = [
     '/applications/new' => 'App\Controllers\ApplicationController@create',
     '/applications' => 'App\Controllers\ApplicationController@index',
     '/applications/{id}' => 'App\Controllers\ApplicationController@show',
+    '/applications/download/{id}' => 'App\Controllers\ApplicationController@download',
+    '/applications/approve/{id}' => 'App\Controllers\ApplicationController@approve',
+    '/applications/reject/{id}' => 'App\Controllers\ApplicationController@reject',
     
     // Generic Application Submission
     '/applications/submit' => 'App\Controllers\GenericApplicationController@create',
@@ -134,8 +161,8 @@ $routes = [
     '/applications/{id}/pay' => 'App\Controllers\PaymentController@pay',
     '/applications/{id}/payment-callback' => 'App\Controllers\PaymentController@callback',
 
-    // Tracking lookup form and handler (Phase 3)
-    '/track' => 'App\Controllers\TrackingController@form',
+    // Tracking lookup form and handler
+    '/track' => 'App\Controllers\ApplicationController@track',
     '/track/search' => 'App\Controllers\TrackingController@search',
     // Actual tracking detail route
     '/track/{tracking_number}' => 'App\Controllers\TrackingController@show',
@@ -151,95 +178,134 @@ $routes = [
     '/hospital/records/new' => 'App\Controllers\AdminController@hospitalRecordCreate',
     '/hospital/records/{id}' => 'App\Controllers\AdminController@hospitalRecordShow',
     '/hospital/records/{id}/edit' => 'App\Controllers\AdminController@hospitalRecordEdit',
+    '/hospital/records/download/{id}' => 'App\Controllers\AdminController@hospitalRecordDownload',
     '/hospital/verifications' => 'App\Controllers\AdminController@hospitalVerifications',
     '/hospital/verify/{id}' => 'App\Controllers\AdminController@hospitalVerify',
     '/hospital/settings' => 'App\Controllers\AdminController@hospitalSettings',
     
     // Registrar routes
+    '/registrar/dashboard' => 'App\Controllers\RegistrarController@dashboard',
+    '/registrar/pending' => 'App\Controllers\RegistrarController@pendingApplications',
+    '/registrar/review/{id}' => 'App\Controllers\RegistrarController@reviewApplication',
+    '/registrar/process' => 'App\Controllers\RegistrarController@processApplication',
+    '/registrar/batch-process' => 'App\Controllers\RegistrarController@batchProcess',
+    '/registrar/reports' => 'App\Controllers\RegistrarController@reports',
     '/registrar/applications' => 'App\Controllers\AdminController@registrarApplications',
-    '/registrar/dashboard' => 'App\Controllers\AdminController@registrarDashboard',
-    '/registrar/pending' => 'App\Controllers\AdminController@registrarPending',
     '/registrar/approved' => 'App\Controllers\AdminController@registrarApproved',
-    '/registrar/reports' => 'App\Controllers\AdminController@registrarReports',
     '/registrar/settings' => 'App\Controllers\AdminController@registrarSettings',
-    '/registrar/review/{id}' => 'App\Controllers\AdminController@registrarReview',
+    '/registrar/certificates' => 'App\Controllers\CertificateController@listCertificates',
+    '/registrar/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
     
     // Admin routes
-    '/admin/dashboard' => 'App\Controllers\AdminController@dashboard',
-    '/admin/users' => 'App\Controllers\AdminController@users',
+    '/admin/dashboard' => 'App\Controllers\AdminPortalController@dashboard',
+    '/admin/users' => 'App\Controllers\AdminPortalController@users',
+    '/admin/user-action' => 'App\Controllers\AdminPortalController@userAction',
+    '/admin/monitoring' => 'App\Controllers\AdminPortalController@systemMonitoring',
+    '/admin/settings' => 'App\Controllers\AdminPortalController@settings',
+    '/admin/reports' => 'App\Controllers\AdminPortalController@reports',
     '/admin/applications' => 'App\Controllers\AdminController@applications',
     '/admin/generic-applications' => 'App\Controllers\AdminController@genericApplications',
     '/admin/certificates' => 'App\Controllers\AdminController@certificates',
-    '/admin/reports' => 'App\Controllers\AdminController@reports',
-    '/admin/settings' => 'App\Controllers\AdminController@settings',
-    
-    // Certificate routes
-    '/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
-    '/certificates/{id}' => 'App\Controllers\CertificateController@show',
-    
-    // Verification routes
-    '/verifications' => 'App\Controllers\CertificateController@verifications',
-    '/verifications/history' => 'App\Controllers\CertificateController@verificationHistory',
+    '/admin/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
+    '/admin/applications/download/{id}' => 'App\Controllers\ApplicationController@download',
     
     // Settings routes
     '/dashboard/registrar' => 'App\Controllers\DashboardController@registrar',
-
-    // Certificate Verification Routes
-    '/verify/certificate/[*:number]' => 'CertificateController@validateCertificate',
-    '/certificates/verify/[i:id]' => 'CertificateController@verifyCertificate',
-    '/certificates/reject/[i:id]' => 'CertificateController@rejectCertificate',
+    '/dashboard/hospital' => 'App\Controllers\DashboardController@hospital',
+    '/dashboard/admin' => 'App\Controllers\DashboardController@admin',
 ];
 
 // Comprehensive error handling for dependency injection
-function createCertificateController() {
+function createControllerWithDependencies($controller_class) {
     try {
-        // Get dependencies from the container
-        $container = DependencyContainer::getInstance();
-        
-        // Detailed logging of dependency creation
-        try {
-            $db = $container->getDatabase();
-        } catch (Exception $e) {
-            error_log("Database Connection Error in createCertificateController: " . $e->getMessage());
-            throw $e;
+        // Handle different controller types with appropriate dependency injection
+        switch ($controller_class) {
+            case 'App\Controllers\DashboardController':
+                // Try to create with proper dependencies, fallback to default constructor
+                try {
+                    require_once BASE_PATH . '/app/Repositories/DashboardRepository.php';
+                    require_once BASE_PATH . '/app/Services/AuthService.php';
+                    $dashboardRepo = new App\Repositories\DashboardRepository();
+                    $authService = new App\Services\AuthService();
+                    return new App\Controllers\DashboardController($dashboardRepo, $authService);
+                } catch (Exception $e) {
+                    // Fallback to default constructor
+                    return new App\Controllers\DashboardController();
+                }
+                
+            case 'App\Controllers\CertificateController':
+                // Try to create with dependencies from container
+                try {
+                    if (class_exists('App\Services\DependencyContainer')) {
+                        $container = DependencyContainer::getInstance();
+                        $db = $container->getDatabase();
+                        $authService = $container->getAuthService();
+                        $verificationService = $container->getCertificateVerificationService();
+                        return new App\Controllers\CertificateController($db, $authService, $verificationService);
+                    } else {
+                        return new App\Controllers\CertificateController();
+                    }
+                } catch (Exception $e) {
+                    return new App\Controllers\CertificateController();
+                }
+                
+            case 'App\Controllers\RegistrarController':
+            case 'App\Controllers\AdminPortalController':
+            case 'App\Controllers\ApplicationController':
+                // Try to create with basic dependencies
+                try {
+                    return new $controller_class();
+                } catch (Exception $e) {
+                    error_log("Error creating controller $controller_class: " . $e->getMessage());
+                    throw $e;
+                }
+                
+            default:
+                // Default controller creation
+                return new $controller_class();
         }
-
-        try {
-            $authService = $container->getAuthService();
-        } catch (Exception $e) {
-            error_log("Auth Service Creation Error in createCertificateController: " . $e->getMessage());
-            throw $e;
-        }
-
-        try {
-            $verificationService = $container->getCertificateVerificationService();
-        } catch (Exception $e) {
-            error_log("Certificate Verification Service Creation Error in createCertificateController: " . $e->getMessage());
-            throw $e;
-        }
-        
-        // Create and return CertificateController with dependencies
-        return new CertificateController($db, $authService, $verificationService);
     } catch (Exception $e) {
-        // Log the full error details
-        error_log("Fatal Error in createCertificateController: " . $e->getMessage());
-        error_log("Trace: " . $e->getTraceAsString());
-        
-        // Depending on environment, either show a generic error or detailed error
+        error_log("Fatal Error creating controller $controller_class: " . $e->getMessage());
         if ($_ENV['APP_DEBUG'] ?? false) {
-            throw $e; // Rethrow for detailed error display
+            throw $e;
         } else {
-            // Show a generic error page
             http_response_code(500);
             die('An internal server error occurred. Please contact support.');
         }
     }
 }
 
-// Check if route exists
+// Handle dynamic routes with parameters
+function matchDynamicRoute($path, $routes) {
+    foreach ($routes as $route => $handler) {
+        // Convert route pattern to regex
+        $pattern = preg_replace('/\{[^}]+\}/', '([^/]+)', $route);
+        $pattern = '#^' . $pattern . '$#';
+        
+        if (preg_match($pattern, $path, $matches)) {
+            array_shift($matches); // Remove full match
+            return [$handler, $matches];
+        }
+    }
+    return null;
+}
+
+// Check if route exists (exact match first)
 if (isset($routes[$path])) {
     $handler = $routes[$path];
-    
+    $params = [];
+} else {
+    // Try dynamic route matching
+    $match = matchDynamicRoute($path, $routes);
+    if ($match) {
+        [$handler, $params] = $match;
+    } else {
+        $handler = null;
+        $params = [];
+    }
+}
+
+if ($handler) {
     if (is_string($handler) && strpos($handler, '@') !== false) {
         [$controller_class, $method_name] = explode('@', $handler);
     } else if (is_array($handler)) {
@@ -252,29 +318,51 @@ if (isset($routes[$path])) {
         exit;
     }
     
+    // Load the controller class file if it exists
+    $controller_file = BASE_PATH . '/app/Controllers/' . basename($controller_class) . '.php';
+    if (file_exists($controller_file)) {
+        require_once $controller_file;
+    }
+    
     if (class_exists($controller_class)) {
-        // Special handling for CertificateController
-        if ($controller_class === \App\Controllers\CertificateController::class) {
-            $controller = createCertificateController();
-        } else {
-            $controller = new $controller_class();
-        }
-        
-        if (method_exists($controller, $method_name)) {
-            try {
-                $controller->$method_name();
-            } catch (Exception $e) {
-                error_log("Controller error: " . $e->getMessage());
+        try {
+            $controller = createControllerWithDependencies($controller_class);
+            
+            if (method_exists($controller, $method_name)) {
+                try {
+                    // Call method with parameters if any
+                    if (!empty($params)) {
+                        call_user_func_array([$controller, $method_name], $params);
+                    } else {
+                        $controller->$method_name();
+                    }
+                } catch (Exception $e) {
+                    error_log("Controller method error: " . $e->getMessage());
+                    if ($_ENV['APP_DEBUG'] ?? false) {
+                        echo "Controller Error: " . $e->getMessage();
+                    } else {
+                        http_response_code(500);
+                        echo "Internal Server Error";
+                    }
+                }
+            } else {
+                error_log("Method $method_name not found in $controller_class");
+                http_response_code(404);
+                echo "Method not found: $method_name";
+            }
+        } catch (Exception $e) {
+            error_log("Controller creation error: " . $e->getMessage());
+            if ($_ENV['APP_DEBUG'] ?? false) {
+                echo "Controller Creation Error: " . $e->getMessage();
+            } else {
                 http_response_code(500);
                 echo "Internal Server Error";
             }
-        } else {
-            http_response_code(404);
-            echo "Method not found";
         }
     } else {
+        error_log("Controller class not found: $controller_class");
         http_response_code(404);
-        echo "Controller class not found";
+        echo "Controller class not found: $controller_class";
     }
 } else {
     // 404 Not Found
@@ -290,8 +378,9 @@ if (isset($routes[$path])) {
             <h1 class='display-1 text-muted'>404</h1>
             <h2>Page Not Found</h2>
             <p class='lead'>The page you're looking for doesn't exist.</p>
+            <p class='text-muted'>Requested path: " . htmlspecialchars($path) . "</p>
             <a href='/' class='btn btn-primary'>Go Home</a>
         </div>
     </body>
     </html>";
-} 
+}

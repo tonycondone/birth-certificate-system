@@ -2,12 +2,6 @@
 echo 🚀 Quick Setup - Birth Certificate System
 echo ========================================
 
-echo 📦 Installing PHP dependencies (production only)...
-composer install --no-dev --optimize-autoloader
-
-echo 📦 Installing Node.js dependencies...
-npm install
-
 echo 🏗️ Building frontend assets...
 npm run build
 

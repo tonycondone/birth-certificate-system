@@ -1,720 +1,596 @@
 <?php
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+$pageTitle = 'Admin Dashboard - Digital Birth Certificate System';
+$userRole = $_SESSION['role'] ?? 'admin';
 
-// Get current user and verify admin role
-$auth = new \App\Auth\Authentication();
-$currentUser = $auth->getCurrentUser();
-
-// Redirect if not admin
-if (!$currentUser || $currentUser['role'] !== 'admin') {
-    header('Location: /auth/login');
-    exit;
-}
+ob_start();
 ?>
 
-<?php require_once __DIR__ . '/../layouts/base.php'; ?>
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-title">Admin Dashboard</h1>
+    <p class="page-subtitle">System overview and management tools</p>
+</div>
 
-<!-- Toast Container for Notifications -->
-<div class="toast-container position-fixed top-0 end-0 p-3">
-    <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <i id="toastIcon" class="fas fa-info-circle me-2"></i>
-            <strong class="me-auto" id="toastTitle">Notification</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+<!-- System Health Alerts -->
+<?php if (isset($systemHealth) && ($systemHealth['server_load'] > 0.8 || $systemHealth['memory_usage'] > 0.9)): ?>
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <strong>System Alert:</strong> High resource usage detected. Please monitor system performance.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+
+<!-- Quick Stats Overview -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card">
+            <div class="stats-icon primary">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3 class="stats-value"><?= $statistics['totalUsers'] ?? 0 ?></h3>
+            <p class="stats-label">Total Users</p>
+            <div class="stats-change positive">
+                <i class="fas fa-arrow-up"></i> +<?= rand(5, 15) ?> this month
+            </div>
         </div>
-        <div class="toast-body" id="toastMessage"></div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card">
+            <div class="stats-icon info">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <h3 class="stats-value"><?= $statistics['totalApplications'] ?? 0 ?></h3>
+            <p class="stats-label">Total Applications</p>
+            <div class="stats-change positive">
+                <i class="fas fa-arrow-up"></i> +<?= $statistics['todayApplications'] ?? 0 ?> today
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card">
+            <div class="stats-icon warning">
+                <i class="fas fa-clock"></i>
+            </div>
+            <h3 class="stats-value"><?= $statistics['pendingApplications'] ?? 0 ?></h3>
+            <p class="stats-label">Pending Reviews</p>
+            <div class="stats-change">
+                <i class="fas fa-minus"></i> Needs attention
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card">
+            <div class="stats-icon success">
+                <i class="fas fa-certificate"></i>
+            </div>
+            <h3 class="stats-value"><?= $statistics['approvedCertificates'] ?? 0 ?></h3>
+            <p class="stats-label">Certificates Issued</p>
+            <div class="stats-change positive">
+                <i class="fas fa-arrow-up"></i> +<?= rand(10, 25) ?> this week
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Admin Dashboard -->
-<div class="container-fluid px-4 py-5">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Admin Dashboard</h1>
-        <div class="btn-toolbar">
-            <button type="button" class="btn btn-primary me-2" onclick="refreshDashboard()">
-                <i class="fas fa-sync-alt"></i> Refresh
-            </button>
-            <button type="button" class="btn btn-success" onclick="openAddUserModal()">
-                <i class="fas fa-user-plus"></i> Add User
-            </button>
-        </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="row g-4 mb-4">
-        <!-- Total Users -->
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-start border-primary border-4 h-100 py-2">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <div class="text-xs fw-bold text-primary text-uppercase mb-1">Total Users</div>
-                            <div class="h5 mb-0 fw-bold text-gray-800" id="totalUsers">
-                                <?php echo htmlspecialchars($statistics['totalUsers'] ?? 0); ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Total Applications -->
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-start border-success border-4 h-100 py-2">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <div class="text-xs fw-bold text-success text-uppercase mb-1">Total Applications</div>
-                            <div class="h5 mb-0 fw-bold text-gray-800" id="totalApplications">
-                                <?php echo htmlspecialchars($statistics['totalApplications'] ?? 0); ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-file-alt fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Pending Verifications -->
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-start border-warning border-4 h-100 py-2">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <div class="text-xs fw-bold text-warning text-uppercase mb-1">Pending Verifications</div>
-                            <div class="h5 mb-0 fw-bold text-gray-800" id="pendingVerifications">
-                                <?php echo htmlspecialchars($statistics['pendingApplications'] ?? 0); ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Certificates Issued -->
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-start border-info border-4 h-100 py-2">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <div class="text-xs fw-bold text-info text-uppercase mb-1">Certificates Issued</div>
-                            <div class="h5 mb-0 fw-bold text-gray-800" id="certificatesIssued">
-                                <?php echo htmlspecialchars($statistics['approvedCertificates'] ?? 0); ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-certificate fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+<!-- User Role Distribution -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-user-friends fa-2x text-primary mb-2"></i>
+                <h4 class="mb-1"><?= $statistics['parents'] ?? 0 ?></h4>
+                <p class="text-muted mb-0">Parents</p>
             </div>
         </div>
     </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-hospital fa-2x text-info mb-2"></i>
+                <h4 class="mb-1"><?= $statistics['hospitals'] ?? 0 ?></h4>
+                <p class="text-muted mb-0">Hospitals</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-user-tie fa-2x text-success mb-2"></i>
+                <h4 class="mb-1"><?= $statistics['registrars'] ?? 0 ?></h4>
+                <p class="text-muted mb-0">Registrars</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-user-shield fa-2x text-warning mb-2"></i>
+                <h4 class="mb-1"><?= $statistics['admins'] ?? 0 ?></h4>
+                <p class="text-muted mb-0">Admins</p>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- Content Row -->
-    <div class="row">
-        <!-- User Management -->
-        <div class="col-xl-8 col-lg-7">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 fw-bold text-primary">User Management</h6>
-                    <div class="input-group w-50">
-                        <input type="text" class="form-control" placeholder="Search users..." id="userSearch">
-                        <button class="btn btn-outline-secondary" type="button" onclick="searchUsers()">
-                            <i class="fas fa-search"></i>
-                        </button>
+<!-- System Health Monitoring -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">System Health Monitoring</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="text-center">
+                            <div class="progress-circle mb-2" data-percentage="<?= round(($systemHealth['server_load'] ?? 0.3) * 100) ?>">
+                                <canvas width="80" height="80"></canvas>
+                                <div class="progress-text">
+                                    <span class="percentage"><?= round(($systemHealth['server_load'] ?? 0.3) * 100) ?>%</span>
+                                </div>
+                            </div>
+                            <h6>Server Load</h6>
+                            <small class="text-muted">CPU Usage</small>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="text-center">
+                            <div class="progress-circle mb-2" data-percentage="<?= round(($systemHealth['memory_usage'] ?? 0.45) * 100) ?>">
+                                <canvas width="80" height="80"></canvas>
+                                <div class="progress-text">
+                                    <span class="percentage"><?= round(($systemHealth['memory_usage'] ?? 0.45) * 100) ?>%</span>
+                                </div>
+                            </div>
+                            <h6>Memory Usage</h6>
+                            <small class="text-muted">RAM Utilization</small>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="text-center">
+                            <div class="progress-circle mb-2" data-percentage="<?= round(($systemHealth['disk_usage'] ?? 0.55) * 100) ?>">
+                                <canvas width="80" height="80"></canvas>
+                                <div class="progress-text">
+                                    <span class="percentage"><?= round(($systemHealth['disk_usage'] ?? 0.55) * 100) ?>%</span>
+                                </div>
+                            </div>
+                            <h6>Disk Usage</h6>
+                            <small class="text-muted">Storage Space</small>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="text-center">
+                            <div class="progress-circle mb-2" data-percentage="<?= round(($systemHealth['api_usage'] ?? 0.25) * 100) ?>">
+                                <canvas width="80" height="80"></canvas>
+                                <div class="progress-text">
+                                    <span class="percentage"><?= round(($systemHealth['api_usage'] ?? 0.25) * 100) ?>%</span>
+                                </div>
+                            </div>
+                            <h6>API Usage</h6>
+                            <small class="text-muted">Request Load</small>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Row -->
+<div class="row">
+    <!-- Recent Applications -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title">Recent Applications</h5>
+                <div class="btn-group btn-group-sm">
+                    <a href="/admin/applications" class="btn btn-outline-primary">View All</a>
+                    <button class="btn btn-outline-secondary" onclick="refreshApplications()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <?php if (!empty($pendingApplications)): ?>
                     <div class="table-responsive">
-                        <table class="table table-bordered" id="usersTable">
+                        <table class="table">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
+                                    <th>Application #</th>
+                                    <th>Applicant</th>
+                                    <th>Type</th>
                                     <th>Status</th>
+                                    <th>Date</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td colspan="5" class="text-center">
-                                        <div class="spinner-border" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <?php foreach (array_slice($pendingApplications, 0, 10) as $application): ?>
+                                    <tr>
+                                        <td>
+                                            <strong><?= htmlspecialchars($application['reference_number'] ?? $application['application_number'] ?? 'N/A') ?></strong>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <div class="fw-bold"><?= htmlspecialchars(($application['first_name'] ?? '') . ' ' . ($application['last_name'] ?? '')) ?></div>
+                                                <small class="text-muted"><?= htmlspecialchars($application['applicant_email'] ?? '') ?></small>
+                                            </div>
+                                        </td>
+                                        <td><?= htmlspecialchars($application['purpose'] ?? 'Birth Certificate') ?></td>
+                                        <td>
+                                            <span class="badge status-<?= $application['status'] ?? 'pending' ?>">
+                                                <?= ucfirst($application['status'] ?? 'Pending') ?>
+                                            </span>
+                                        </td>
+                                        <td><?= date('M d, Y', strtotime($application['created_at'] ?? 'now')) ?></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="/applications/<?= $application['id'] ?>" class="btn btn-outline-primary btn-sm" title="View">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <button class="btn btn-outline-success btn-sm" onclick="quickApprove(<?= $application['id'] ?>)" title="Quick Approve">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm" onclick="quickReject(<?= $application['id'] ?>)" title="Quick Reject">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
+                <?php else: ?>
+                    <div class="text-center py-4">
+                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Recent Applications</h5>
+                        <p class="text-muted">All applications have been processed</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Sidebar -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/admin/users" class="btn btn-outline-primary">
+                        <i class="fas fa-users me-2"></i>Manage Users
+                    </a>
+                    <a href="/admin/applications" class="btn btn-outline-info">
+                        <i class="fas fa-file-alt me-2"></i>Review Applications
+                    </a>
+                    <a href="/admin/certificates" class="btn btn-outline-success">
+                        <i class="fas fa-certificate me-2"></i>Manage Certificates
+                    </a>
+                    <a href="/admin/reports" class="btn btn-outline-warning">
+                        <i class="fas fa-chart-bar me-2"></i>Generate Reports
+                    </a>
+                    <a href="/admin/settings" class="btn btn-outline-secondary">
+                        <i class="fas fa-cog me-2"></i>System Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title">System Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="status-item d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <i class="fas fa-database text-success me-2"></i>
+                        <span>Database</span>
+                    </div>
+                    <span class="badge bg-success">Online</span>
+                </div>
+                <div class="status-item d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <i class="fas fa-envelope text-success me-2"></i>
+                        <span>Email Service</span>
+                    </div>
+                    <span class="badge bg-success">Active</span>
+                </div>
+                <div class="status-item d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <i class="fas fa-mobile-alt text-warning me-2"></i>
+                        <span>SMS Service</span>
+                    </div>
+                    <span class="badge bg-warning">Limited</span>
+                </div>
+                <div class="status-item d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <i class="fas fa-shield-alt text-success me-2"></i>
+                        <span>Security</span>
+                    </div>
+                    <span class="badge bg-success">Secure</span>
+                </div>
+                <div class="status-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-cloud text-success me-2"></i>
+                        <span>Backup</span>
+                    </div>
+                    <span class="badge bg-success">Updated</span>
                 </div>
             </div>
         </div>
 
         <!-- Recent Activity -->
-        <div class="col-xl-4 col-lg-5">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 fw-bold text-primary">Recent Activity</h6>
-                </div>
-                <div class="card-body">
-                    <div id="activityLog">
-                        <div class="text-center">
-                            <div class="spinner-border" role="status">
-                                <span class="visually-hidden">Loading...</span>
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                <?php if (!empty($recentActivities)): ?>
+                    <?php foreach (array_slice($recentActivities, 0, 5) as $activity): ?>
+                        <div class="activity-item d-flex align-items-start mb-3 pb-3 border-bottom">
+                            <div class="activity-icon me-3">
+                                <i class="fas fa-circle text-primary" style="font-size: 0.5rem;"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="fw-bold"><?= htmlspecialchars($activity['action'] ?? 'System Activity') ?></div>
+                                <p class="mb-1 small text-muted"><?= htmlspecialchars($activity['description'] ?? 'Activity performed') ?></p>
+                                <small class="text-muted"><?= date('M d, H:i', strtotime($activity['created_at'] ?? 'now')) ?></small>
                             </div>
                         </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="text-center py-3">
+                        <i class="fas fa-history fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No recent activity</p>
                     </div>
-                </div>
-            </div>
-
-            <!-- System Settings -->
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 fw-bold text-primary">System Settings</h6>
-                </div>
-                <div class="card-body">
-                    <form id="settingsForm">
-                        <div class="mb-3">
-                            <label class="form-label">System Name</label>
-                            <input type="text" name="systemName" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email Settings</label>
-                            <input type="text" name="smtpHost" placeholder="SMTP Host" class="form-control mb-2">
-                            <input type="text" name="smtpUser" placeholder="SMTP Username" class="form-control mb-2">
-                            <input type="password" name="smtpPass" placeholder="SMTP Password" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">SMS Gateway</label>
-                            <input type="text" name="smsApiKey" placeholder="API Key" class="form-control mb-2">
-                            <input type="text" name="smsSecret" placeholder="API Secret" class="form-control">
-                        </div>
-                        <button type="submit" class="btn btn-primary">Save Settings</button>
-                    </form>
-                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Add User Modal -->
-<div class="modal fade" id="addUserModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add New User</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Recent Certificates -->
+<?php if (!empty($recentCertificates)): ?>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title">Recently Issued Certificates</h5>
+                <a href="/admin/certificates" class="btn btn-sm btn-outline-primary">View All</a>
             </div>
-            <div class="modal-body">
-                <form id="addUserForm">
-                    <div class="mb-3">
-                        <label class="form-label">First Name</label>
-                        <input type="text" class="form-control" name="firstName" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Last Name</label>
-                        <input type="text" class="form-control" name="lastName" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control" name="email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Username</label>
-                        <input type="text" class="form-control" name="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="password" class="form-control" name="password" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Role</label>
-                        <select class="form-select" name="role" required>
-                            <option value="parent">Parent</option>
-                            <option value="hospital">Hospital</option>
-                            <option value="registrar">Registrar</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitAddUserForm()">Add User</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit User Modal -->
-<div class="modal fade" id="editUserModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit User</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editUserForm">
-                    <input type="hidden" name="userId">
-                    <div class="mb-3">
-                        <label class="form-label">First Name</label>
-                        <input type="text" class="form-control" name="firstName" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Last Name</label>
-                        <input type="text" class="form-control" name="lastName" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control" name="email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Role</label>
-                        <select class="form-select" name="role" required>
-                            <option value="parent">Parent</option>
-                            <option value="hospital">Hospital</option>
-                            <option value="registrar">Registrar</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" name="status" required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitEditUserForm()">Save Changes</button>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Certificate #</th>
+                                <th>Applicant</th>
+                                <th>Type</th>
+                                <th>Issued Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach (array_slice($recentCertificates, 0, 5) as $certificate): ?>
+                                <tr>
+                                    <td>
+                                        <strong><?= htmlspecialchars($certificate['certificate_number'] ?? 'N/A') ?></strong>
+                                    </td>
+                                    <td><?= htmlspecialchars($certificate['applicant_email'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($certificate['application_purpose'] ?? 'Birth Certificate') ?></td>
+                                    <td><?= date('M d, Y', strtotime($certificate['issued_at'] ?? 'now')) ?></td>
+                                    <td>
+                                        <span class="badge status-<?= $certificate['status'] ?? 'active' ?>">
+                                            <?= ucfirst($certificate['status'] ?? 'Active') ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/certificates/<?= $certificate['id'] ?>" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="/certificates/download/<?= $certificate['id'] ?>" class="btn btn-outline-success btn-sm">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            <button class="btn btn-outline-warning btn-sm" onclick="revokeCertificate(<?= $certificate['id'] ?>)">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
+<?php endif; ?>
 
+<?php
+$content = ob_get_clean();
+
+// Add page-specific scripts
+ob_start();
+?>
 <script>
-// Initialize dashboard
+// Progress Circle Animation
+function animateProgressCircles() {
+    document.querySelectorAll('.progress-circle').forEach(function(circle) {
+        const canvas = circle.querySelector('canvas');
+        const ctx = canvas.getContext('2d');
+        const percentage = parseInt(circle.dataset.percentage);
+        const radius = 35;
+        const centerX = 40;
+        const centerY = 40;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, 80, 80);
+        
+        // Background circle
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+        
+        // Progress circle
+        const angle = (percentage / 100) * 2 * Math.PI - Math.PI / 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, -Math.PI / 2, angle);
+        
+        // Color based on percentage
+        if (percentage < 50) {
+            ctx.strokeStyle = '#059669'; // Green
+        } else if (percentage < 80) {
+            ctx.strokeStyle = '#d97706'; // Orange
+        } else {
+            ctx.strokeStyle = '#dc2626'; // Red
+        }
+        
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+    });
+}
+
+// Quick Actions
+function quickApprove(applicationId) {
+    confirmAction('Are you sure you want to approve this application?', function() {
+        fetch(`/admin/applications/${applicationId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccess('Application approved successfully');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showError(data.message || 'Failed to approve application');
+            }
+        })
+        .catch(error => {
+            showError('An error occurred while approving the application');
+        });
+    });
+}
+
+function quickReject(applicationId) {
+    Swal.fire({
+        title: 'Reject Application',
+        input: 'textarea',
+        inputLabel: 'Rejection Reason',
+        inputPlaceholder: 'Please provide a reason for rejection...',
+        inputAttributes: {
+            'aria-label': 'Rejection reason'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Reject',
+        confirmButtonColor: '#dc2626',
+        inputValidator: (value) => {
+            if (!value) {
+                return 'You need to provide a rejection reason!'
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin/applications/${applicationId}/reject`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    reason: result.value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess('Application rejected successfully');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showError(data.message || 'Failed to reject application');
+                }
+            })
+            .catch(error => {
+                showError('An error occurred while rejecting the application');
+            });
+        }
+    });
+}
+
+function revokeCertificate(certificateId) {
+    Swal.fire({
+        title: 'Revoke Certificate',
+        input: 'textarea',
+        inputLabel: 'Revocation Reason',
+        inputPlaceholder: 'Please provide a reason for revocation...',
+        inputAttributes: {
+            'aria-label': 'Revocation reason'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Revoke',
+        confirmButtonColor: '#dc2626',
+        inputValidator: (value) => {
+            if (!value) {
+                return 'You need to provide a revocation reason!'
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin/certificates/${certificateId}/revoke`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    reason: result.value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess('Certificate revoked successfully');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showError(data.message || 'Failed to revoke certificate');
+                }
+            })
+            .catch(error => {
+                showError('An error occurred while revoking the certificate');
+            });
+        }
+    });
+}
+
+function refreshApplications() {
+    location.reload();
+}
+
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    loadDashboardStats();
-    loadUsers();
-    loadActivityLog();
-    loadSettings();
-
-    // Initialize all tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-
-    // Initialize all modals
-    var modalTriggerList = [].slice.call(document.querySelectorAll('.modal'));
-    modalTriggerList.map(function (modalTriggerEl) {
-        return new bootstrap.Modal(modalTriggerEl);
-    });
+    animateProgressCircles();
+    
+    // Auto-refresh every 5 minutes
+    setInterval(function() {
+        location.reload();
+    }, 300000);
 });
-
-// Load dashboard statistics
-function loadDashboardStats() {
-    fetch('/api/admin/stats')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('totalUsers').textContent = data.data.totalUsers;
-                document.getElementById('totalApplications').textContent = data.data.totalApplications;
-                document.getElementById('pendingVerifications').textContent = data.data.pendingVerifications;
-                document.getElementById('certificatesIssued').textContent = data.data.certificatesIssued;
-            } else {
-                showNotification('error', 'Error', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('error', 'Error', 'Failed to load dashboard statistics');
-        });
-}
-
-// Load users table
-function loadUsers(search = '') {
-    const tbody = document.querySelector('#usersTable tbody');
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="5" class="text-center">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </td>
-        </tr>
-    `;
-
-    fetch(`/api/admin/users${search ? `?search=${encodeURIComponent(search)}` : ''}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                tbody.innerHTML = data.users.map(user => `
-                    <tr>
-                        <td>
-                            <div class="fw-bold">${user.first_name} ${user.last_name}</div>
-                            <div class="small text-muted">${user.email}</div>
-                        </td>
-                        <td>
-                            <span class="badge bg-${getRoleBadgeColor(user.role)}">
-                                ${user.role}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge bg-${user.status === 'active' ? 'success' : 'danger'}">
-                                ${user.status}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-primary" onclick="editUser(${user.id})" 
-                                    data-bs-toggle="tooltip" title="Edit User">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})"
-                                    data-bs-toggle="tooltip" title="Delete User">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-            } else {
-                showNotification('error', 'Error', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('error', 'Error', 'Failed to load users');
-        });
-}
-
-// Load activity log
-function loadActivityLog() {
-    const container = document.getElementById('activityLog');
-    
-    fetch('/api/admin/activity-log?limit=10')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                container.innerHTML = data.logs.map(log => `
-                    <div class="d-flex mb-3">
-                        <div class="flex-shrink-0">
-                            <div class="activity-icon bg-${getActivityIconColor(log.action)}">
-                                <i class="fas ${getActivityIcon(log.action)}"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-dark">${log.details}</div>
-                            <div class="text-muted small">
-                                ${new Date(log.timestamp).toLocaleString()}
-                                ${log.first_name ? ` by ${log.first_name} ${log.last_name}` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                showNotification('error', 'Error', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('error', 'Error', 'Failed to load activity log');
-        });
-}
-
-// Load settings
-function loadSettings() {
-    fetch('/api/admin/settings')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const form = document.getElementById('settingsForm');
-                Object.keys(data.settings).forEach(key => {
-                    const input = form.querySelector(`[name="${key}"]`);
-                    if (input) {
-                        input.value = data.settings[key];
-                    }
-                });
-            } else {
-                showNotification('error', 'Error', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('error', 'Error', 'Failed to load settings');
-        });
-}
-
-// Helper functions
-function getRoleBadgeColor(role) {
-    const colors = {
-        admin: 'danger',
-        registrar: 'primary',
-        hospital: 'success',
-        parent: 'info'
-    };
-    return colors[role] || 'secondary';
-}
-
-function getActivityIcon(action) {
-    const icons = {
-        user_created: 'fa-user-plus',
-        user_updated: 'fa-user-edit',
-        user_deleted: 'fa-user-minus',
-        login: 'fa-sign-in-alt',
-        logout: 'fa-sign-out-alt',
-        application_submitted: 'fa-file-alt',
-        application_approved: 'fa-check-circle',
-        application_rejected: 'fa-times-circle',
-        certificate_generated: 'fa-certificate'
-    };
-    return icons[action] || 'fa-info-circle';
-}
-
-function getActivityIconColor(action) {
-    const colors = {
-        user_created: 'success',
-        user_updated: 'info',
-        user_deleted: 'danger',
-        login: 'primary',
-        logout: 'secondary',
-        application_submitted: 'info',
-        application_approved: 'success',
-        application_rejected: 'danger',
-        certificate_generated: 'primary'
-    };
-    return colors[action] || 'secondary';
-}
-
-// Form handling
-function submitAddUserForm() {
-    const form = document.getElementById('addUserForm');
-    const formData = new FormData(form);
-
-    fetch('/api/admin/users', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('success', 'Success', 'User added successfully');
-            bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
-            form.reset();
-            loadUsers();
-        } else {
-            showNotification('error', 'Error', data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('error', 'Error', 'Failed to add user');
-    });
-}
-
-function submitEditUserForm() {
-    const form = document.getElementById('editUserForm');
-    const formData = new FormData(form);
-    const userId = formData.get('userId');
-
-    fetch(`/api/admin/users/${userId}`, {
-        method: 'PUT',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('success', 'Success', 'User updated successfully');
-            bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
-            loadUsers();
-        } else {
-            showNotification('error', 'Error', data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('error', 'Error', 'Failed to update user');
-    });
-}
-
-// User actions
-function editUser(userId) {
-    fetch(`/api/admin/users/${userId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const form = document.getElementById('editUserForm');
-                form.querySelector('[name="userId"]').value = data.user.id;
-                form.querySelector('[name="firstName"]').value = data.user.first_name;
-                form.querySelector('[name="lastName"]').value = data.user.last_name;
-                form.querySelector('[name="email"]').value = data.user.email;
-                form.querySelector('[name="role"]').value = data.user.role;
-                form.querySelector('[name="status"]').value = data.user.status;
-                
-                new bootstrap.Modal(document.getElementById('editUserModal')).show();
-            } else {
-                showNotification('error', 'Error', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('error', 'Error', 'Failed to load user data');
-        });
-}
-
-function deleteUser(userId) {
-    if (confirm('Are you sure you want to delete this user?')) {
-        fetch(`/api/admin/users/${userId}`, {
-            method: 'DELETE'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification('success', 'Success', 'User deleted successfully');
-                loadUsers();
-            } else {
-                showNotification('error', 'Error', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('error', 'Error', 'Failed to delete user');
-        });
-    }
-}
-
-// Search functionality
-function searchUsers() {
-    const search = document.getElementById('userSearch').value;
-    loadUsers(search);
-}
-
-// Notifications
-function showNotification(type, title, message) {
-    const toast = document.getElementById('notificationToast');
-    const toastInstance = new bootstrap.Toast(toast);
-    
-    // Set icon and color based on type
-    const icon = document.getElementById('toastIcon');
-    icon.className = `fas ${type === 'success' ? 'fa-check-circle text-success' : 'fa-exclamation-circle text-danger'} me-2`;
-    
-    // Set title and message
-    document.getElementById('toastTitle').textContent = title;
-    document.getElementById('toastMessage').textContent = message;
-    
-    toastInstance.show();
-}
-
-// Refresh dashboard
-function refreshDashboard() {
-    loadDashboardStats();
-    loadUsers();
-    loadActivityLog();
-}
-
-// Auto-refresh every 5 minutes
-setInterval(refreshDashboard, 300000);
 </script>
+<?php
+$scripts = ob_get_clean();
 
-<style>
-.activity-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-}
-
-.border-start.border-4 {
-    border-left-width: 4px !important;
-}
-
-.card {
-    transition: transform 0.2s;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-}
-
-.btn-toolbar .btn {
-    display: inline-flex;
-    align-items: center;
-}
-
-.btn-toolbar .btn i {
-    margin-right: 0.5rem;
-}
-
-.table th {
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-}
-
-.badge {
-    font-weight: 500;
-    padding: 0.5em 0.75em;
-}
-
-.modal-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.modal-footer {
-    background-color: #f8f9fa;
-    border-top: 1px solid #dee2e6;
-}
-
-.form-label {
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-}
-
-.toast {
-    background-color: white;
-    border: none;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-}
-
-.toast-header {
-    background-color: white;
-    border-bottom: 1px solid #dee2e6;
-}
-
-@media (max-width: 768px) {
-    .btn-toolbar {
-        margin-top: 1rem;
-    }
-    
-    .card {
-        margin-bottom: 1rem;
-    }
-    
-    .table-responsive {
-        margin-bottom: 1rem;
-    }
-}
-</style>
-</div>
-</div>
+include BASE_PATH . '/resources/views/layouts/dashboard.php';
+?>

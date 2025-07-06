@@ -6,21 +6,32 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
-    role ENUM('parent', 'hospital', 'registrar', 'admin') NOT NULL DEFAULT 'parent',
-    phone_number VARCHAR(20),
-    national_id VARCHAR(20),
-    hospital_id VARCHAR(50),
-    status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
-    email_verified_at TIMESTAMP NULL,
-    remember_token VARCHAR(100) NULL,
-    password_expires_at TIMESTAMP NULL,
-    last_login_at TIMESTAMP NULL,
-    account_locked TINYINT(1) DEFAULT 0,
-    lock_expires_at DATETIME DEFAULT NULL,
+    role ENUM('admin', 'registrar', 'hospital', 'parent') NOT NULL DEFAULT 'parent',
+    status ENUM('active', 'inactive', 'suspended', 'deleted') NOT NULL DEFAULT 'active',
+    email_verified BOOLEAN DEFAULT FALSE,
+    phone VARCHAR(20),
+    last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
     
+    -- Indexes
     INDEX idx_email (email),
+    INDEX idx_username (username),
     INDEX idx_role (role),
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert default admin user
+-- Password: admin123 (hashed)
+INSERT INTO users (username, email, password, first_name, last_name, role, status, email_verified) 
+VALUES (
+    'admin',
+    'admin@birthcert.gov',
+    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    'System',
+    'Administrator',
+    'admin',
+    'active',
+    TRUE
+);

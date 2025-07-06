@@ -5,9 +5,74 @@ namespace App\Controllers;
 use App\Database\Database;
 use PDOException;
 use Exception;
+use App\Repositories\DashboardRepository;
+use App\Services\AuthService;
 
 class DashboardController
 {
+    private $dashboardRepository;
+    private $authService;
+
+    public function __construct(?DashboardRepository $dashboardRepository = null, ?AuthService $authService = null)
+    {
+        // Initialize dependencies with defaults if not provided
+        if ($dashboardRepository !== null) {
+            $this->dashboardRepository = $dashboardRepository;
+        } else {
+            $this->dashboardRepository = $this->createDefaultDashboardRepository();
+        }
+        
+        if ($authService !== null) {
+            $this->authService = $authService;
+        } else {
+            $this->authService = $this->createDefaultAuthService();
+        }
+    }
+    
+    /**
+     * Create default dashboard repository
+     */
+    private function createDefaultDashboardRepository()
+    {
+        // Try to create the real repository first
+        try {
+            return new DashboardRepository();
+        } catch (Exception $e) {
+            // Fall back to mock if real repository fails
+            return new class {
+                public function getDashboardStatistics() {
+                    return [];
+                }
+                public function getRecentActivities($limit) {
+                    return [];
+                }
+            };
+        }
+    }
+    
+    /**
+     * Create default auth service
+     */
+    private function createDefaultAuthService()
+    {
+        // Try to create the real auth service first
+        try {
+            return new AuthService();
+        } catch (Exception $e) {
+            // Fall back to mock if real service fails
+            return new class {
+                public function requireRole($roles) {
+                    // Basic role check using session
+                    if (!isset($_SESSION['user_id'])) {
+                        header('Location: /login');
+                        exit;
+                    }
+                    return true;
+                }
+            };
+        }
+    }
+
     /**
      * Main dashboard entry point - redirects to appropriate dashboard based on user role
      */
@@ -75,12 +140,13 @@ class DashboardController
         $statistics = [
             'totalUsers' => $this->countTotalUsers($pdo),
             'totalApplications' => $this->countTotalApplications($pdo),
-            'pendingApplications' => $this->countApplicationsByStatus($pdo, 'pending'),
+            'pendingApplications' => $this->countApplicationsByStatus($pdo, 'submitted'),
             'approvedCertificates' => $this->countApplicationsByStatus($pdo, 'approved'),
             'todayApplications' => $this->countTodayApplications($pdo),
             'registrars' => $this->countUsersByRole($pdo, 'registrar'),
             'hospitals' => $this->countUsersByRole($pdo, 'hospital'),
-            'parents' => $this->countUsersByRole($pdo, 'parent')
+            'parents' => $this->countUsersByRole($pdo, 'parent'),
+            'admins' => $this->countUsersByRole($pdo, 'admin')
         ];
         
         // Get pending applications
@@ -110,7 +176,7 @@ class DashboardController
         // Get registrar-specific statistics
         $statistics = [
             'totalApplications' => $this->countTotalApplications($pdo),
-            'pendingApplications' => $this->countApplicationsByStatus($pdo, 'pending'),
+            'pendingApplications' => $this->countApplicationsByStatus($pdo, 'submitted'),
             'approvedCertificates' => $this->countApplicationsByStatus($pdo, 'approved'),
             'todayApplications' => $this->countTodayApplications($pdo),
             'pendingApprovals' => $this->countPendingApprovals($pdo),
@@ -150,7 +216,7 @@ class DashboardController
         // Get hospital-specific statistics
         $statistics = [
             'totalApplications' => $this->countUserApplications($pdo, $user['id']),
-            'pendingApplications' => $this->countUserApplicationsByStatus($pdo, $user['id'], 'pending'),
+            'pendingApplications' => $this->countUserApplicationsByStatus($pdo, $user['id'], 'submitted'),
             'approvedApplications' => $this->countUserApplicationsByStatus($pdo, $user['id'], 'approved'),
             'rejectedApplications' => $this->countUserApplicationsByStatus($pdo, $user['id'], 'rejected'),
             'pendingVerifications' => $this->countHospitalPendingVerifications($pdo, $user['hospital_id']),
@@ -187,9 +253,10 @@ class DashboardController
         // Get citizen-specific statistics
         $statistics = [
             'totalApplications' => $this->countUserApplications($pdo, $user['id']),
-            'pendingApplications' => $this->countUserApplicationsByStatus($pdo, $user['id'], 'pending'),
+            'pendingApplications' => $this->countUserApplicationsByStatus($pdo, $user['id'], 'submitted'),
             'approvedApplications' => $this->countUserApplicationsByStatus($pdo, $user['id'], 'approved'),
-            'rejectedApplications' => $this->countUserApplicationsByStatus($pdo, $user['id'], 'rejected')
+            'rejectedApplications' => $this->countUserApplicationsByStatus($pdo, $user['id'], 'rejected'),
+            'certificates' => count($this->getMyCertificates($pdo, $user['id']))
         ];
         
         // Get user's applications
@@ -216,9 +283,9 @@ class DashboardController
         try {
             $stmt = $pdo->prepare("
                 SELECT a.*, u.email as applicant_email, u.first_name, u.last_name
-                FROM applications a
+                FROM birth_applications a
                 JOIN users u ON a.user_id = u.id 
-                WHERE a.status = 'pending' 
+                WHERE a.status = 'submitted' 
                 ORDER BY a.created_at DESC 
                 LIMIT 10
             ");
@@ -239,7 +306,7 @@ class DashboardController
             $stmt = $pdo->prepare("
                 SELECT c.*, a.purpose as application_purpose, u.email as applicant_email 
                 FROM certificates c
-                JOIN applications a ON c.application_id = a.id 
+                JOIN birth_applications a ON c.application_id = a.id 
                 JOIN users u ON a.user_id = u.id 
                 ORDER BY c.issued_at DESC 
                 LIMIT 10
@@ -460,7 +527,7 @@ class DashboardController
     private function countUserApplications($pdo, $userId)
     {
         try {
-            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM applications WHERE user_id = ?");
+            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM birth_applications WHERE user_id = ?");
         $stmt->execute([$userId]);
             return $stmt->fetch()['count'] ?? 0;
         } catch (Exception $e) {
@@ -474,7 +541,7 @@ class DashboardController
     private function countUserApplicationsByStatus($pdo, $userId, $status)
     {
         try {
-            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM applications WHERE user_id = ? AND status = ?");
+            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM birth_applications WHERE user_id = ? AND status = ?");
         $stmt->execute([$userId, $status]);
             return $stmt->fetch()['count'] ?? 0;
         } catch (Exception $e) {
@@ -627,7 +694,7 @@ class DashboardController
     private function countTotalApplications($pdo)
     {
         try {
-            $stmt = $pdo->query("SELECT COUNT(*) as count FROM applications");
+            $stmt = $pdo->query("SELECT COUNT(*) as count FROM birth_applications");
             return $stmt->fetch()['count'] ?? 0;
         } catch (Exception $e) {
             return 0;
@@ -653,7 +720,7 @@ class DashboardController
     private function countApplicationsByStatus($pdo, $status)
     {
         try {
-            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM applications WHERE status = ?");
+            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM birth_applications WHERE status = ?");
             $stmt->execute([$status]);
             return $stmt->fetch()['count'] ?? 0;
         } catch (Exception $e) {
@@ -1461,6 +1528,26 @@ class DashboardController
             $_SESSION['error'] = 'Unable to load settings. Please try again.';
             header('Location: /dashboard');
             exit;
+        }
+    }
+
+    /**
+     * Get dashboard statistics
+     * 
+     * @return array Dashboard statistics
+     * @throws Exception
+     */
+    public function getDashboardStatistics(): array
+    {
+        // Ensure user is authorized
+        $this->authService->requireRole(['registrar', 'admin']);
+
+        try {
+            return $this->dashboardRepository->getDashboardStatistics();
+        } catch (Exception $e) {
+            // Log error and rethrow
+            error_log('Dashboard Statistics Error: ' . $e->getMessage());
+            throw $e;
         }
     }
 } 

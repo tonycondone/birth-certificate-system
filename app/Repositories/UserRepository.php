@@ -49,9 +49,9 @@ class UserRepository extends BaseRepository
             }
 
             // Use AuthService's password verification
-            if (AuthService::verifyPassword($password, $user['password_hash'])) {
+            if (AuthService::verifyPassword($password, $user['password'])) {
                 // Remove sensitive information
-                unset($user['password_hash']);
+                unset($user['password']);
                 return $user;
             }
             return null;
@@ -72,8 +72,7 @@ class UserRepository extends BaseRepository
         try {
             // Hash the password before saving
             if (isset($userData['password'])) {
-                $userData['password_hash'] = AuthService::hashPassword($userData['password']);
-                unset($userData['password']);
+                $userData['password'] = AuthService::hashPassword($userData['password']);
             }
 
             return $this->save($userData);

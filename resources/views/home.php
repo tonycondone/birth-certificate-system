@@ -382,7 +382,7 @@
                     <div class="card stat-card h-100 bg-white">
                         <div class="card-body text-center">
                             <i class="fas fa-certificate fa-3x text-primary mb-3"></i>
-                            <h2 class="display-5 fw-bold text-primary"><?= number_format($statistics['approved_certificates'] ?? '10,000+') ?></h2>
+                            <h2 class="display-5 fw-bold text-primary"><?= number_format(is_numeric($statistics['approved_certificates'] ?? null) ? $statistics['approved_certificates'] : 10000) ?></h2>
                             <p class="text-muted text-uppercase fw-bold">Certificates Issued</p>
                         </div>
                     </div>
@@ -392,7 +392,7 @@
                     <div class="card stat-card h-100 bg-white">
                         <div class="card-body text-center">
                             <i class="fas fa-users fa-3x text-success mb-3"></i>
-                            <h2 class="display-5 fw-bold text-success"><?= number_format($statistics['total_users'] ?? '5,000+') ?></h2>
+                            <h2 class="display-5 fw-bold text-success"><?= number_format(is_numeric($statistics['total_users'] ?? null) ? $statistics['total_users'] : 5000) ?></h2>
                             <p class="text-muted text-uppercase fw-bold">Registered Users</p>
                         </div>
                     </div>
@@ -402,7 +402,7 @@
                     <div class="card stat-card h-100 bg-white">
                         <div class="card-body text-center">
                             <i class="fas fa-file-alt fa-3x text-warning mb-3"></i>
-                            <h2 class="display-5 fw-bold text-warning"><?= number_format($statistics['total_applications'] ?? '15,000+') ?></h2>
+                            <h2 class="display-5 fw-bold text-warning"><?= number_format(is_numeric($statistics['total_applications'] ?? null) ? $statistics['total_applications'] : 15000) ?></h2>
                             <p class="text-muted text-uppercase fw-bold">Total Applications</p>
                         </div>
                     </div>
@@ -412,7 +412,7 @@
                     <div class="card stat-card h-100 bg-white">
                         <div class="card-body text-center">
                             <i class="fas fa-clock fa-3x text-info mb-3"></i>
-                            <h2 class="display-5 fw-bold text-info"><?= number_format($statistics['pending_applications'] ?? '0') ?></h2>
+                            <h2 class="display-5 fw-bold text-info"><?= number_format(is_numeric($statistics['pending_applications'] ?? null) ? $statistics['pending_applications'] : 0) ?></h2>
                             <p class="text-muted text-uppercase fw-bold">Pending Applications</p>
                         </div>
                     </div>
