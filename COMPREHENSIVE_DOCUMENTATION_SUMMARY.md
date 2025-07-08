@@ -283,4 +283,3 @@ The primary goal is to modernize and digitize the birth certificate registration
 This comprehensive documentation outlines the full scope, requirements, and technical details necessary to develop and deploy a modern, secure, and efficient digital birth certificate registration system. The system promises to transform the current manual process into a streamlined, accessible, and trustworthy service benefiting citizens, government agencies, and healthcare providers alike.
 
 ---
-

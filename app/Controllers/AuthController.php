@@ -86,6 +86,134 @@ class AuthController
     }
 
     /**
+     * Show registration form
+     */
+    public function showRegister()
+    {
+        // If already logged in, redirect to dashboard
+        if (isset($_SESSION['user_id'])) {
+            header('Location: /dashboard');
+            exit;
+        }
+        
+        $pageTitle = 'Register - Digital Birth Certificate System';
+        
+        // Handle registration form submission
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->processRegistration();
+            return;
+        }
+        
+        // Include registration view
+        $viewPath = BASE_PATH . '/resources/views/auth/register.php';
+        if (file_exists($viewPath)) {
+            include $viewPath;
+        } else {
+            die("Error: Registration view file not found at $viewPath");
+        }
+    }
+    
+    /**
+     * Process user registration
+     */
+    private function processRegistration()
+    {
+        try {
+            // Validate input fields
+            $requiredFields = [
+                'first_name', 'last_name', 'email', 
+                'password', 'confirm_password', 'role'
+            ];
+            
+            foreach ($requiredFields as $field) {
+                if (empty($_POST[$field])) {
+                    $_SESSION['error'] = "Please fill in all required fields";
+                    header('Location: /register');
+                    exit;
+                }
+            }
+            
+            // Validate email format
+            $email = filter_var($_POST['email'], FILTER_VALIDATE_EMAIL);
+            if (!$email) {
+                $_SESSION['error'] = "Invalid email address";
+                header('Location: /register');
+                exit;
+            }
+            
+            // Check password match
+            if ($_POST['password'] !== $_POST['confirm_password']) {
+                $_SESSION['error'] = "Passwords do not match";
+                header('Location: /register');
+                exit;
+            }
+            
+            // Validate password strength
+            if (strlen($_POST['password']) < 8) {
+                $_SESSION['error'] = "Password must be at least 8 characters long";
+                header('Location: /register');
+                exit;
+            }
+            
+            // Validate role
+            $allowedRoles = ['registrar', 'admin', 'hospital', 'parent'];
+            if (!in_array($_POST['role'], $allowedRoles)) {
+                $_SESSION['error'] = "Invalid user role selected";
+                header('Location: /register');
+                exit;
+            }
+            
+            // Check if email already exists
+            $pdo = Database::getConnection();
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+            if ($stmt->fetch()) {
+                $_SESSION['error'] = "Email address is already registered";
+                header('Location: /register');
+                exit;
+            }
+            
+            // Hash password
+            $hashedPassword = password_hash($_POST['password'], PASSWORD_ARGON2ID);
+            
+            // Prepare user data
+            $stmt = $pdo->prepare("
+                INSERT INTO users 
+                (first_name, last_name, email, password, role, status, created_at) 
+                VALUES (?, ?, ?, ?, ?, 'active', NOW())
+            ");
+            
+            $result = $stmt->execute([
+                $_POST['first_name'], 
+                $_POST['last_name'], 
+                $email, 
+                $hashedPassword, 
+                $_POST['role']
+            ]);
+            
+            if ($result) {
+                // Set success message and redirect to login
+                $_SESSION['success'] = "Registration successful. Please log in.";
+                header('Location: /login');
+                exit;
+            } else {
+                // Database insertion failed
+                $_SESSION['error'] = "Registration failed. Please try again.";
+                header('Location: /register');
+                exit;
+            }
+        } catch (Exception $e) {
+            // Log the full error for debugging
+            error_log("Registration error: " . $e->getMessage());
+            
+            // Show generic error to user
+            $_SESSION['error'] = "An unexpected error occurred. Please try again.";
+            header('Location: /register');
+            exit;
+        }
+    }
+
+    /**
      * Logout user
      */
     public function logout()
