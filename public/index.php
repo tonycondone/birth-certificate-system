@@ -160,6 +160,8 @@ $routes = [
     // Payment routes
     '/applications/{id}/pay' => 'App\Controllers\PaymentController@pay',
     '/applications/{id}/payment-callback' => 'App\Controllers\PaymentController@callback',
+    '/applications/{id}/initialize-payment' => 'App\Controllers\PaymentController@initializePayment',
+    '/paystack/webhook' => 'App\Controllers\PaymentController@webhook',
 
     // Tracking lookup form and handler
     '/track' => 'App\Controllers\ApplicationController@track',

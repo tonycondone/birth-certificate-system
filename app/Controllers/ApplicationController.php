@@ -71,9 +71,8 @@ class ApplicationController
                 }
             }
 
-            // Generate application number and tracking number
+            // Generate application number
             $applicationNumber = $this->generateApplicationNumber();
-            $trackingNumber = $this->generateTrackingNumber();
 
             // Prepare application data
             $applicationData = [
@@ -101,8 +100,8 @@ class ApplicationController
                 'hospital_name' => trim($_POST['hospital_name'] ?? ''),
                 'attending_physician' => trim($_POST['attending_physician'] ?? ''),
                 'physician_license' => trim($_POST['physician_license'] ?? ''),
-                'status' => 'submitted',
-                'submitted_at' => date('Y-m-d H:i:s')
+                'status' => 'pending_payment', // Changed from 'submitted' to 'pending_payment'
+                'created_at' => date('Y-m-d H:i:s') // Store creation time
             ];
 
             // Insert application
@@ -114,21 +113,12 @@ class ApplicationController
             
             $applicationId = $this->db->lastInsertId();
 
-            // Create tracking record
-            $this->createTrackingRecord($applicationId, $trackingNumber);
-
             // Create initial progress entry
-            $this->createProgressEntry($applicationId, 'submitted', 'Application submitted successfully');
+            $this->createProgressEntry($applicationId, 'pending_payment', 'Application created, waiting for payment');
 
-            // Send notification (if notification system exists)
-            $this->sendApplicationNotification($applicationId, 'submitted');
-
-            return [
-                'success' => true,
-                'message' => "Application submitted successfully! Your tracking number is: {$trackingNumber}",
-                'application_id' => $applicationId,
-                'tracking_number' => $trackingNumber
-            ];
+            // Redirect to payment page instead of submitting directly
+            header("Location: /applications/{$applicationId}/pay");
+            exit;
 
         } catch (Exception $e) {
             error_log("Application submission error: " . $e->getMessage());
