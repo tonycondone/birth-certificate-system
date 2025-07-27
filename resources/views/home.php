@@ -233,6 +233,9 @@
         </div>
     </nav>
 
+    <!-- GOD TIER Payment Notification Banner -->
+    <?php include __DIR__ . '/partials/payment-notification-banner.php'; ?>
+
     <!-- Hero Section -->
     <section class="hero-section">
         <div class="container">
