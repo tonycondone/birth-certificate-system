@@ -1,5 +1,5 @@
 <?php
-// Dynamic payment notification banner system
+// GOD TIER Payment Notification System - Dynamic Banner
 // This file should be included in the homepage or relevant pages
 
 use App\Services\PaymentNotificationService;
@@ -61,53 +61,72 @@ if (!$userNotification && $currentUser) {
             </div>
         </div>
     </div>
-
-    <script>
-    function handlePaymentAction() {
-        <?php if ($userNotification['user_type'] === 'pending_application'): ?>
-            window.location.href = '/applications/<?= $user['application_id'] ?? '' ?>/pay';
-        <?php elseif ($userNotification['user_type'] === 'new_user'): ?>
-            window.location.href = '/applications/new';
-        <?php else: ?>
-            window.location.href = '/applications';
-        <?php endif; ?>
-    }
-    </script>
 <?php endif; ?>
 
-<style>
-.payment-notification-banner {
-    position: sticky;
-    top: 0;
-    z-index: 1030;
-    margin-bottom: 0;
-    border-radius: 0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    animation: slideDown 0.5s ease-out;
-}
-
-@keyframes slideDown {
-    from {
-        transform: translateY(-100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-@media (max-width: 576px) {
-    .payment-notification-banner .container {
-        padding: 0.5rem;
-    }
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize payment notification system
+    const notificationSystem = {
+        currentUser: <?= json_encode($currentUser) ?>,
+        systemStatus: <?= json_encode($systemStatus) ?>,
+        
+        init: function() {
+            this.bindEvents();
+            this.trackPerformance();
+        },
+        
+        bindEvents: function() {
+            // Track notification interactions
+            document.querySelectorAll('.payment-notification-banner').forEach(banner => {
+                banner.addEventListener('click', this.handleClick.bind(this));
+                banner.addEventListener('close.bs.alert', this.handleDismiss.bind(this));
+            });
+        },
+        
+        handleClick: function(event) {
+            const banner = event.target.closest('.payment-notification-banner');
+            const action = banner.dataset.action || 'click';
+            
+            fetch('/api/track-notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: action,
+                    user_id: this.currentUser?.id,
+                    timestamp: new Date().toISOString()
+                })
+            });
+        },
+        
+        handleDismiss: function(event) {
+            const banner = event.target.closest('.payment-notification-banner');
+            const action = 'dismiss';
+            
+            fetch('/api/track-notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: action,
+                    user_id: this.currentUser?.id,
+                    timestamp: new Date().toISOString()
+                })
+            });
+        },
+        
+        trackPerformance: function() {
+            // Track page load performance
+            const loadTime = performance.now();
+            fetch('/api/track-performance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    load_time: loadTime,
+                    user_id: this.currentUser?.id
+                })
+            });
+        }
+    };
     
-    .payment-notification-banner .alert-heading {
-        font-size: 1.1rem;
-    }
-    
-    .payment-notification-banner p {
-        font-size: 0.9rem;
-    }
-}
-</style>
+    notificationSystem.init();
+});
+</script>
