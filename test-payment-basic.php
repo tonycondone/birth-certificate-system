@@ -89,13 +89,59 @@ if ($pdo !== null) {
 echo "\n3. Testing payment data insertion...\n";
 if ($pdo !== null) {
     try {
+        // Get a valid application ID first
+        $appStmt = $pdo->query("SELECT id FROM applications LIMIT 1");
+        $testApp = $appStmt->fetch();
+        
+        if (!$testApp) {
+            echo "   ⚠️  No applications found. Creating test application...\n";
+            
+            // Create a test user if needed
+            $userStmt = $pdo->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
+            $userStmt->execute(['test@example.com']);
+            $testUser = $userStmt->fetch();
+            
+            if (!$testUser) {
+                $userStmt = $pdo->prepare("
+                    INSERT INTO users (first_name, last_name, email, password, role, email_verified, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, NOW())
+                ");
+                $userStmt->execute([
+                    'Test', 'User', 'test@example.com', 
+                    password_hash('password123', PASSWORD_DEFAULT),
+                    'parent', 1
+                ]);
+                $testUserId = $pdo->lastInsertId();
+            } else {
+                $testUserId = $testUser['id'];
+            }
+            
+            // Create test application
+            $appStmt = $pdo->prepare("
+                INSERT INTO applications (user_id, reference_number, purpose, description, status, tracking_number, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
+            ");
+            $appStmt->execute([
+                $testUserId,
+                'APP-TEST-' . time(),
+                'Birth Certificate Application',
+                'Test application for payment testing',
+                'pending_payment',
+                'TRK-' . strtoupper(uniqid())
+            ]);
+            $testAppId = $pdo->lastInsertId();
+            echo "   ✅ Test application created (ID: $testAppId)\n";
+        } else {
+            $testAppId = $testApp['id'];
+        }
+
         $stmt = $pdo->prepare("
             INSERT INTO payments (application_id, amount, currency, transaction_id, status, payment_gateway) 
             VALUES (?, ?, ?, ?, ?, ?)
         ");
         
         $testData = [
-            'application_id' => 1,
+            'application_id' => $testAppId,
             'amount' => 150.00,
             'currency' => 'GHS',
             'transaction_id' => 'TEST-' . time(),
@@ -149,13 +195,23 @@ if ($pdo !== null) {
 echo "\n5. Testing application-payment linking...\n";
 if ($pdo !== null) {
     try {
-        $stmt = $pdo->query("
-            SELECT a.id, a.tracking_number, p.amount, p.status
-            FROM applications a
-            LEFT JOIN payments p ON a.id = p.application_id
-            WHERE a.id = 1
-            LIMIT 1
-        ");
+        // Get a valid application ID for testing
+        $appStmt = $pdo->query("SELECT id FROM applications LIMIT 1");
+        $testApp = $appStmt->fetch();
+        
+        if ($testApp) {
+            $testAppId = $testApp['id'];
+            $stmt = $pdo->query("
+                SELECT a.id, a.tracking_number, p.amount, p.status
+                FROM applications a
+                LEFT JOIN payments p ON a.id = p.application_id
+                WHERE a.id = $testAppId
+                LIMIT 1
+            ");
+        } else {
+            echo "   ❌ No applications available for testing\n";
+            return;
+        }
         
         if ($stmt->rowCount() > 0) {
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
