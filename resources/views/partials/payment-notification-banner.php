@@ -2,9 +2,9 @@
 // GOD TIER Payment Notification System - Dynamic Banner
 // This file should be included in the homepage or relevant pages
 
-use App\Services\PaymentNotificationService;
+use App\Services\PaymentNotificationServiceSimple;
 
-$notificationService = new \App\Services\PaymentNotificationService();
+$notificationService = new \App\Services\PaymentNotificationServiceSimple();
 $users = $notificationService->detectUsersRequiringPaymentNotification();
 $systemStatus = $notificationService->getPaymentSystemStatus();
 
