@@ -53,7 +53,9 @@ class Authentication
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // Record login attempt
-        $this->recordLoginAttempt($email, $_SERVER['REMOTE_ADDR'], (bool)$user && password_verify($password, $user['password']));
+        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $this->recordLoginAttempt($email, $ipAddress, (bool)$user && password_verify($password, $user['password']));
+
 
         if (!$user || !password_verify($password, $user['password'])) {
             // Check if we should lock the account

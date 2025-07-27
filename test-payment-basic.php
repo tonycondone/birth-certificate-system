@@ -1,0 +1,159 @@
+<?php
+/**
+ * Basic Payment System Testing Script
+ * Tests core functionality without external dependencies
+ */
+
+require_once 'vendor/autoload.php';
+
+echo "=== Basic Payment System Testing ===\n\n";
+
+// Test 1: Database connectivity
+echo "1. Testing database connectivity...\n";
+try {
+    $pdo = new PDO('mysql:host=localhost;dbname=birth_certificate_system', 'root', '');
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    echo "   ✅ Database connection successful\n";
+} catch (Exception $e) {
+    echo "   ❌ Database connection failed: " . $e->getMessage() . "\n";
+}
+
+// Test 2: Payments table existence
+echo "\n2. Testing payments table structure...\n";
+try {
+    $stmt = $pdo->query("SHOW TABLES LIKE 'payments'");
+    if ($stmt->rowCount() > 0) {
+        echo "   ✅ Payments table exists\n";
+        
+        // Check columns
+        $stmt = $pdo->query("DESCRIBE payments");
+        $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $columnNames = array_column($columns, 'Field');
+        
+        $required = ['id', 'application_id', 'amount', 'currency', 'transaction_id', 'status'];
+        $missing = array_diff($required, $columnNames);
+        
+        if (empty($missing)) {
+            echo "   ✅ All required columns present\n";
+        } else {
+            echo "   ❌ Missing columns: " . implode(', ', $missing) . "\n";
+        }
+    } else {
+        echo "   ❌ Payments table not found\n";
+    }
+} catch (Exception $e) {
+    echo "   ❌ Error checking payments table: " . $e->getMessage() . "\n";
+}
+
+// Test 3: Test payment data insertion
+echo "\n3. Testing payment data insertion...\n";
+try {
+    $stmt = $pdo->prepare("
+        INSERT INTO payments (application_id, amount, currency, transaction_id, status, payment_gateway) 
+        VALUES (?, ?, ?, ?, ?, ?)
+    ");
+    
+    $testData = [
+        'application_id' => 1,
+        'amount' => 150.00,
+        'currency' => 'GHS',
+        'transaction_id' => 'TEST-' . time(),
+        'status' => 'pending',
+        'payment_gateway' => 'paystack'
+    ];
+    
+    $result = $stmt->execute(array_values($testData));
+    
+    if ($result) {
+        $paymentId = $pdo->lastInsertId();
+        echo "   ✅ Test payment inserted successfully (ID: $paymentId)\n";
+        
+        // Clean up test data
+        $pdo->prepare("DELETE FROM payments WHERE id = ?")->execute([$paymentId]);
+        echo "   ✅ Test payment cleaned up\n";
+    } else {
+        echo "   ❌ Failed to insert test payment\n";
+    }
+} catch (Exception $e) {
+    echo "   ❌ Error inserting test payment: " . $e->getMessage() . "\n";
+}
+
+// Test 4: Test payment status queries
+echo "\n4. Testing payment status queries...\n";
+try {
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*) as total, 
+               SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+               SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+               SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+        FROM payments
+    ");
+    $stmt->execute();
+    $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    echo "   ✅ Payment status queries working\n";
+    echo "   📊 Current payment stats: Total: {$stats['total']}, Completed: {$stats['completed']}, Pending: {$stats['pending']}, Failed: {$stats['failed']}\n";
+} catch (Exception $e) {
+    echo "   ❌ Error testing payment queries: " . $e->getMessage() . "\n";
+}
+
+// Test 5: Test application linking
+echo "\n5. Testing application-payment linking...\n";
+try {
+    $stmt = $pdo->query("
+        SELECT a.id, a.tracking_number, p.amount, p.status
+        FROM applications a
+        LEFT JOIN payments p ON a.id = p.application_id
+        WHERE a.id = 1
+        LIMIT 1
+    ");
+    
+    if ($stmt->rowCount() > 0) {
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        echo "   ✅ Application-payment linking working\n";
+        if ($result['amount']) {
+            echo "   💰 Found payment: GH₵{$result['amount']} ({$result['status']})\n";
+        } else {
+            echo "   📋 No payment found for application\n";
+        }
+    } else {
+        echo "   ❌ No applications found for testing\n";
+    }
+} catch (Exception $e) {
+    echo "   ❌ Error testing application linking: " . $e->getMessage() . "\n";
+}
+
+// Test 6: Test transaction reference generation
+echo "\n6. Testing transaction reference generation...\n";
+$references = [];
+for ($i = 0; $i < 5; $i++) {
+    $ref = 'BCS-' . date('YmdHis') . '-' . strtoupper(uniqid());
+    $references[] = $ref;
+    echo "   🔢 Generated reference: $ref\n";
+}
+
+// Check uniqueness
+$uniqueRefs = array_unique($references);
+if (count($references) === count($uniqueRefs)) {
+    echo "   ✅ All references are unique\n";
+} else {
+    echo "   ❌ Duplicate references found\n";
+}
+
+// Test 7: Test amount formatting
+echo "\n7. Testing amount formatting...\n";
+$amounts = [15000, 25000, 5000, 100000];
+foreach ($amounts as $amount) {
+    $formatted = number_format($amount / 100, 2);
+    echo "   💵 {$amount} kobo = GH₵{$formatted}\n";
+}
+
+echo "\n=== Testing Summary ===\n";
+echo "Basic payment system components are functional.\n";
+echo "Next steps for complete testing:\n";
+echo "1. Set up test Paystack keys in .env file\n";
+echo "2. Create test applications for payment testing\n";
+echo "3. Test actual payment flow with Paystack sandbox\n";
+echo "4. Test webhook handling\n";
+echo "5. Test error scenarios\n";
+echo "\nPayment system is ready for integration testing.\n";

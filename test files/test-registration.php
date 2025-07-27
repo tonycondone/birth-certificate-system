@@ -1,7 +1,7 @@
 <?php
 // Load environment variables
-if (file_exists(__DIR__ . '/.env')) {
-    $envContent = file_get_contents(__DIR__ . '/.env');
+if (file_exists(__DIR__ . '/../.env')) {
+    $envContent = file_get_contents(__DIR__ . '/../.env');
     $envLines = explode("\n", $envContent);
     foreach ($envLines as $line) {
         $line = trim($line);
@@ -18,8 +18,8 @@ if (file_exists(__DIR__ . '/.env')) {
 }
 
 // Test registration system
-require_once __DIR__ . '/app/Database/Database.php';
-require_once __DIR__ . '/app/Auth/Authentication.php';
+require_once __DIR__ . '/../app/Database/Database.php';
+require_once __DIR__ . '/../app/Auth/Authentication.php';
 
 echo "Testing Registration System\n";
 echo "==========================\n\n";
@@ -61,4 +61,6 @@ try {
     echo "❌ Error: " . $e->getMessage() . "\n";
     echo "Stack trace:\n" . $e->getTraceAsString() . "\n";
 }
-?> 
+
+
+?>
