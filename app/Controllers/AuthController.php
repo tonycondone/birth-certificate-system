@@ -155,13 +155,21 @@ class AuthController
                 exit;
             }
             
-            // Validate role
-            $allowedRoles = ['registrar', 'admin', 'hospital', 'parent'];
-            if (!in_array($_POST['role'], $allowedRoles)) {
+            // Validate role - map frontend roles to database roles
+            $roleMapping = [
+                'parent' => 'parent',
+                'hospital' => 'hospital',
+                'registrar' => 'registrar',
+                'admin' => 'admin'
+            ];
+            
+            $role = $_POST['role'];
+            if (!isset($roleMapping[$role])) {
                 $_SESSION['error'] = "Invalid user role selected";
                 header('Location: /register');
                 exit;
             }
+            $dbRole = $roleMapping[$role];
             
             // Check if email already exists
             $pdo = Database::getConnection();
@@ -173,22 +181,38 @@ class AuthController
                 exit;
             }
             
-            // Hash password
-            $hashedPassword = password_hash($_POST['password'], PASSWORD_ARGON2ID);
+            // Generate username from email
+            $username = explode('@', $email)[0];
+            // Ensure username is unique
+            $counter = 1;
+            $originalUsername = $username;
+            while (true) {
+                $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+                $stmt->execute([$username]);
+                if (!$stmt->fetch()) {
+                    break;
+                }
+                $username = $originalUsername . $counter;
+                $counter++;
+            }
+            
+            // Hash password with fallback for compatibility
+            $hashedPassword = password_hash($_POST['password'], PASSWORD_DEFAULT);
             
             // Prepare user data
             $stmt = $pdo->prepare("
                 INSERT INTO users 
-                (first_name, last_name, email, password, role, status, created_at) 
-                VALUES (?, ?, ?, ?, ?, 'active', NOW())
+                (username, first_name, last_name, email, password, role, status, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, 'active', NOW())
             ");
             
             $result = $stmt->execute([
+                $username,
                 $_POST['first_name'], 
                 $_POST['last_name'], 
                 $email, 
                 $hashedPassword, 
-                $_POST['role']
+                $dbRole
             ]);
             
             if ($result) {
