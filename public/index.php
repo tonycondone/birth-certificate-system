@@ -198,18 +198,58 @@ $routes = [
     '/registrar/certificates' => 'App\Controllers\CertificateController@listCertificates',
     '/registrar/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
     
-    // Admin routes
+    // Admin routes - Complete CRUD operations
     '/admin/dashboard' => 'App\Controllers\AdminPortalController@dashboard',
     '/admin/users' => 'App\Controllers\AdminPortalController@users',
+    '/admin/users/create' => 'App\Controllers\AdminPortalController@createUser',
+    '/admin/users/store' => 'App\Controllers\AdminPortalController@storeUser',
+    '/admin/users/{id}' => 'App\Controllers\AdminPortalController@showUser',
+    '/admin/users/{id}/edit' => 'App\Controllers\AdminPortalController@editUser',
+    '/admin/users/{id}/update' => 'App\Controllers\AdminPortalController@updateUser',
+    '/admin/users/{id}/delete' => 'App\Controllers\AdminPortalController@deleteUser',
+    '/admin/users/bulk-action' => 'App\Controllers\AdminPortalController@bulkUserAction',
+    '/admin/users/export' => 'App\Controllers\AdminPortalController@exportUsers',
+    '/admin/users/import' => 'App\Controllers\AdminPortalController@importUsers',
     '/admin/user-action' => 'App\Controllers\AdminPortalController@userAction',
+    
+    // Admin system management
     '/admin/monitoring' => 'App\Controllers\AdminPortalController@systemMonitoring',
     '/admin/settings' => 'App\Controllers\AdminPortalController@settings',
     '/admin/reports' => 'App\Controllers\AdminPortalController@reports',
+    '/admin/backup' => 'App\Controllers\AdminPortalController@backup',
+    '/admin/backup/create' => 'App\Controllers\AdminPortalController@createBackup',
+    '/admin/backup/restore' => 'App\Controllers\AdminPortalController@restoreBackup',
+    '/admin/audit-trail' => 'App\Controllers\AdminPortalController@auditTrail',
+    '/admin/system-health' => 'App\Controllers\AdminPortalController@systemHealth',
+    '/admin/logs' => 'App\Controllers\AdminPortalController@systemLogs',
+    '/admin/mail-templates' => 'App\Controllers\AdminPortalController@mailTemplates',
+    '/admin/mail-templates/create' => 'App\Controllers\AdminPortalController@createMailTemplate',
+    '/admin/mail-templates/{id}/edit' => 'App\Controllers\AdminPortalController@editMailTemplate',
+    '/admin/notifications' => 'App\Controllers\AdminPortalController@notifications',
+    '/admin/api-keys' => 'App\Controllers\AdminPortalController@apiKeys',
+    '/admin/webhooks' => 'App\Controllers\AdminPortalController@webhooks',
+    
+    // Admin application management
     '/admin/applications' => 'App\Controllers\AdminController@applications',
+    '/admin/applications/create' => 'App\Controllers\AdminController@createApplication',
+    '/admin/applications/{id}' => 'App\Controllers\AdminController@showApplication',
+    '/admin/applications/{id}/edit' => 'App\Controllers\AdminController@editApplication',
+    '/admin/applications/{id}/approve' => 'App\Controllers\AdminController@approveApplication',
+    '/admin/applications/{id}/reject' => 'App\Controllers\AdminController@rejectApplication',
+    '/admin/applications/bulk-action' => 'App\Controllers\AdminController@bulkApplicationAction',
+    '/admin/applications/export' => 'App\Controllers\AdminController@exportApplications',
     '/admin/generic-applications' => 'App\Controllers\AdminController@genericApplications',
-    '/admin/certificates' => 'App\Controllers\AdminController@certificates',
-    '/admin/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
     '/admin/applications/download/{id}' => 'App\Controllers\ApplicationController@download',
+    
+    // Admin certificate management
+    '/admin/certificates' => 'App\Controllers\AdminController@certificates',
+    '/admin/certificates/create' => 'App\Controllers\AdminController@createCertificate',
+    '/admin/certificates/{id}' => 'App\Controllers\AdminController@showCertificate',
+    '/admin/certificates/{id}/edit' => 'App\Controllers\AdminController@editCertificate',
+    '/admin/certificates/{id}/revoke' => 'App\Controllers\AdminController@revokeCertificate',
+    '/admin/certificates/bulk-action' => 'App\Controllers\AdminController@bulkCertificateAction',
+    '/admin/certificates/templates' => 'App\Controllers\AdminController@certificateTemplates',
+    '/admin/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
     
     // Settings routes
     '/dashboard/registrar' => 'App\Controllers\DashboardController@registrar',
