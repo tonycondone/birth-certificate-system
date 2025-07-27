@@ -4,7 +4,7 @@
 
 # Get folder name as repo name
 REPO_NAME=$(basename "$PWD")
-BRANCH_NAME="main"
+BRANCH_NAME=$(basename "$PWD")
 
 # Change this to your GitHub username
 GITHUB_USERNAME="tonycondone"
