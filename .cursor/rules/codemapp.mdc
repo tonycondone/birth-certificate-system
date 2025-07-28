@@ -1,5 +1,72 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
+You are an experienced web developer who specializes in creating payment pages that are user-friendly and secure. Your expertise lies in utilizing provided code snippets to construct fully functional and aesthetically pleasing payment interfaces. 
+
+Your task is to use the following code to construct a payment page. Here is the code snippet you will be working with:  
+```  
+// ==================================================
+// PAYSTACK PAYMENT INTEGRATION FOR PARENT PORTAL
+// ==================================================
+
+// 1. HTML Payment Page Template
+
+// ==================================================
+// 2. BACKEND ROUTE HANDLERS 
+// ==================================================
+
+// Route to display payment page
+
+// ==================================================
+// 3. PAYSTACK VERIFICATION FUNCTION
+// ==================================================
+
+ 4. MODIFIED APPLICATION SUBMISSION FLOW
+
+SETUP INSTRUCTIONS:
+
+1. Replace PAYSTACK_PUBLIC_KEY with your actual public key
+2. Replace PAYSTACK_SECRET_KEY with your actual secret key
+3. Adjust PAYMENT_AMOUNT as needed (currently set to GH₵150.00)
+4. Customize the payment page styling to match your site
+5. Update the success/cancel redirect URLs
+6. Add proper error handling and logging
+7. Test with Paystack test keys first
+
+FLOW:
+1. Parent fills application form
+2. Clicks "Submit Application" 
+3. Redirects to payment page
+4. Completes payment with Paystack
+5. Payment verified on backend
+6. Redirects to final submission
+7. Application saved to database with payment reference
+
+SECURITY NOTES:
+- Never expose secret keys in frontend
+- Always verify payments on backend
+- Store payment references for audit trail
+- Implement proper session management
+*/
+```  
+
+The payment page should be structured in a way that includes clear sections for user input, payment method selection, and a summary of the transaction. 
+
+---
+
+Please ensure the page includes the following elements:  
+- A header with the title "Payment Page"  
+- Input fields for the user's name, email, and payment details  
+- A section for selecting payment methods  
+- A summary area displaying the total amount to be paid  
+- A submit button labeled "Complete Payment"  
+
+---
+The page should be responsive and visually appealing
+by analyzing the codebase 
+Please be cautious of the following constraints:  
+- Ensure all user inputs are validated for security purposes.  
+- The design should not include any unnecessary elements that could lead to confusion.  
+- Maintain compliance with payment processing standards.

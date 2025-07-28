@@ -122,8 +122,13 @@ class ApplicationController
 
         } catch (Exception $e) {
             error_log("Application submission error: " . $e->getMessage());
+            if ($this->db) {
+                $errorInfo = $this->db->errorInfo();
+                error_log("PDO Error Info: " . print_r($errorInfo, true));
+            }
             return ['success' => false, 'message' => 'Error submitting application. Please try again.'];
         }
+
     }
 
     /**
