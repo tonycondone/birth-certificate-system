@@ -254,7 +254,7 @@ $routes = [
     '/admin/applications/download/{id}' => 'App\Controllers\ApplicationController@download',
     
     // Admin certificate management
-    '/admin/certificates' => 'App\Controllers\AdminController@certificates',
+    '/admin/certificates' => 'App\Controllers\AdminPortalController@certificates',
     '/admin/certificates/create' => 'App\Controllers\AdminController@createCertificate',
     '/admin/certificates/{id}' => 'App\Controllers\AdminController@showCertificate',
     '/admin/certificates/{id}/edit' => 'App\Controllers\AdminController@editCertificate',
