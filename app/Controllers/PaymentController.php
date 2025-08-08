@@ -138,14 +138,23 @@ class PaymentController
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             $response = curl_exec($ch);
 
+            // Sanity check keys
+            if (empty($this->paystackSecretKey) || stripos($this->paystackSecretKey, 'sk_') !== 0) {
+                error_log('Paystack secret key looks invalid or missing');
+            }
+
             // basic file logging for diagnostics
             $logDir = BASE_PATH . '/storage/logs';
             if (!is_dir($logDir)) { @mkdir($logDir, 0775, true); }
-            @file_put_contents($logDir . '/payments.log', "INIT fields=" . json_encode($fields) . "\n", FILE_APPEND);
+            if (@file_put_contents($logDir . '/payments.log', "INIT fields=" . json_encode($fields) . "\n", FILE_APPEND) === false) {
+                error_log('payments.log write failed: ' . json_encode($fields));
+            }
 
             if ($response === false) {
                 $err = curl_error($ch);
-                @file_put_contents($logDir . '/payments.log', "cURL error=" . $err . "\n", FILE_APPEND);
+                if (@file_put_contents($logDir . '/payments.log', "cURL error=" . $err . "\n", FILE_APPEND) === false) {
+                    error_log('Paystack init cURL error: ' . $err);
+                }
                 error_log('Paystack init cURL error: ' . $err);
                 http_response_code(502);
                 echo json_encode(['success' => false, 'error' => 'Network error initializing payment']);
@@ -157,7 +166,9 @@ class PaymentController
             curl_close($ch);
 
             $result = json_decode($response, true);
-            @file_put_contents($logDir . '/payments.log', "HTTP=".$httpCode." RESP=".$response."\n", FILE_APPEND);
+            if (@file_put_contents($logDir . '/payments.log', "HTTP=".$httpCode." RESP=".$response."\n", FILE_APPEND) === false) {
+                error_log('Paystack init HTTP='.$httpCode.' RESP='.$response);
+            }
 
             if ($httpCode >= 400 || !$result || ($result['status'] ?? false) !== true) {
                 $message = $result['message'] ?? ('Paystack error (' . $httpCode . ')');
