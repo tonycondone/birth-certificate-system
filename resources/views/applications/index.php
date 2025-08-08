@@ -181,12 +181,22 @@
                                     'under_review' => 'bg-warning text-dark',
                                     'approved' => 'bg-success text-white',
                                     'rejected' => 'bg-danger text-white',
-                                    'certificate_issued' => 'bg-success text-white'
+                                    'certificate_issued' => 'bg-success text-white',
+                                    'pending' => 'bg-warning text-dark',
                                 ];
                                 $statusColor = $statusColors[$application['status']] ?? 'bg-secondary text-white';
+                                $statusLabels = [
+                                    'submitted' => 'In Progress',
+                                    'under_review' => 'Under Review',
+                                    'approved' => 'Approved',
+                                    'rejected' => 'Rejected',
+                                    'certificate_issued' => 'Certificate Issued',
+                                    'pending' => 'Pending',
+                                ];
+                                $statusText = $statusLabels[$application['status']] ?? ucwords(str_replace('_', ' ', $application['status']));
                                 ?>
                                 <span class="badge <?= $statusColor ?> status-badge">
-                                    <?= ucwords(str_replace('_', ' ', $application['status'])) ?>
+                                    <?= $statusText ?>
                                 </span>
                             </div>
                             <div class="card-body">
