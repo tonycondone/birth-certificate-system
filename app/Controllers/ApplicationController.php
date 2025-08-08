@@ -71,12 +71,14 @@ class ApplicationController
                 }
             }
 
-            // Generate application number
+            // Generate application and reference numbers
             $applicationNumber = $this->generateApplicationNumber();
+            $referenceNumber = $this->generateReferenceNumber();
 
             // Prepare application data
             $applicationData = [
                 'application_number' => $applicationNumber,
+                'reference_number' => $referenceNumber,
                 'user_id' => $_SESSION['user_id'],
                 'child_first_name' => trim($_POST['child_first_name']),
                 'child_last_name' => trim($_POST['child_last_name']),
@@ -470,14 +472,15 @@ class ApplicationController
     }
 
     /**
-     * Generate unique tracking number
+     * Generate unique reference number
      */
-    private function generateTrackingNumber()
+    private function generateReferenceNumber()
     {
-        $prefix = 'TRK';
-        $timestamp = time();
+        $prefix = 'REF';
+        $year = date('Y');
+        $month = date('m');
         $random = strtoupper(substr(md5(uniqid()), 0, 6));
-        return $prefix . $timestamp . $random;
+        return $prefix . $year . $month . $random;
     }
 
     /**
