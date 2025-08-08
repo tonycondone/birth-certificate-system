@@ -151,17 +151,28 @@ payButton.addEventListener('click', function() {
         credentials: 'same-origin',
         body: JSON.stringify({ payment_method: paymentMethod })
     })
-    .then(response => response.json())
+    .then(async (response) => {
+        if (!response.ok) {
+            const text = await response.text();
+            try {
+                const data = JSON.parse(text);
+                throw new Error(data.error || 'Request failed');
+            } catch (_) {
+                throw new Error(text || 'Request failed');
+            }
+        }
+        return response.json();
+    })
     .then(result => {
         if (result.success && result.data && result.data.authorization_url) {
             window.location.href = result.data.authorization_url; // Paystack hosted checkout
         } else {
-            alert('Payment initialization failed: ' + (result.error || 'Unknown error'));
+            throw new Error(result.error || 'Unknown error');
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while initializing payment. Please try again.');
+        console.error('Payment init error:', error);
+        alert('Payment initialization failed: ' + (error.message || 'Please try again.'));
     })
     .finally(() => {
         btnSpinner.classList.add('d-none');
