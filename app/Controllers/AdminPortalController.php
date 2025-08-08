@@ -286,10 +286,13 @@ class AdminPortalController
             $health['database_tables'] = $stmt->fetchColumn();
             
             // Disk usage (simulated)
-            $health['disk_usage'] = rand(30, 70);
+            $health['disk_usage'] = rand(30, 70) / 100; // Convert to decimal
             
-            // Memory usage (simulated)
-            $health['memory_usage'] = rand(40, 80);
+            // Memory usage (simulated) - expected by view
+            $health['memory_usage'] = rand(40, 80) / 100; // Convert to decimal
+            
+            // Server load (simulated) - expected by view  
+            $health['server_load'] = rand(20, 60) / 100; // Convert to decimal
             
             // CPU usage (simulated)
             $health['cpu_usage'] = rand(20, 60);
@@ -303,7 +306,15 @@ class AdminPortalController
             return $health;
         } catch (Exception $e) {
             error_log("Error getting system health: " . $e->getMessage());
-            return [];
+            return [
+                'database_tables' => 0,
+                'disk_usage' => 0.5,
+                'memory_usage' => 0.5,
+                'server_load' => 0.3,
+                'cpu_usage' => 30,
+                'api_response_time' => 200,
+                'error_rate' => 0
+            ];
         }
     }
 
