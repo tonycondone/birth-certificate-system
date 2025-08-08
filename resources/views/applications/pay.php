@@ -68,8 +68,8 @@ require_once __DIR__ . '/../layouts/base.php';
                                             </div>
                                         </div>
                                         <div class="d-flex gap-3 mt-2 align-items-center">
-                                            <img src="/images/payment/mtn-momo.png" alt="MTN MoMo" width="40" height="24">
-                                            <img src="/images/payment/vodafone-cash.png" alt="Vodafone Cash" width="40" height="24">
+                                            <img src="/images/payment/mtn-momo.svg" alt="MTN MoMo" width="40" height="24">
+                                            <img src="/images/payment/vodafone-cash.svg" alt="Vodafone Cash" width="40" height="24">
                                         </div>
                                     </div>
                                 </label>
@@ -93,16 +93,16 @@ require_once __DIR__ . '/../layouts/base.php';
                                 <div class="card-body">
                                     <div class="d-flex flex-wrap gap-3 justify-content-center">
                                         <div class="payment-method-icon">
-                                            <img src="/images/payment/visa.png" alt="Visa" width="50" height="30">
+                                            <img src="/images/payment/visa.svg" alt="Visa" width="50" height="30">
                                         </div>
                                         <div class="payment-method-icon">
-                                            <img src="/images/payment/mastercard.png" alt="Mastercard" width="50" height="30">
+                                            <img src="/images/payment/mastercard.svg" alt="Mastercard" width="50" height="30">
                                         </div>
                                         <div class="payment-method-icon">
-                                            <img src="/images/payment/mtn-momo.png" alt="MTN Mobile Money" width="50" height="30">
+                                            <img src="/images/payment/mtn-momo.svg" alt="MTN Mobile Money" width="50" height="30">
                                         </div>
                                         <div class="payment-method-icon">
-                                            <img src="/images/payment/vodafone-cash.png" alt="Vodafone Cash" width="50" height="30">
+                                            <img src="/images/payment/vodafone-cash.svg" alt="Vodafone Cash" width="50" height="30">
                                         </div>
                                     </div>
                                 </div>
