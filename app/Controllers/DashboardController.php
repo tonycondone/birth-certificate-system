@@ -916,9 +916,16 @@ class DashboardController
             
             // Add status filter
             if ($status) {
-                $query .= " AND ba.status = ?";
-                $countQuery .= " AND ba.status = ?";
-                $params[] = $status;
+                if (is_array($status)) {
+                    $placeholders = str_repeat('?,', count($status) - 1) . '?';
+                    $query .= " AND ba.status IN ($placeholders)";
+                    $countQuery .= " AND ba.status IN ($placeholders)";
+                    $params = array_merge($params, $status);
+                } else {
+                    $query .= " AND ba.status = ?";
+                    $countQuery .= " AND ba.status = ?";
+                    $params[] = $status;
+                }
             }
             
             // Add search term
