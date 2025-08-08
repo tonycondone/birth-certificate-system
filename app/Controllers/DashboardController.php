@@ -130,6 +130,61 @@ class DashboardController
             exit;
         }
     }
+
+    /**
+     * Registrar dashboard entry point
+     */
+    public function registrar()
+    {
+        // Check if user is logged in
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        try {
+            $pdo = Database::getConnection();
+            
+            // Get user information
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+            $stmt->execute([$_SESSION['user_id']]);
+            $user = $stmt->fetch();
+            
+            if (!$user) {
+                // User not found in database
+                error_log("Dashboard error: User ID {$_SESSION['user_id']} not found in database");
+                session_destroy();
+                header('Location: /login?error=session_expired');
+                exit;
+            }
+            
+            // Check if user has registrar role
+            if ($user['role'] !== 'registrar') {
+                $_SESSION['error'] = 'Access denied. Registrar privileges required.';
+                header('Location: /dashboard');
+                exit;
+            }
+            
+            // Set page title
+            $pageTitle = 'Registrar Dashboard - Digital Birth Certificate System';
+            
+            // Call registrar dashboard
+            return $this->registrarDashboard($pdo, $user, $pageTitle);
+            
+        } catch (PDOException $e) {
+            // Database connection error
+            error_log("Dashboard database error: " . $e->getMessage());
+            $_SESSION['error'] = 'Database connection error. Please try again later.';
+            header('Location: /');
+            exit;
+        } catch (Exception $e) {
+            // Generic error
+            error_log("Dashboard error: " . $e->getMessage());
+            $_SESSION['error'] = 'Unable to load dashboard. Please try again.';
+            header('Location: /');
+            exit;
+        }
+    }
     
     /**
      * Admin Dashboard
