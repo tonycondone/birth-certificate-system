@@ -77,16 +77,26 @@ class PaymentController
         ob_start();
         $prevDisplay = ini_get('display_errors');
         ini_set('display_errors', '0');
+        
+        $safeJson = function (int $httpCode, array $data) use ($prevDisplay) {
+            $payload = json_encode($data);
+            if (ob_get_length()) { ob_end_clean(); } else { ob_end_clean(); }
+            if (!headers_sent()) { header('Content-Type: application/json'); }
+            http_response_code($httpCode);
+            echo $payload;
+            // Restore display_errors
+            ini_set('display_errors', $prevDisplay);
+            exit;
+        };
+        
+        // basic file logging for diagnostics (very first line)
+        $logDir = BASE_PATH . '/storage/logs';
+        if (!is_dir($logDir)) { @mkdir($logDir, 0775, true); }
+        @file_put_contents($logDir . '/payments.log', "HIT initializePayment app={$applicationId} time=".date('c')."\n", FILE_APPEND);
         try {
-            if (!headers_sent()) {
-                header('Content-Type: application/json');
-            }
             
             if (!isset($_SESSION['user_id'])) {
-                http_response_code(401);
-                if (ob_get_length()) { ob_clean(); }
-                echo json_encode(['success' => false, 'error' => 'Unauthorized']);
-                return;
+                $safeJson(401, ['success' => false, 'error' => 'Unauthorized']);
             }
 
             $pdo = Database::getConnection();
@@ -102,10 +112,7 @@ class PaymentController
             }
 
             if (!$application) {
-                http_response_code(404);
-                if (ob_get_length()) { ob_clean(); }
-                echo json_encode(['success' => false, 'error' => 'Application not found']);
-                return;
+                $safeJson(404, ['success' => false, 'error' => 'Application not found']);
             }
 
             $reference = 'BCS-'.time().'-'.uniqid();
@@ -153,8 +160,6 @@ class PaymentController
             }
 
             // basic file logging for diagnostics
-            $logDir = BASE_PATH . '/storage/logs';
-            if (!is_dir($logDir)) { @mkdir($logDir, 0775, true); }
             if (@file_put_contents($logDir . '/payments.log', "INIT fields=" . json_encode($fields) . "\n", FILE_APPEND) === false) {
                 error_log('payments.log write failed: ' . json_encode($fields));
             }
@@ -165,11 +170,8 @@ class PaymentController
                     error_log('Paystack init cURL error: ' . $err);
                 }
                 error_log('Paystack init cURL error: ' . $err);
-                http_response_code(502);
-                if (ob_get_length()) { ob_clean(); }
-                echo json_encode(['success' => false, 'error' => 'Network error initializing payment']);
                 curl_close($ch);
-                return;
+                $safeJson(502, ['success' => false, 'error' => 'Network error initializing payment']);
             }
 
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -186,10 +188,7 @@ class PaymentController
                 $buffered = trim(ob_get_contents() ?: '');
                 if ($buffered !== '') { $message .= ' | debug: ' . strip_tags($buffered); }
                 error_log('Paystack init error: ' . $message);
-                http_response_code(500);
-                if (ob_get_length()) { ob_clean(); }
-                echo json_encode(['success' => false, 'error' => $message]);
-                return;
+                $safeJson(500, ['success' => false, 'error' => $message]);
             }
 
             // Persist payment reference (support both legacy and unified schemas)
@@ -209,23 +208,13 @@ class PaymentController
                 $stmt->execute([$applicationId, $this->paymentAmount / 100, 'GHS', $reference, 'pending', 'paystack']);
             }
 
-            if (ob_get_length()) { ob_clean(); }
-            echo json_encode(['success' => true, 'data' => $result['data']]);
+            $safeJson(200, ['success' => true, 'data' => $result['data']]);
         } catch (Exception $e) {
             error_log('Payment initialization exception: ' . $e->getMessage());
-            if (!headers_sent()) {
-                header('Content-Type: application/json');
-            }
-            http_response_code(500);
             $buffered = trim(ob_get_contents() ?: '');
-            if (ob_get_length()) { ob_clean(); }
-            echo json_encode(['success' => false, 'error' => 'Initialization failed' . ($buffered ? (' | debug: ' . strip_tags($buffered)) : '')]);
+            $safeJson(500, ['success' => false, 'error' => 'Initialization failed' . ($buffered ? (' | debug: ' . strip_tags($buffered)) : '')]);
         } finally {
-            // Clean any buffered output and restore display_errors
-            if (ob_get_level() > 0) {
-                ob_end_flush();
-            }
-            ini_set('display_errors', $prevDisplay);
+            // nothing; handled in $safeJson
         }
     }
 
