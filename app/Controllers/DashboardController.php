@@ -381,14 +381,15 @@ class DashboardController
     {
         try {
             $stmt = $pdo->prepare("
-                SELECT a.*, 
-                       h.name as hospital_name,
-                       CONCAT(c.first_name, ' ', c.last_name) as child_name
-                FROM applications a
-                LEFT JOIN hospitals h ON a.hospital_id = h.id
-                LEFT JOIN children c ON a.child_id = c.id
-                WHERE a.status = 'pending'
-                ORDER BY a.created_at DESC
+                SELECT ba.*, 
+                       u.first_name as parent_first_name,
+                       u.last_name as parent_last_name,
+                       ba.hospital_name,
+                       CONCAT(ba.child_first_name, ' ', ba.child_last_name) as child_name
+                FROM birth_applications ba
+                LEFT JOIN users u ON ba.user_id = u.id
+                WHERE ba.status IN ('pending', 'submitted')
+                ORDER BY ba.created_at DESC
                 LIMIT 10
             ");
             $stmt->execute();
