@@ -924,17 +924,20 @@ class DashboardController
             // Add search term
             if ($search) {
                 $query .= " AND (
-                    a.reference_number LIKE ? OR
-                    c.first_name LIKE ? OR
-                    c.last_name LIKE ? OR
-                    h.name LIKE ?
+                    ba.reference_number LIKE ? OR
+                    ba.child_first_name LIKE ? OR
+                    ba.child_last_name LIKE ? OR
+                    u.first_name LIKE ? OR
+                    u.last_name LIKE ?
                 )";
                 $countQuery .= " AND (
-                    a.reference_number LIKE ? OR
-                    EXISTS (SELECT 1 FROM children c WHERE c.id = a.child_id AND (c.first_name LIKE ? OR c.last_name LIKE ?)) OR
-                    EXISTS (SELECT 1 FROM hospitals h WHERE h.id = a.hospital_id AND h.name LIKE ?)
+                    ba.reference_number LIKE ? OR
+                    ba.child_first_name LIKE ? OR
+                    ba.child_last_name LIKE ? OR
+                    EXISTS (SELECT 1 FROM users u WHERE u.id = ba.user_id AND (u.first_name LIKE ? OR u.last_name LIKE ?))
                 )";
                 $searchTerm = "%$search%";
+                $params[] = $searchTerm;
                 $params[] = $searchTerm;
                 $params[] = $searchTerm;
                 $params[] = $searchTerm;
