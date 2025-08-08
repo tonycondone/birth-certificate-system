@@ -897,19 +897,21 @@ class DashboardController
         try {
             // Base query
             $query = "
-                SELECT a.*, 
-                       h.name as hospital_name,
-                       CONCAT(c.first_name, ' ', c.last_name) as child_name,
-                       c.first_name as child_first_name,
-                       c.last_name as child_last_name,
-                       c.date_of_birth
-                FROM applications a
-                LEFT JOIN hospitals h ON a.hospital_id = h.id
-                LEFT JOIN children c ON a.child_id = c.id
+                SELECT ba.*, 
+                       u.first_name as parent_first_name,
+                       u.last_name as parent_last_name,
+                       u.email as parent_email,
+                       ba.child_first_name,
+                       ba.child_last_name,
+                       ba.child_date_of_birth as date_of_birth,
+                       ba.reference_number,
+                       ba.created_at as submitted_at
+                FROM birth_applications ba
+                LEFT JOIN users u ON ba.user_id = u.id
                 WHERE 1=1
             ";
             
-            $countQuery = "SELECT COUNT(*) as count FROM applications a WHERE 1=1";
+            $countQuery = "SELECT COUNT(*) as count FROM birth_applications ba WHERE 1=1";
             $params = [];
             
             // Add status filter
