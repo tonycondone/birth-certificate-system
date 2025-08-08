@@ -146,6 +146,11 @@ class PaymentController
                 'Accept: application/json',
             ];
 
+            if (!function_exists('curl_init')) {
+                @file_put_contents($logDir . '/payments.log', "ERROR: PHP cURL extension not enabled\n", FILE_APPEND);
+                $safeJson(500, ['success' => false, 'error' => 'Server missing PHP cURL extension. Please enable php_curl in php.ini and restart the server.']);
+            }
+
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_POST, true);
