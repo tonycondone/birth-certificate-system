@@ -254,6 +254,22 @@ class AdminPortalController
             // System performance
             $stmt = $this->db->query("SELECT AVG(TIMESTAMPDIFF(HOUR, submitted_at, reviewed_at)) FROM birth_applications WHERE reviewed_at IS NOT NULL");
             $stats['avgProcessingTime'] = round($stmt->fetchColumn() ?? 0, 1);
+            
+            // Role-based user counts
+            $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'parent'");
+            $stats['parents'] = $stmt->fetchColumn();
+            
+            $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'hospital'");
+            $stats['hospitals'] = $stmt->fetchColumn();
+            
+            $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'registrar'");
+            $stats['registrars'] = $stmt->fetchColumn();
+            
+            $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
+            $stats['admins'] = $stmt->fetchColumn();
+            
+            // Additional certificate stats
+            $stats['approvedCertificates'] = $stats['activeCertificates']; // Use same value for now
 
             return $stats;
         } catch (Exception $e) {
