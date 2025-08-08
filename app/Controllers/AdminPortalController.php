@@ -52,6 +52,9 @@ class AdminPortalController
         
         // Get application trends
         $applicationTrends = $this->getApplicationTrends();
+        
+        // Get pending applications for recent applications section
+        $pendingApplications = $this->getPendingApplications(10);
 
         include BASE_PATH . '/resources/views/dashboard/admin.php';
     }
@@ -422,6 +425,28 @@ class AdminPortalController
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
             error_log("Error getting application trends: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get pending applications
+     */
+    private function getPendingApplications($limit)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT ba.*, u.first_name, u.last_name, u.email
+                FROM birth_applications ba
+                JOIN users u ON ba.submitted_by = u.id
+                WHERE ba.status = 'submitted'
+                ORDER BY ba.created_at DESC
+                LIMIT ?
+            ");
+            $stmt->execute([$limit]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting pending applications: " . $e->getMessage());
             return [];
         }
     }
