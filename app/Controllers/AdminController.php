@@ -647,8 +647,31 @@ class AdminController
         try {
             $this->checkAdminAccess();
 
+            $isPost = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
+            $wantsJson = $isPost && (
+                stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false ||
+                stripos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false ||
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest'
+            );
+            if (!$isPost) {
+                if ($wantsJson) {
+                    header('Content-Type: application/json');
+                    http_response_code(405);
+                    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+                    return;
+                }
+                header('Location: /admin/applications');
+                return;
+            }
+
             $reviewerId = $_SESSION['user_id'] ?? null;
             if (!$reviewerId) {
+                if ($wantsJson) {
+                    header('Content-Type: application/json');
+                    http_response_code(401);
+                    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                    return;
+                }
                 header('Location: /login');
                 exit;
             }
@@ -666,15 +689,24 @@ class AdminController
             $stmt->execute([$certificateNumber, $id, $qrCodeHash, $reviewerId]);
 
             $this->db->commit();
-
-            // Redirect back with success
-            $_SESSION['success'] = 'Application approved successfully';
-            header('Location: /admin/applications');
+            if ($wantsJson) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Application approved successfully', 'certificate_number' => $certificateNumber]);
+            } else {
+                $_SESSION['success'] = 'Application approved successfully';
+                header('Location: /admin/applications');
+            }
         } catch (Exception $e) {
             $this->db->rollBack();
             error_log('Admin approveApplication error: ' . $e->getMessage());
-            $_SESSION['error'] = 'Failed to approve application';
-            header('Location: /admin/applications');
+            if (isset($wantsJson) && $wantsJson) {
+                header('Content-Type: application/json');
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Failed to approve application']);
+            } else {
+                $_SESSION['error'] = 'Failed to approve application';
+                header('Location: /admin/applications');
+            }
         }
     }
 
@@ -685,24 +717,60 @@ class AdminController
     {
         try {
             $this->checkAdminAccess();
+            $isPost = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
+            $wantsJson = $isPost && (
+                stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false ||
+                stripos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false ||
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest'
+            );
+            if (!$isPost) {
+                if ($wantsJson) {
+                    header('Content-Type: application/json');
+                    http_response_code(405);
+                    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+                    return;
+                }
+                header('Location: /admin/applications');
+                return;
+            }
 
             $reviewerId = $_SESSION['user_id'] ?? null;
             if (!$reviewerId) {
+                if ($wantsJson) {
+                    header('Content-Type: application/json');
+                    http_response_code(401);
+                    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                    return;
+                }
                 header('Location: /login');
                 exit;
             }
 
-            $comments = trim($_POST['comments'] ?? '');
+            // Parse JSON body if provided
+            $raw = file_get_contents('php://input');
+            $json = json_decode($raw, true);
+            $comments = trim($_POST['comments'] ?? ($json['reason'] ?? ''));
 
             $stmt = $this->db->prepare("UPDATE birth_applications SET status = 'rejected', reviewed_by = ?, reviewed_at = NOW(), review_notes = ? WHERE id = ?");
             $stmt->execute([$reviewerId, $comments, $id]);
 
-            $_SESSION['success'] = 'Application rejected';
-            header('Location: /admin/applications');
+            if ($wantsJson) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Application rejected']);
+            } else {
+                $_SESSION['success'] = 'Application rejected';
+                header('Location: /admin/applications');
+            }
         } catch (Exception $e) {
             error_log('Admin rejectApplication error: ' . $e->getMessage());
-            $_SESSION['error'] = 'Failed to reject application';
-            header('Location: /admin/applications');
+            if (isset($wantsJson) && $wantsJson) {
+                header('Content-Type: application/json');
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Failed to reject application']);
+            } else {
+                $_SESSION['error'] = 'Failed to reject application';
+                header('Location: /admin/applications');
+            }
         }
     }
 
