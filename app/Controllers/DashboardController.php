@@ -916,8 +916,8 @@ class DashboardController
             
             // Add status filter
             if ($status) {
-                $query .= " AND a.status = ?";
-                $countQuery .= " AND a.status = ?";
+                $query .= " AND ba.status = ?";
+                $countQuery .= " AND ba.status = ?";
                 $params[] = $status;
             }
             
