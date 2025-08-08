@@ -90,6 +90,35 @@ class AdminPortalController
     }
 
     /**
+     * Certificate management
+     */
+    public function certificates()
+    {
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+            header('Location: /login');
+            exit;
+        }
+
+        $pageTitle = 'Certificate Management';
+        
+        // Get search and filter parameters
+        $search = trim($_GET['search'] ?? '');
+        $statusFilter = $_GET['status'] ?? '';
+        $page = max(1, intval($_GET['page'] ?? 1));
+        $perPage = 15;
+        $offset = ($page - 1) * $perPage;
+
+        // Get certificates with filters
+        $certificates = $this->getCertificatesWithFilters($search, $statusFilter, $offset, $perPage);
+        $totalCount = $this->countCertificates($search, $statusFilter);
+        
+        // Calculate pagination
+        $totalPages = ceil($totalCount / $perPage);
+
+        include BASE_PATH . '/resources/views/admin/certificates.php';
+    }
+
+    /**
      * System monitoring
      */
     public function systemMonitoring()
