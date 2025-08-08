@@ -74,7 +74,8 @@ class PaymentController
     public function initializePayment($applicationId): void 
     {
         try {
-            // Ensure user is owner or admin/registrar
+            header('Content-Type: application/json');
+            
             if (!isset($_SESSION['user_id'])) {
                 http_response_code(401);
                 echo json_encode(['success' => false, 'error' => 'Unauthorized']);
@@ -82,14 +83,12 @@ class PaymentController
             }
 
             $pdo = Database::getConnection();
-
-            // Try birth_applications first
+            
+            // Fetch from birth_applications first, fallback to applications
             $stmt = $pdo->prepare('SELECT a.*, u.email, u.first_name, u.last_name FROM birth_applications a JOIN users u ON a.user_id = u.id WHERE a.id = ?');
             $stmt->execute([$applicationId]);
             $application = $stmt->fetch();
-
             if (!$application) {
-                // Fallback to legacy applications table
                 $stmt = $pdo->prepare('SELECT a.*, u.email, u.first_name, u.last_name FROM applications a JOIN users u ON a.user_id = u.id WHERE a.id = ?');
                 $stmt->execute([$applicationId]);
                 $application = $stmt->fetch();
@@ -101,24 +100,22 @@ class PaymentController
                 return;
             }
 
-            // Generate a unique reference
             $reference = 'BCS-'.time().'-'.uniqid();
-            
-            // Prepare the Paystack API request
+            $appUrl = $_ENV['APP_URL'] ?? (isset($_SERVER['HTTP_HOST']) ? 'http://' . $_SERVER['HTTP_HOST'] : 'http://localhost:8000');
+
             $url = "https://api.paystack.co/transaction/initialize";
             $fields = [
                 'email' => $application['email'],
                 'amount' => $this->paymentAmount,
                 'reference' => $reference,
-                'callback_url' => ($_ENV['APP_URL'] ?? (isset($_SERVER['HTTP_HOST']) ? 'http://' . $_SERVER['HTTP_HOST'] : '')) . "/applications/{$applicationId}/payment-callback",
+                'callback_url' => rtrim($appUrl, '/') . "/applications/{$applicationId}/payment-callback",
                 'metadata' => [
                     'application_id' => $applicationId,
                     'user_id' => $application['user_id'],
-                    'full_name' => $application['first_name'] . ' ' . $application['last_name']
+                    'full_name' => trim(($application['first_name'] ?? '') . ' ' . ($application['last_name'] ?? ''))
                 ]
             ];
 
-            // Optional: nudge Paystack to show preferred method first
             $input = json_decode(file_get_contents('php://input'), true);
             $paymentMethod = $input['payment_method'] ?? null;
             if ($paymentMethod === 'mobile-money') {
@@ -126,46 +123,53 @@ class PaymentController
             } elseif ($paymentMethod === 'card') {
                 $fields['channels'] = ['card'];
             }
-            
+
             $headers = [
                 'Authorization: Bearer ' . $this->paystackSecretKey,
                 'Content-Type: application/json',
             ];
-            
+
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            
             $response = curl_exec($ch);
-            
-            if (curl_error($ch)) {
-                throw new Exception(curl_error($ch));
+
+            if ($response === false) {
+                $err = curl_error($ch);
+                error_log('Paystack init cURL error: ' . $err);
+                http_response_code(502);
+                echo json_encode(['success' => false, 'error' => 'Network error initializing payment']);
+                curl_close($ch);
+                return;
             }
-            
+
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
+
             $result = json_decode($response, true);
-            
-            if (!$result['status']) {
-                throw new Exception($result['message']);
+            if ($httpCode >= 400 || !$result || ($result['status'] ?? false) !== true) {
+                $message = $result['message'] ?? ('Paystack error (' . $httpCode . ')');
+                error_log('Paystack init error: ' . $message . ' | response=' . $response);
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => $message]);
+                return;
             }
-            
-            // Store payment reference in database
+
             $stmt = $pdo->prepare(
                 'INSERT INTO payments (application_id, amount, currency, transaction_id, status, payment_gateway) 
-                VALUES (?, ?, ?, ?, ?, ?)'
+                 VALUES (?, ?, ?, ?, ?, ?)'
             );
             $stmt->execute([$applicationId, $this->paymentAmount / 100, 'GHS', $reference, 'pending', 'paystack']);
-            
-            // Return the authorization URL
+
             echo json_encode(['success' => true, 'data' => $result['data']]);
-            
         } catch (Exception $e) {
-            error_log('Payment initialization error: ' . $e->getMessage());
+            error_log('Payment initialization exception: ' . $e->getMessage());
+            header('Content-Type: application/json');
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'error' => 'Initialization failed']);
         }
     }
 
