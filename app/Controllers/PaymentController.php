@@ -316,8 +316,8 @@ class PaymentController
             
         } catch (Exception $e) {
             error_log('Payment callback error: ' . $e->getMessage());
-            $_SESSION['error'] = 'Payment verification failed: ' . $e->getMessage();
-            header("Location: /applications/{$applicationId}/pay");
+            $_SESSION['error'] = 'Payment was cancelled or not completed. You can try again.';
+            header("Location: /applications/{$applicationId}");
             exit;
         }
     }
