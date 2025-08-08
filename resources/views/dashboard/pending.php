@@ -101,9 +101,9 @@ require_once __DIR__ . '/../layouts/base.php';
                                 <option value="">All Hospitals</option>
                                 <?php if (isset($hospitals)): ?>
                                     <?php foreach ($hospitals as $hospital): ?>
-                                        <option value="<?php echo $hospital['id']; ?>" 
-                                                <?php echo ($hospitalFilter == $hospital['id']) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($hospital['name']); ?>
+                                        <option value="<?php echo htmlspecialchars($hospital['hospital_name']); ?>" 
+                                                <?php echo ($hospitalFilter == $hospital['hospital_name']) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($hospital['hospital_name']); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
