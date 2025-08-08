@@ -152,16 +152,16 @@ payButton.addEventListener('click', function() {
         body: JSON.stringify({ payment_method: paymentMethod })
     })
     .then(async (response) => {
+        const status = response.status;
+        const statusText = response.statusText || '';
+        const raw = await response.text();
+        let parsed = null;
+        try { parsed = raw ? JSON.parse(raw) : null; } catch (_) {}
         if (!response.ok) {
-            const text = await response.text();
-            try {
-                const data = JSON.parse(text);
-                throw new Error(data.error || 'Request failed');
-            } catch (_) {
-                throw new Error(text || 'Request failed');
-            }
+            const msg = (parsed && (parsed.error || parsed.message)) || (raw && raw.trim()) || `HTTP ${status} ${statusText}`;
+            throw new Error(msg);
         }
-        return response.json();
+        return parsed || {};
     })
     .then(result => {
         if (result.success && result.data && result.data.authorization_url) {
