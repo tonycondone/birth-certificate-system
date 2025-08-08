@@ -204,19 +204,25 @@ class PaymentController
 
             // Persist payment reference (support both legacy and unified schemas)
             try {
-                $stmt = $pdo->prepare(
-                    'INSERT INTO payments (application_id, user_id, amount, currency, transaction_id, status, payment_gateway) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?)'
-                );
-                $stmt->execute([$applicationId, $application['user_id'], $this->paymentAmount / 100, 'GHS', $reference, 'pending', 'paystack']);
-            } catch (Exception $e) {
-                // Fallback to legacy schema without user_id
-                error_log('Payments insert with user_id failed, retrying legacy schema: ' . $e->getMessage());
-                $stmt = $pdo->prepare(
-                    'INSERT INTO payments (application_id, amount, currency, transaction_id, status, payment_gateway) 
-                     VALUES (?, ?, ?, ?, ?, ?)'
-                );
-                $stmt->execute([$applicationId, $this->paymentAmount / 100, 'GHS', $reference, 'pending', 'paystack']);
+                try {
+                    $stmt = $pdo->prepare(
+                        'INSERT INTO payments (application_id, user_id, amount, currency, transaction_id, status, payment_gateway) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?)'
+                    );
+                    $stmt->execute([$applicationId, $application['user_id'], $this->paymentAmount / 100, 'GHS', $reference, 'pending', 'paystack']);
+                } catch (Exception $e1) {
+                    error_log('Payments insert with user_id failed, retrying legacy schema: ' . $e1->getMessage());
+                    if (@file_put_contents($logDir . '/payments.log', "WARN: payments insert with user_id failed: " . $e1->getMessage() . "\n", FILE_APPEND) === false) {}
+                    $stmt = $pdo->prepare(
+                        'INSERT INTO payments (application_id, amount, currency, transaction_id, status, payment_gateway) 
+                         VALUES (?, ?, ?, ?, ?, ?)'
+                    );
+                    $stmt->execute([$applicationId, $this->paymentAmount / 100, 'GHS', $reference, 'pending', 'paystack']);
+                }
+            } catch (Exception $e2) {
+                // Do not block the flow if payments table is absent or incompatible during local testing
+                error_log('Payments insert failed (non-blocking): ' . $e2->getMessage());
+                @file_put_contents($logDir . '/payments.log', "ERROR: payments insert failed (non-blocking): " . $e2->getMessage() . "\n", FILE_APPEND);
             }
 
             $safeJson(200, ['success' => true, 'data' => $result['data']]);
