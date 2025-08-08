@@ -78,10 +78,13 @@ class PaymentController
         $prevDisplay = ini_get('display_errors');
         ini_set('display_errors', '0');
         try {
-            header('Content-Type: application/json');
+            if (!headers_sent()) {
+                header('Content-Type: application/json');
+            }
             
             if (!isset($_SESSION['user_id'])) {
                 http_response_code(401);
+                if (ob_get_length()) { ob_clean(); }
                 echo json_encode(['success' => false, 'error' => 'Unauthorized']);
                 return;
             }
@@ -100,6 +103,7 @@ class PaymentController
 
             if (!$application) {
                 http_response_code(404);
+                if (ob_get_length()) { ob_clean(); }
                 echo json_encode(['success' => false, 'error' => 'Application not found']);
                 return;
             }
@@ -162,6 +166,7 @@ class PaymentController
                 }
                 error_log('Paystack init cURL error: ' . $err);
                 http_response_code(502);
+                if (ob_get_length()) { ob_clean(); }
                 echo json_encode(['success' => false, 'error' => 'Network error initializing payment']);
                 curl_close($ch);
                 return;
@@ -182,6 +187,7 @@ class PaymentController
                 if ($buffered !== '') { $message .= ' | debug: ' . strip_tags($buffered); }
                 error_log('Paystack init error: ' . $message);
                 http_response_code(500);
+                if (ob_get_length()) { ob_clean(); }
                 echo json_encode(['success' => false, 'error' => $message]);
                 return;
             }
@@ -203,12 +209,16 @@ class PaymentController
                 $stmt->execute([$applicationId, $this->paymentAmount / 100, 'GHS', $reference, 'pending', 'paystack']);
             }
 
+            if (ob_get_length()) { ob_clean(); }
             echo json_encode(['success' => true, 'data' => $result['data']]);
         } catch (Exception $e) {
             error_log('Payment initialization exception: ' . $e->getMessage());
-            header('Content-Type: application/json');
+            if (!headers_sent()) {
+                header('Content-Type: application/json');
+            }
             http_response_code(500);
             $buffered = trim(ob_get_contents() ?: '');
+            if (ob_get_length()) { ob_clean(); }
             echo json_encode(['success' => false, 'error' => 'Initialization failed' . ($buffered ? (' | debug: ' . strip_tags($buffered)) : '')]);
         } finally {
             // Clean any buffered output and restore display_errors
