@@ -982,7 +982,7 @@ class DashboardController
             }
             
             // Add sorting
-            $query .= " ORDER BY a.created_at DESC";
+            $query .= " ORDER BY ba.created_at DESC";
             
             // Add pagination
             $query .= " LIMIT ? OFFSET ?";
