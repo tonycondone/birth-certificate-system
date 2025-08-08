@@ -178,6 +178,18 @@ class ApplicationController
         $progress = $this->getApplicationProgress($id);
         $documents = $this->getApplicationDocuments($id);
 
+        // Determine whether user should see Pay Now (no completed payment yet)
+        $canPay = false;
+        try {
+            $stmt = $this->db->prepare("SELECT status FROM payments WHERE application_id = ? ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$id]);
+            $lastPayment = $stmt->fetch();
+            $canPay = !$lastPayment || strtolower($lastPayment['status'] ?? '') !== 'completed';
+        } catch (\Exception $e) {
+            // If payments table not available, allow Pay Now to be shown for submitted/pending
+            $canPay = in_array($application['status'], ['submitted','pending','processing']);
+        }
+
         include BASE_PATH . '/resources/views/applications/show.php';
     }
 
