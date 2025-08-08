@@ -53,7 +53,7 @@ class AdminPortalController
         // Get application trends
         $applicationTrends = $this->getApplicationTrends();
 
-        include BASE_PATH . '/resources/views/admin/dashboard.php';
+        include BASE_PATH . '/resources/views/dashboard/admin.php';
     }
 
     /**
