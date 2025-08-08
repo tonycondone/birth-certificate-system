@@ -955,28 +955,28 @@ class DashboardController
             if ($dateFilter) {
                 switch ($dateFilter) {
                     case 'today':
-                        $query .= " AND DATE(a.created_at) = CURDATE()";
-                        $countQuery .= " AND DATE(a.created_at) = CURDATE()";
+                        $query .= " AND DATE(ba.created_at) = CURDATE()";
+                        $countQuery .= " AND DATE(ba.created_at) = CURDATE()";
                         break;
                     case 'yesterday':
-                        $query .= " AND DATE(a.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
-                        $countQuery .= " AND DATE(a.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
+                        $query .= " AND DATE(ba.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
+                        $countQuery .= " AND DATE(ba.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
                         break;
                     case 'this_week':
-                        $query .= " AND YEARWEEK(a.created_at) = YEARWEEK(CURDATE())";
-                        $countQuery .= " AND YEARWEEK(a.created_at) = YEARWEEK(CURDATE())";
+                        $query .= " AND YEARWEEK(ba.created_at) = YEARWEEK(CURDATE())";
+                        $countQuery .= " AND YEARWEEK(ba.created_at) = YEARWEEK(CURDATE())";
                         break;
                     case 'last_week':
-                        $query .= " AND YEARWEEK(a.created_at) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK))";
-                        $countQuery .= " AND YEARWEEK(a.created_at) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK))";
+                        $query .= " AND YEARWEEK(ba.created_at) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK))";
+                        $countQuery .= " AND YEARWEEK(ba.created_at) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK))";
                         break;
                     case 'this_month':
-                        $query .= " AND YEAR(a.created_at) = YEAR(CURDATE()) AND MONTH(a.created_at) = MONTH(CURDATE())";
-                        $countQuery .= " AND YEAR(a.created_at) = YEAR(CURDATE()) AND MONTH(a.created_at) = MONTH(CURDATE())";
+                        $query .= " AND YEAR(ba.created_at) = YEAR(CURDATE()) AND MONTH(ba.created_at) = MONTH(CURDATE())";
+                        $countQuery .= " AND YEAR(ba.created_at) = YEAR(CURDATE()) AND MONTH(ba.created_at) = MONTH(CURDATE())";
                         break;
                     case 'last_month':
-                        $query .= " AND YEAR(a.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(a.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
-                        $countQuery .= " AND YEAR(a.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(a.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
+                        $query .= " AND YEAR(ba.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(ba.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
+                        $countQuery .= " AND YEAR(ba.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(ba.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
                         break;
                 }
             }
