@@ -100,8 +100,8 @@ class ApplicationController
                 'hospital_name' => trim($_POST['hospital_name'] ?? ''),
                 'attending_physician' => trim($_POST['attending_physician'] ?? ''),
                 'physician_license' => trim($_POST['physician_license'] ?? ''),
-                'status' => 'pending_payment', // Changed from 'submitted' to 'pending_payment'
-                'created_at' => date('Y-m-d H:i:s') // Store creation time
+                'status' => 'pending', // valid enum value for initial state
+                'created_at' => date('Y-m-d H:i:s')
             ];
 
             // Insert application
@@ -114,7 +114,7 @@ class ApplicationController
             $applicationId = $this->db->lastInsertId();
 
             // Create initial progress entry
-            $this->createProgressEntry($applicationId, 'pending_payment', 'Application created, waiting for payment');
+            $this->createProgressEntry($applicationId, 'pending', 'Application created, waiting for payment');
 
             // Redirect to payment page instead of submitting directly
             header("Location: /applications/{$applicationId}/pay");
