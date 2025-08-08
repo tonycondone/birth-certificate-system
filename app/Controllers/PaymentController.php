@@ -158,11 +158,22 @@ class PaymentController
                 return;
             }
 
-            $stmt = $pdo->prepare(
-                'INSERT INTO payments (application_id, amount, currency, transaction_id, status, payment_gateway) 
-                 VALUES (?, ?, ?, ?, ?, ?)'
-            );
-            $stmt->execute([$applicationId, $this->paymentAmount / 100, 'GHS', $reference, 'pending', 'paystack']);
+            // Persist payment reference (support both legacy and unified schemas)
+            try {
+                $stmt = $pdo->prepare(
+                    'INSERT INTO payments (application_id, user_id, amount, currency, transaction_id, status, payment_gateway) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?)'
+                );
+                $stmt->execute([$applicationId, $application['user_id'], $this->paymentAmount / 100, 'GHS', $reference, 'pending', 'paystack']);
+            } catch (Exception $e) {
+                // Fallback to legacy schema without user_id
+                error_log('Payments insert with user_id failed, retrying legacy schema: ' . $e->getMessage());
+                $stmt = $pdo->prepare(
+                    'INSERT INTO payments (application_id, amount, currency, transaction_id, status, payment_gateway) 
+                     VALUES (?, ?, ?, ?, ?, ?)'
+                );
+                $stmt->execute([$applicationId, $this->paymentAmount / 100, 'GHS', $reference, 'pending', 'paystack']);
+            }
 
             echo json_encode(['success' => true, 'data' => $result['data']]);
         } catch (Exception $e) {
