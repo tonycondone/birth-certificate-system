@@ -142,7 +142,11 @@ include __DIR__ . '/../layouts/base.php';
                                 switch ($application['status']) {
                                     case 'pending':
                                         $statusClass = 'badge bg-warning fs-6';
-                                        $statusText = 'Pending Review';
+                                        $statusText = 'Pending';
+                                        break;
+                                    case 'submitted':
+                                        $statusClass = 'badge bg-info fs-6';
+                                        $statusText = 'In Progress';
                                         break;
                                     case 'approved':
                                         $statusClass = 'badge bg-success fs-6';
@@ -193,7 +197,7 @@ include __DIR__ . '/../layouts/base.php';
                             </div>
                         </div>
 
-                        <?php if ($application['status'] === 'pending'): ?>
+                        <?php if (!empty($canPay)): ?>
                             <div class="card shadow">
                                 <div class="card-header bg-warning text-dark">
                                     <h5 class="mb-0">
