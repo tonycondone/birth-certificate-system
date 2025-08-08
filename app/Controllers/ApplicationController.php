@@ -71,14 +71,13 @@ class ApplicationController
                 }
             }
 
-            // Generate application and reference numbers
+            // Generate application number
             $applicationNumber = $this->generateApplicationNumber();
-            $referenceNumber = $this->generateReferenceNumber();
 
             // Prepare application data
             $applicationData = [
                 'application_number' => $applicationNumber,
-                'reference_number' => $referenceNumber,
+                // reference_number omitted for compatibility; DB trigger or later process may populate it
                 'user_id' => $_SESSION['user_id'],
                 'child_first_name' => trim($_POST['child_first_name']),
                 'child_last_name' => trim($_POST['child_last_name']),
@@ -102,7 +101,7 @@ class ApplicationController
                 'hospital_name' => trim($_POST['hospital_name'] ?? ''),
                 'attending_physician' => trim($_POST['attending_physician'] ?? ''),
                 'physician_license' => trim($_POST['physician_license'] ?? ''),
-                'status' => 'pending', // valid enum value for initial state
+                'status' => 'submitted',
                 'created_at' => date('Y-m-d H:i:s')
             ];
 
@@ -116,7 +115,7 @@ class ApplicationController
             $applicationId = $this->db->lastInsertId();
 
             // Create initial progress entry
-            $this->createProgressEntry($applicationId, 'pending', 'Application created, waiting for payment');
+            $this->createProgressEntry($applicationId, 'submitted', 'Application submitted, proceed to payment');
 
             // Redirect to payment page instead of submitting directly
             header("Location: /applications/{$applicationId}/pay");
