@@ -33,18 +33,57 @@ require_once __DIR__ . '/../layouts/base.php';
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i> 
-                        Please complete the payment to proceed with your birth certificate application.
+                        <i class="fas fa-info-circle me-2"></i>
+                        Choose your preferred payment method. You will be redirected to Paystack's secure checkout.
                     </div>
-                    
+
+                    <div class="mb-3">
+                        <h5 class="mb-2">Select Payment Method</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="w-100">
+                                    <input type="radio" name="payment_method" value="card" class="form-check-input me-2" checked>
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-credit-card fa-lg text-primary me-2"></i>
+                                            <div>
+                                                <div class="fw-semibold">Card (Visa/Mastercard)</div>
+                                                <small class="text-muted">Pay with your debit/credit card</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="w-100">
+                                    <input type="radio" name="payment_method" value="mobile-money" class="form-check-input me-2">
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-mobile-alt fa-lg text-success me-2"></i>
+                                            <div>
+                                                <div class="fw-semibold">Mobile Money (Ghana)</div>
+                                                <small class="text-muted">MTN, Vodafone, AirtelTigo</small>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-3 mt-2 align-items-center">
+                                            <img src="/images/payment/mtn-momo.png" alt="MTN MoMo" width="40" height="24">
+                                            <img src="/images/payment/vodafone-cash.png" alt="Vodafone Cash" width="40" height="24">
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="text-center mb-4">
                         <button type="button" id="paystackPayButton" class="btn btn-success btn-lg">
-                            <i class="fas fa-lock me-2"></i>Pay with Paystack
+                            <span id="btnSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                            <i class="fas fa-lock me-2"></i><span id="btnText">Proceed to Pay</span>
                         </button>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
@@ -93,27 +132,40 @@ require_once __DIR__ . '/../layouts/base.php';
     </div>
 </div>
 
-<script src="https://js.paystack.co/v1/inline.js"></script>
 <script>
-document.getElementById('paystackPayButton').addEventListener('click', function() {
-    // Initialize payment
+const payButton = document.getElementById('paystackPayButton');
+const btnSpinner = document.getElementById('btnSpinner');
+const btnText = document.getElementById('btnText');
+
+payButton.addEventListener('click', function() {
+    const selected = document.querySelector('input[name="payment_method"]:checked');
+    const paymentMethod = selected ? selected.value : 'card';
+
+    btnSpinner.classList.remove('d-none');
+    payButton.disabled = true;
+    btnText.textContent = 'Initializing...';
+
     fetch('/applications/<?= $application['id'] ?>/initialize-payment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_method: paymentMethod })
     })
     .then(response => response.json())
     .then(result => {
-        if (result.success) {
-            // Open Paystack payment modal
-            const paymentData = result.data;
-            window.location.href = paymentData.authorization_url;
+        if (result.success && result.data && result.data.authorization_url) {
+            window.location.href = result.data.authorization_url; // Paystack hosted checkout
         } else {
-            alert('Payment initialization failed: ' + result.error);
+            alert('Payment initialization failed: ' + (result.error || 'Unknown error'));
         }
     })
     .catch(error => {
         console.error('Error:', error);
         alert('An error occurred while initializing payment. Please try again.');
+    })
+    .finally(() => {
+        btnSpinner.classList.add('d-none');
+        payButton.disabled = false;
+        btnText.textContent = 'Proceed to Pay';
     });
 });
 </script> 
