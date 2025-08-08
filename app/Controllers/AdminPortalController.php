@@ -1101,4 +1101,85 @@ class AdminPortalController
             return [];
         }
     }
+    
+    /**
+     * Get certificates with filters
+     */
+    private function getCertificatesWithFilters($search, $statusFilter, $offset, $limit)
+    {
+        try {
+            $sql = "
+                SELECT c.*, ba.child_first_name, ba.child_last_name, ba.reference_number,
+                       u.first_name as parent_first_name, u.last_name as parent_last_name, u.email
+                FROM certificates c
+                JOIN birth_applications ba ON c.application_id = ba.id
+                JOIN users u ON ba.submitted_by = u.id
+                WHERE 1=1
+            ";
+            $params = [];
+
+            if (!empty($search)) {
+                $sql .= " AND (c.certificate_number LIKE ? OR ba.child_first_name LIKE ? OR ba.child_last_name LIKE ? OR u.email LIKE ?)";
+                $searchParam = "%$search%";
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+            }
+
+            if (!empty($statusFilter)) {
+                $sql .= " AND c.status = ?";
+                $params[] = $statusFilter;
+            }
+
+            $sql .= " ORDER BY c.created_at DESC LIMIT ? OFFSET ?";
+            $params[] = $limit;
+            $params[] = $offset;
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting certificates: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Count certificates with filters
+     */
+    private function countCertificates($search, $statusFilter)
+    {
+        try {
+            $sql = "
+                SELECT COUNT(*)
+                FROM certificates c
+                JOIN birth_applications ba ON c.application_id = ba.id
+                JOIN users u ON ba.submitted_by = u.id
+                WHERE 1=1
+            ";
+            $params = [];
+
+            if (!empty($search)) {
+                $sql .= " AND (c.certificate_number LIKE ? OR ba.child_first_name LIKE ? OR ba.child_last_name LIKE ? OR u.email LIKE ?)";
+                $searchParam = "%$search%";
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+            }
+
+            if (!empty($statusFilter)) {
+                $sql .= " AND c.status = ?";
+                $params[] = $statusFilter;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchColumn();
+        } catch (Exception $e) {
+            error_log("Error counting certificates: " . $e->getMessage());
+            return 0;
+        }
+    }
 }
