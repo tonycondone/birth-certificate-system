@@ -222,7 +222,9 @@ class PaymentController
             echo json_encode(['success' => false, 'error' => 'Initialization failed' . ($buffered ? (' | debug: ' . strip_tags($buffered)) : '')]);
         } finally {
             // Clean any buffered output and restore display_errors
-            ob_end_clean();
+            if (ob_get_level() > 0) {
+                ob_end_flush();
+            }
             ini_set('display_errors', $prevDisplay);
         }
     }
