@@ -157,6 +157,12 @@ class PaymentController
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            // In dev environments without proper CA bundle, allow insecure SSL for testing only
+            if (($_ENV['APP_DEBUG'] ?? '') && strtolower($_ENV['APP_DEBUG']) !== '0') {
+                @file_put_contents($logDir . '/payments.log', "DEBUG: Disabling SSL verification for dev\n", FILE_APPEND);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            }
             $response = curl_exec($ch);
 
             // Sanity check keys
