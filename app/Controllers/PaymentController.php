@@ -117,6 +117,15 @@ class PaymentController
                     'full_name' => $application['first_name'] . ' ' . $application['last_name']
                 ]
             ];
+
+            // Optional: nudge Paystack to show preferred method first
+            $input = json_decode(file_get_contents('php://input'), true);
+            $paymentMethod = $input['payment_method'] ?? null;
+            if ($paymentMethod === 'mobile-money') {
+                $fields['channels'] = ['mobile_money'];
+            } elseif ($paymentMethod === 'card') {
+                $fields['channels'] = ['card'];
+            }
             
             $headers = [
                 'Authorization: Bearer ' . $this->paystackSecretKey,
