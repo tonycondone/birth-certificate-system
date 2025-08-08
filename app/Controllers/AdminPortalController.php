@@ -284,7 +284,12 @@ class AdminPortalController
                 'todayApplications' => 0,
                 'activeCertificates' => 0,
                 'certificatesIssuedToday' => 0,
-                'avgProcessingTime' => 0
+                'avgProcessingTime' => 0,
+                'parents' => 0,
+                'hospitals' => 0,
+                'registrars' => 0,
+                'admins' => 0,
+                'approvedCertificates' => 0
             ];
         }
     }
