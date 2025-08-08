@@ -465,10 +465,15 @@ class AdminPortalController
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT ba.*, u.first_name, u.last_name, u.email
+                SELECT ba.*, u.first_name, u.last_name, u.email,
+                       ba.child_first_name as first_name,
+                       ba.child_last_name as last_name,
+                       u.email as applicant_email,
+                       ba.reference_number as application_number,
+                       'Birth Certificate' as purpose
                 FROM birth_applications ba
-                JOIN users u ON ba.submitted_by = u.id
-                WHERE ba.status = 'submitted'
+                JOIN users u ON ba.user_id = u.id
+                WHERE ba.status IN ('submitted', 'pending')
                 ORDER BY ba.created_at DESC
                 LIMIT ?
             ");
