@@ -640,8 +640,8 @@ class DashboardController
         try {
             $stmt = $pdo->prepare("
                 SELECT COUNT(*) as count 
-                FROM applications 
-                WHERE status = 'pending'
+                FROM birth_applications 
+                WHERE status IN ('pending', 'submitted')
             ");
             $stmt->execute();
             $result = $stmt->fetch();
