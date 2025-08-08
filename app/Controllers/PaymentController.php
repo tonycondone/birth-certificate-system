@@ -73,6 +73,10 @@ class PaymentController
      */
     public function initializePayment($applicationId): void 
     {
+        // Start output buffer to capture stray warnings/notices
+        ob_start();
+        $prevDisplay = ini_get('display_errors');
+        ini_set('display_errors', '0');
         try {
             header('Content-Type: application/json');
             
@@ -128,6 +132,7 @@ class PaymentController
             $headers = [
                 'Authorization: Bearer ' . $this->paystackSecretKey,
                 'Content-Type: application/json',
+                'Accept: application/json',
             ];
 
             $ch = curl_init();
@@ -172,7 +177,10 @@ class PaymentController
 
             if ($httpCode >= 400 || !$result || ($result['status'] ?? false) !== true) {
                 $message = $result['message'] ?? ('Paystack error (' . $httpCode . ')');
-                error_log('Paystack init error: ' . $message . ' | response=' . $response);
+                // Include any buffered PHP warnings to help diagnose
+                $buffered = trim(ob_get_contents() ?: '');
+                if ($buffered !== '') { $message .= ' | debug: ' . strip_tags($buffered); }
+                error_log('Paystack init error: ' . $message);
                 http_response_code(500);
                 echo json_encode(['success' => false, 'error' => $message]);
                 return;
@@ -200,7 +208,12 @@ class PaymentController
             error_log('Payment initialization exception: ' . $e->getMessage());
             header('Content-Type: application/json');
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Initialization failed']);
+            $buffered = trim(ob_get_contents() ?: '');
+            echo json_encode(['success' => false, 'error' => 'Initialization failed' . ($buffered ? (' | debug: ' . strip_tags($buffered)) : '')]);
+        } finally {
+            // Clean any buffered output and restore display_errors
+            ob_end_clean();
+            ini_set('display_errors', $prevDisplay);
         }
     }
 
