@@ -219,6 +219,98 @@ class ApplicationController
     }
 
     /**
+     * Delete application
+     */
+    public function delete($id)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(401);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+            return;
+        }
+
+        $application = $this->getApplicationById($id);
+        if (!$application) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Application not found']);
+            return;
+        }
+
+        $isOwner = $application['user_id'] == $_SESSION['user_id'];
+        $isStaff = in_array($_SESSION['role'] ?? '', ['admin', 'registrar']);
+        if (!$isOwner && !$isStaff) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Forbidden']);
+            return;
+        }
+
+        try {
+            // Block deletion if a completed payment exists
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM payments WHERE application_id = ? AND LOWER(status) = 'completed'");
+            $stmt->execute([$id]);
+            $hasCompletedPayment = (int)$stmt->fetchColumn() > 0;
+            if ($hasCompletedPayment) {
+                http_response_code(409);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Cannot delete. Payment already completed.']);
+                return;
+            }
+        } catch (\Exception $e) {
+            // If payments table missing, fall back to status rule: allow only pending/submitted
+        }
+
+        if (!in_array(strtolower($application['status']), ['pending', 'submitted', 'processing'])) {
+            http_response_code(409);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Only pending/in-progress applications can be deleted.']);
+            return;
+        }
+
+        try {
+            $this->db->beginTransaction();
+            // Delete related documents
+            $stmt = $this->db->prepare("DELETE FROM application_documents WHERE application_id = ?");
+            $stmt->execute([$id]);
+            // Delete progress
+            $stmt = $this->db->prepare("DELETE FROM application_progress WHERE application_id = ?");
+            $stmt->execute([$id]);
+            // Delete tracking
+            $stmt = $this->db->prepare("DELETE FROM application_tracking WHERE application_id = ?");
+            $stmt->execute([$id]);
+            // Delete pending payments (if any)
+            try {
+                $stmt = $this->db->prepare("DELETE FROM payments WHERE application_id = ? AND LOWER(status) <> 'completed'");
+                $stmt->execute([$id]);
+            } catch (\Exception $e) {
+                // ignore if table missing
+            }
+            // Delete application
+            $stmt = $this->db->prepare("DELETE FROM birth_applications WHERE id = ?");
+            $stmt->execute([$id]);
+            $this->db->commit();
+
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true]);
+        } catch (\Exception $e) {
+            if ($this->db && $this->db->inTransaction()) { $this->db->rollBack(); }
+            error_log('Delete application error: ' . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Failed to delete application']);
+        }
+    }
+
+    /**
      * Get user's applications
      */
     private function getUserApplications($userId)
