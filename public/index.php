@@ -4,9 +4,11 @@
  * Main Entry Point
  */
 
-// Enable detailed error reporting
+// Enable detailed error reporting (will be adjusted below per endpoint)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+// Start a global output buffer to prevent stray warnings breaking JSON endpoints
+if (ob_get_level() === 0) { ob_start(); }
 
 define('BASE_PATH', dirname(__DIR__));
 
@@ -49,7 +51,7 @@ session_set_cookie_params([
 // Start session
 session_start();
 
-// Set error reporting
+// Set error reporting (default from APP_DEBUG)
 if ($_ENV['APP_DEBUG'] ?? false) {
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
@@ -75,6 +77,12 @@ $path = rtrim($path, '/');
 // If path is empty, set to home
 if (empty($path)) {
     $path = '/';
+}
+
+// For API-like endpoints that must return JSON, force suppress display errors
+if (preg_match('#^/applications/\d+/initialize-payment$#', $path) ||
+    preg_match('#^/paystack/webhook$#', $path)) {
+    ini_set('display_errors', '0');
 }
 
 // Debug information
@@ -426,3 +434,6 @@ if ($handler) {
     </body>
     </html>";
 }
+
+// Flush the global buffer
+if (ob_get_level() > 0) { ob_end_flush(); }
