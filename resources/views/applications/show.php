@@ -212,17 +212,6 @@ include __DIR__ . '/../layouts/base.php';
                                             <i class="fas fa-credit-card me-2"></i>
                                             Pay Now
                                         </a>
-                                        <a href="/applications/<?php echo $application['id']; ?>/edit" 
-                                           class="btn btn-outline-primary">
-                                            <i class="fas fa-edit me-2"></i>
-                                            Edit Application
-                                        </a>
-                                        <button type="button" 
-                                                class="btn btn-outline-danger"
-                                                onclick="deleteApplication(<?php echo $application['id']; ?>)">
-                                            <i class="fas fa-trash me-2"></i>
-                                            Delete Application
-                                        </button>
                                     </div>
                                 </div>
                             </div>
