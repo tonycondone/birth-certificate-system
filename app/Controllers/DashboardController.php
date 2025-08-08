@@ -847,8 +847,8 @@ class DashboardController
             $perPage = 10;
             $offset = ($page - 1) * $perPage;
             
-            // Get all hospitals for the filter dropdown
-            $stmt = $pdo->query("SELECT id, name FROM hospitals ORDER BY name");
+            // Get all unique hospital names for the filter dropdown
+            $stmt = $pdo->query("SELECT DISTINCT hospital_name FROM birth_applications WHERE hospital_name IS NOT NULL AND hospital_name != '' ORDER BY hospital_name");
             $hospitals = $stmt->fetchAll();
             
             // Get pending applications with search and filters
