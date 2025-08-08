@@ -36,7 +36,14 @@ class AdminController
      */
     private function checkAdminAccess(): void
     {
+        // Prefer existing Authentication session; fallback to core session keys
         $currentUser = $this->auth->getCurrentUser();
+        if (!$currentUser && isset($_SESSION['user_id'])) {
+            $currentUser = [
+                'id' => $_SESSION['user_id'],
+                'role' => $_SESSION['role'] ?? ''
+            ];
+        }
         if (!$currentUser || !in_array($currentUser['role'], ['admin', 'registrar'])) {
             header('Location: /login');
             exit;
@@ -133,8 +140,8 @@ class AdminController
             $stmt = $this->db->prepare("
                 SELECT ba.*, u.first_name, u.last_name
                 FROM birth_applications ba
-                JOIN users u ON ba.parent_id = u.id
-                WHERE ba.status = 'pending_verification'
+                JOIN users u ON ba.user_id = u.id
+                WHERE ba.status IN ('submitted','under_review')
                 ORDER BY ba.created_at DESC
                 LIMIT ?
             ");
@@ -572,6 +579,219 @@ class AdminController
             $_SESSION['error'] = "Error loading applications data";
             header('Location: /error/500');
             exit;
+        }
+    }
+
+    /**
+     * List all applications for admin
+     */
+    public function applications(): void
+    {
+        try {
+            $this->checkAdminAccess();
+            $search = trim($_GET['search'] ?? '');
+            $status = $_GET['status'] ?? '';
+            $page = max(1, intval($_GET['page'] ?? 1));
+            $perPage = 20;
+            $offset = ($page - 1) * $perPage;
+
+            $where = [];
+            $params = [];
+            if ($search) {
+                $where[] = "(ba.child_first_name LIKE ? OR ba.child_last_name LIKE ? OR ba.application_number LIKE ? OR u.email LIKE ?)";
+                $q = "%$search%";
+                array_push($params, $q, $q, $q, $q);
+            }
+            if ($status) {
+                $where[] = "ba.status = ?";
+                $params[] = $status;
+            }
+            $whereClause = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+            $countStmt = $this->db->prepare("SELECT COUNT(*) FROM birth_applications ba JOIN users u ON ba.user_id = u.id $whereClause");
+            $countStmt->execute($params);
+            $total = (int)$countStmt->fetchColumn();
+
+            $paramsWithPaging = array_merge($params, [$perPage, $offset]);
+            $stmt = $this->db->prepare("
+                SELECT ba.*, u.first_name, u.last_name, u.email
+                FROM birth_applications ba
+                JOIN users u ON ba.user_id = u.id
+                $whereClause
+                ORDER BY ba.created_at DESC
+                LIMIT ? OFFSET ?
+            ");
+            $stmt->execute($paramsWithPaging);
+            $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Reuse a generic admin view if available; otherwise, return JSON
+            if (file_exists(BASE_PATH . '/resources/views/dashboard/pending.php')) {
+                $pageTitle = 'All Applications';
+                include BASE_PATH . '/resources/views/dashboard/pending.php';
+            } else {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'total' => $total, 'applications' => $applications]);
+            }
+        } catch (Exception $e) {
+            error_log('Admin applications error: ' . $e->getMessage());
+            $_SESSION['error'] = 'Unable to load applications';
+            header('Location: /admin/dashboard');
+        }
+    }
+
+    /**
+     * Approve a specific application (quick action)
+     */
+    public function approveApplication(int $id): void
+    {
+        try {
+            $this->checkAdminAccess();
+
+            $reviewerId = $_SESSION['user_id'] ?? null;
+            if (!$reviewerId) {
+                header('Location: /login');
+                exit;
+            }
+
+            $this->db->beginTransaction();
+
+            // Update application status
+            $stmt = $this->db->prepare("UPDATE birth_applications SET status = 'approved', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?");
+            $stmt->execute([$reviewerId, $id]);
+
+            // Generate certificate
+            $certificateNumber = 'BC' . date('Y') . date('m') . strtoupper(substr(md5(uniqid()), 0, 6));
+            $qrCodeHash = hash('sha256', $certificateNumber . time() . uniqid());
+            $stmt = $this->db->prepare("INSERT INTO certificates (certificate_number, application_id, qr_code_hash, issued_by, issued_at, status) VALUES (?, ?, ?, ?, NOW(), 'active')");
+            $stmt->execute([$certificateNumber, $id, $qrCodeHash, $reviewerId]);
+
+            $this->db->commit();
+
+            // Redirect back with success
+            $_SESSION['success'] = 'Application approved successfully';
+            header('Location: /admin/applications');
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log('Admin approveApplication error: ' . $e->getMessage());
+            $_SESSION['error'] = 'Failed to approve application';
+            header('Location: /admin/applications');
+        }
+    }
+
+    /**
+     * Reject a specific application (quick action)
+     */
+    public function rejectApplication(int $id): void
+    {
+        try {
+            $this->checkAdminAccess();
+
+            $reviewerId = $_SESSION['user_id'] ?? null;
+            if (!$reviewerId) {
+                header('Location: /login');
+                exit;
+            }
+
+            $comments = trim($_POST['comments'] ?? '');
+
+            $stmt = $this->db->prepare("UPDATE birth_applications SET status = 'rejected', reviewed_by = ?, reviewed_at = NOW(), review_notes = ? WHERE id = ?");
+            $stmt->execute([$reviewerId, $comments, $id]);
+
+            $_SESSION['success'] = 'Application rejected';
+            header('Location: /admin/applications');
+        } catch (Exception $e) {
+            error_log('Admin rejectApplication error: ' . $e->getMessage());
+            $_SESSION['error'] = 'Failed to reject application';
+            header('Location: /admin/applications');
+        }
+    }
+
+    /**
+     * Bulk approve/reject applications
+     */
+    public function bulkApplicationAction(): void
+    {
+        try {
+            $this->checkAdminAccess();
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+                return;
+            }
+
+            $ids = $_POST['application_ids'] ?? [];
+            $action = $_POST['action'] ?? '';
+            $comments = trim($_POST['comments'] ?? '');
+
+            if (empty($ids) || !in_array($action, ['approve', 'reject'])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Invalid request']);
+                return;
+            }
+
+            $reviewerId = $_SESSION['user_id'] ?? null;
+            $success = 0; $errors = 0;
+
+            if ($action === 'approve') {
+                foreach ($ids as $id) {
+                    try {
+                        $this->db->beginTransaction();
+                        $stmt = $this->db->prepare("UPDATE birth_applications SET status = 'approved', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?");
+                        $stmt->execute([$reviewerId, $id]);
+                        $certificateNumber = 'BC' . date('Y') . date('m') . strtoupper(substr(md5(uniqid()), 0, 6));
+                        $qrCodeHash = hash('sha256', $certificateNumber . time() . uniqid());
+                        $stmt = $this->db->prepare("INSERT INTO certificates (certificate_number, application_id, qr_code_hash, issued_by, issued_at, status) VALUES (?, ?, ?, ?, NOW(), 'active')");
+                        $stmt->execute([$certificateNumber, $id, $qrCodeHash, $reviewerId]);
+                        $this->db->commit();
+                        $success++;
+                    } catch (Exception $e) {
+                        $this->db->rollBack();
+                        $errors++;
+                    }
+                }
+            } else {
+                $stmt = $this->db->prepare("UPDATE birth_applications SET status = 'rejected', reviewed_by = ?, reviewed_at = NOW(), review_notes = ? WHERE id = ?");
+                foreach ($ids as $id) {
+                    try {
+                        $stmt->execute([$reviewerId, $comments, $id]);
+                        $success++;
+                    } catch (Exception $e) {
+                        $errors++;
+                    }
+                }
+            }
+
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'message' => "Bulk action complete: {$success} success, {$errors} errors."]);
+        } catch (Exception $e) {
+            error_log('Admin bulkApplicationAction error: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Internal server error']);
+        }
+    }
+
+    /**
+     * Export applications CSV
+     */
+    public function exportApplications(): void
+    {
+        try {
+            $this->checkAdminAccess();
+            $stmt = $this->db->query("SELECT id, application_number, user_id, status, submitted_at, reviewed_at FROM birth_applications ORDER BY created_at DESC");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            header('Content-Type: text/csv');
+            header('Content-Disposition: attachment; filename="applications_export.csv"');
+            $out = fopen('php://output', 'w');
+            if (!empty($rows)) {
+                fputcsv($out, array_keys($rows[0]));
+                foreach ($rows as $row) { fputcsv($out, $row); }
+            }
+            fclose($out);
+        } catch (Exception $e) {
+            error_log('Admin exportApplications error: ' . $e->getMessage());
+            $_SESSION['error'] = 'Failed to export applications';
+            header('Location: /admin/applications');
         }
     }
 }
