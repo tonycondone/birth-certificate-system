@@ -903,7 +903,7 @@ class DashboardController
                        u.email as parent_email,
                        ba.child_first_name,
                        ba.child_last_name,
-                       ba.child_date_of_birth as date_of_birth,
+                       ba.date_of_birth,
                        ba.reference_number,
                        ba.created_at as submitted_at
                 FROM birth_applications ba
