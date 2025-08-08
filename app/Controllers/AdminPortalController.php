@@ -223,42 +223,53 @@ class AdminPortalController
             
             // User statistics
             $stmt = $this->db->query("SELECT COUNT(*) FROM users");
-            $stats['total_users'] = $stmt->fetchColumn();
+            $stats['totalUsers'] = $stmt->fetchColumn();
             
             $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE status = 'active'");
-            $stats['active_users'] = $stmt->fetchColumn();
+            $stats['activeUsers'] = $stmt->fetchColumn();
             
             $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE DATE(created_at) = CURDATE()");
-            $stats['new_users_today'] = $stmt->fetchColumn();
+            $stats['newUsersToday'] = $stmt->fetchColumn();
             
             // Application statistics
             $stmt = $this->db->query("SELECT COUNT(*) FROM birth_applications");
-            $stats['total_applications'] = $stmt->fetchColumn();
+            $stats['totalApplications'] = $stmt->fetchColumn();
             
             $stmt = $this->db->query("SELECT COUNT(*) FROM birth_applications WHERE status = 'submitted'");
-            $stats['pending_applications'] = $stmt->fetchColumn();
+            $stats['pendingApplications'] = $stmt->fetchColumn();
             
             $stmt = $this->db->query("SELECT COUNT(*) FROM birth_applications WHERE status = 'approved'");
-            $stats['approved_applications'] = $stmt->fetchColumn();
+            $stats['approvedApplications'] = $stmt->fetchColumn();
             
             $stmt = $this->db->query("SELECT COUNT(*) FROM birth_applications WHERE DATE(created_at) = CURDATE()");
-            $stats['applications_today'] = $stmt->fetchColumn();
+            $stats['todayApplications'] = $stmt->fetchColumn();
             
             // Certificate statistics
             $stmt = $this->db->query("SELECT COUNT(*) FROM certificates WHERE status = 'active'");
-            $stats['active_certificates'] = $stmt->fetchColumn();
+            $stats['activeCertificates'] = $stmt->fetchColumn();
             
             $stmt = $this->db->query("SELECT COUNT(*) FROM certificates WHERE DATE(issued_at) = CURDATE()");
-            $stats['certificates_issued_today'] = $stmt->fetchColumn();
+            $stats['certificatesIssuedToday'] = $stmt->fetchColumn();
             
             // System performance
             $stmt = $this->db->query("SELECT AVG(TIMESTAMPDIFF(HOUR, submitted_at, reviewed_at)) FROM birth_applications WHERE reviewed_at IS NOT NULL");
-            $stats['avg_processing_time'] = round($stmt->fetchColumn() ?? 0, 1);
+            $stats['avgProcessingTime'] = round($stmt->fetchColumn() ?? 0, 1);
 
             return $stats;
         } catch (Exception $e) {
             error_log("Error getting dashboard statistics: " . $e->getMessage());
-            return [];
+            return [
+                'totalUsers' => 0,
+                'activeUsers' => 0,
+                'newUsersToday' => 0,
+                'totalApplications' => 0,
+                'pendingApplications' => 0,
+                'approvedApplications' => 0,
+                'todayApplications' => 0,
+                'activeCertificates' => 0,
+                'certificatesIssuedToday' => 0,
+                'avgProcessingTime' => 0
+            ];
         }
     }
 
