@@ -851,10 +851,10 @@ class DashboardController
             $stmt = $pdo->query("SELECT DISTINCT hospital_name FROM birth_applications WHERE hospital_name IS NOT NULL AND hospital_name != '' ORDER BY hospital_name");
             $hospitals = $stmt->fetchAll();
             
-            // Get pending applications with search and filters
+            // Get pending applications with search and filters (both pending and submitted status)
             list($pendingApplications, $totalCount) = $this->searchApplications(
                 $pdo,
-                'pending',
+                ['pending', 'submitted'],
                 $search,
                 $hospitalFilter,
                 $dateFilter,
