@@ -102,6 +102,7 @@ $routes = [
     '/auth/verify' => 'App\Controllers\AuthController@verifyEmail',
     '/auth/verify-email' => 'App\Controllers\AuthController@verifyEmail',
     '/dashboard' => 'App\Controllers\DashboardController@index',
+    '/dashboard/registrar' => 'App\Controllers\DashboardController@registrar',
     '/dashboard/pending' => 'App\Controllers\DashboardController@pending',
     '/dashboard/approved' => 'App\Controllers\DashboardController@approved',
     '/dashboard/reports' => 'App\Controllers\DashboardController@reports',
