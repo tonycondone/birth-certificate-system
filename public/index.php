@@ -160,6 +160,7 @@ $routes = [
     '/applications/download/{id}' => 'App\Controllers\ApplicationController@download',
     '/applications/approve/{id}' => 'App\Controllers\ApplicationController@approve',
     '/applications/reject/{id}' => 'App\Controllers\ApplicationController@reject',
+    '/applications/{id}/delete' => 'App\Controllers\ApplicationController@delete',
     
     // Generic Application Submission
     '/applications/submit' => 'App\Controllers\GenericApplicationController@create',
