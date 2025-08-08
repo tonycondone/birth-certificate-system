@@ -944,11 +944,11 @@ class DashboardController
                 $params[] = $searchTerm;
             }
             
-            // Add hospital filter
+            // Add hospital filter (search by hospital name)
             if ($hospitalFilter) {
-                $query .= " AND a.hospital_id = ?";
-                $countQuery .= " AND a.hospital_id = ?";
-                $params[] = $hospitalFilter;
+                $query .= " AND ba.hospital_name LIKE ?";
+                $countQuery .= " AND ba.hospital_name LIKE ?";
+                $params[] = "%$hospitalFilter%";
             }
             
             // Add date filter
