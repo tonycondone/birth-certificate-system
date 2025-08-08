@@ -148,6 +148,7 @@ payButton.addEventListener('click', function() {
     fetch('/applications/<?= $application['id'] ?>/initialize-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({ payment_method: paymentMethod })
     })
     .then(response => response.json())
