@@ -13,6 +13,7 @@
         "intervention/image": "^2.7",
         "monolog/monolog": "*",
         "phpmailer/phpmailer": "^6.8",
+        "phpoffice/phpspreadsheet": "^1.29",
         "vlucas/phpdotenv": "^5.5"
     },
     "require-dev": {

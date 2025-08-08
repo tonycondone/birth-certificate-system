@@ -29,16 +29,24 @@ class PaymentController
      */
     public function pay($applicationId): void
     {
-        // Ensure user is owner or admin/registrar
-        if (!isset($_SESSION['user'])) {
+        // Ensure user is logged in
+        if (!isset($_SESSION['user_id'])) {
             header('Location: /login');
             exit;
         }
 
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT * FROM applications WHERE id = ?');
+
+        // Prefer birth_applications, fallback to applications for backward compatibility
+        $stmt = $pdo->prepare('SELECT * FROM birth_applications WHERE id = ?');
         $stmt->execute([$applicationId]);
         $application = $stmt->fetch();
+
+        if (!$application) {
+            $stmt = $pdo->prepare('SELECT * FROM applications WHERE id = ?');
+            $stmt->execute([$applicationId]);
+            $application = $stmt->fetch();
+        }
 
         if (!$application) {
             header('Location: /applications/submit');
@@ -67,16 +75,25 @@ class PaymentController
     {
         try {
             // Ensure user is owner or admin/registrar
-            if (!isset($_SESSION['user'])) {
+            if (!isset($_SESSION['user_id'])) {
                 http_response_code(401);
                 echo json_encode(['success' => false, 'error' => 'Unauthorized']);
                 return;
             }
 
             $pdo = Database::getConnection();
-            $stmt = $pdo->prepare('SELECT a.*, u.email, u.first_name, u.last_name FROM applications a JOIN users u ON a.user_id = u.id WHERE a.id = ?');
+
+            // Try birth_applications first
+            $stmt = $pdo->prepare('SELECT a.*, u.email, u.first_name, u.last_name FROM birth_applications a JOIN users u ON a.user_id = u.id WHERE a.id = ?');
             $stmt->execute([$applicationId]);
             $application = $stmt->fetch();
+
+            if (!$application) {
+                // Fallback to legacy applications table
+                $stmt = $pdo->prepare('SELECT a.*, u.email, u.first_name, u.last_name FROM applications a JOIN users u ON a.user_id = u.id WHERE a.id = ?');
+                $stmt->execute([$applicationId]);
+                $application = $stmt->fetch();
+            }
 
             if (!$application) {
                 http_response_code(404);
@@ -93,7 +110,7 @@ class PaymentController
                 'email' => $application['email'],
                 'amount' => $this->paymentAmount,
                 'reference' => $reference,
-                'callback_url' => $_ENV['APP_URL'] . "/applications/{$applicationId}/payment-callback",
+                'callback_url' => ($_ENV['APP_URL'] ?? (isset($_SERVER['HTTP_HOST']) ? 'http://' . $_SERVER['HTTP_HOST'] : '')) . "/applications/{$applicationId}/payment-callback",
                 'metadata' => [
                     'application_id' => $applicationId,
                     'user_id' => $application['user_id'],
@@ -175,18 +192,36 @@ class PaymentController
             );
             $stmt->execute(['completed', $reference, $reference]);
             
-            // Generate tracking number and mark application submitted
+            // Determine which applications table to update
             $trackingNumber = 'APP-' . strtoupper(uniqid());
-            $stmt = $pdo->prepare(
-                'UPDATE applications SET status = "submitted", tracking_number = ?, submitted_at = NOW() WHERE id = ?'
-            );
-            $stmt->execute([$trackingNumber, $applicationId]);
+
+            $updated = false;
+            $stmt = $pdo->prepare('SELECT id FROM birth_applications WHERE id = ?');
+            $stmt->execute([$applicationId]);
+            if ($stmt->fetch()) {
+                $stmt = $pdo->prepare(
+                    'UPDATE birth_applications SET status = "submitted", tracking_number = ?, submitted_at = NOW() WHERE id = ?'
+                );
+                $stmt->execute([$trackingNumber, $applicationId]);
+                $updated = true;
+            }
+
+            if (!$updated) {
+                $stmt = $pdo->prepare(
+                    'UPDATE applications SET status = "submitted", tracking_number = ?, submitted_at = NOW() WHERE id = ?'
+                );
+                $stmt->execute([$trackingNumber, $applicationId]);
+            }
             
             // Fetch user details
             $stmt = $pdo->prepare(
-                'SELECT u.email, u.first_name, u.last_name FROM users u JOIN applications a ON u.id = a.user_id WHERE a.id = ?'
+                'SELECT u.email, u.first_name, u.last_name FROM users u JOIN (
+                    SELECT user_id FROM birth_applications WHERE id = ?
+                    UNION ALL
+                    SELECT user_id FROM applications WHERE id = ?
+                ) a ON u.id = a.user_id LIMIT 1'
             );
-            $stmt->execute([$applicationId]);
+            $stmt->execute([$applicationId, $applicationId]);
             $user = $stmt->fetch();
             
             // Send confirmation email
@@ -279,11 +314,25 @@ class PaymentController
                     
                     // Generate tracking number and mark application submitted
                     $trackingNumber = 'APP-' . strtoupper(uniqid());
-                    $stmt = $pdo->prepare(
-                        'UPDATE applications SET status = "submitted", tracking_number = ?, submitted_at = NOW() WHERE id = ?'
-                    );
-                    $stmt->execute([$trackingNumber, $applicationId]);
-                    
+
+                    $updated = false;
+                    $stmt = $pdo->prepare('SELECT id FROM birth_applications WHERE id = ?');
+                    $stmt->execute([$applicationId]);
+                    if ($stmt->fetch()) {
+                        $stmt = $pdo->prepare(
+                            'UPDATE birth_applications SET status = "submitted", tracking_number = ?, submitted_at = NOW() WHERE id = ?'
+                        );
+                        $stmt->execute([$trackingNumber, $applicationId]);
+                        $updated = true;
+                    }
+
+                    if (!$updated) {
+                        $stmt = $pdo->prepare(
+                            'UPDATE applications SET status = "submitted", tracking_number = ?, submitted_at = NOW() WHERE id = ?'
+                        );
+                        $stmt->execute([$trackingNumber, $applicationId]);
+                    }
+
                     // Log success
                     LoggingService::getInstance()->logInfo(
                         'Paystack webhook processed successfully',

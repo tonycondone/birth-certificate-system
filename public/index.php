@@ -11,10 +11,10 @@ ini_set('display_errors', 1);
 define('BASE_PATH', dirname(__DIR__));
 
 // Load environment variables
-if (file_exists(__DIR__ . '/../env.example')) {
-    $envFile = __DIR__ . '/../env.example';
-} elseif (file_exists(__DIR__ . '/../.env')) {
+if (file_exists(__DIR__ . '/../.env')) {
     $envFile = __DIR__ . '/../.env';
+} elseif (file_exists(__DIR__ . '/../env.example')) {
+    $envFile = __DIR__ . '/../env.example';
 } else {
     die('Environment file not found. Please copy env.example to .env');
 }
