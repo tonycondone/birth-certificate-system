@@ -30,8 +30,18 @@ require_once __DIR__ . '/../layouts/base.php';
                     <div class="d-flex align-items-center mb-3">
                         <i class="fas fa-user-circle fa-3x text-primary me-3"></i>
                         <div>
-                            <h5 class="mb-1"><?php echo htmlspecialchars($_SESSION['user']['first_name'] . ' ' . $_SESSION['user']['last_name']); ?></h5>
-                            <small class="text-muted">Parent Account</small>
+                            <?php 
+                            // Handle both session structures
+                            if (isset($_SESSION['user']) && is_array($_SESSION['user'])) {
+                                $firstName = $_SESSION['user']['first_name'] ?? 'User';
+                                $lastName = $_SESSION['user']['last_name'] ?? '';
+                            } else {
+                                $firstName = $_SESSION['first_name'] ?? 'User';
+                                $lastName = $_SESSION['last_name'] ?? '';
+                            }
+                            ?>
+                            <h5 class="mb-1"><?php echo htmlspecialchars($firstName . ' ' . $lastName); ?></h5>
+                            <small class="text-muted">Parent Portal</small>
                         </div>
                     </div>
                     <hr>
