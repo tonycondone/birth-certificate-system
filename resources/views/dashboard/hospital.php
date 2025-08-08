@@ -2,6 +2,20 @@
 $pageTitle = 'Hospital Dashboard - Digital Birth Certificate System';
 $userRole = $_SESSION['role'] ?? 'hospital';
 
+// Handle both session structures and create $user variable
+if (isset($_SESSION['user']) && is_array($_SESSION['user'])) {
+    $user = $_SESSION['user'];
+} else {
+    $user = [
+        'id' => $_SESSION['user_id'] ?? 0,
+        'first_name' => $_SESSION['first_name'] ?? 'User',
+        'last_name' => $_SESSION['last_name'] ?? '',
+        'email' => $_SESSION['email'] ?? '',
+        'role' => $_SESSION['role'] ?? 'hospital',
+        'hospital_id' => $_SESSION['hospital_id'] ?? 'Not Set'
+    ];
+}
+
 ob_start();
 ?>
 
