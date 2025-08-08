@@ -209,6 +209,7 @@ $routes = [
     '/registrar/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
     
     // Admin routes - Complete CRUD operations
+    '/admin' => 'App\Controllers\AdminPortalController@dashboard',
     '/admin/dashboard' => 'App\Controllers\AdminPortalController@dashboard',
     '/admin/users' => 'App\Controllers\AdminPortalController@users',
     '/admin/users/create' => 'App\Controllers\AdminPortalController@createUser',
