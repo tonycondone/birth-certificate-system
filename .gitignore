@@ -80,4 +80,11 @@ yarn.lock
 *.bak
 *.backup
 
+# Temporary and diagnostic files
+cookies.txt
+/diagnostic/
+/test files/
+*.tmp
+*.temp
+
 # Environment variables
