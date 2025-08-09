@@ -529,6 +529,20 @@ class CertificateController
     {
         try {
             $pdo = Database::getConnection();
+            
+            // Create verification_log table if it doesn't exist
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS verification_log (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    certificate_number VARCHAR(50) NOT NULL,
+                    ip_address VARCHAR(45) NOT NULL,
+                    status VARCHAR(20) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_cert (certificate_number),
+                    INDEX idx_status (status)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+            
             $stmt = $pdo->prepare("
                 INSERT INTO verification_log (certificate_number, ip_address, status, created_at) 
                 VALUES (?, ?, 'failed', NOW())
