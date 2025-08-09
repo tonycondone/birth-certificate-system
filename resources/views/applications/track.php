@@ -64,6 +64,7 @@
             border-radius: 15px;
             padding: 30px;
             margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         .application-info {
             background: #f8f9fa;
@@ -82,6 +83,40 @@
             padding: 15px;
             border-radius: 5px;
             margin-top: 20px;
+        }
+        .tracking-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        .tracking-header p {
+            color: #6c757d;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .tracking-form-container {
+            max-width: 650px;
+            margin: 0 auto;
+        }
+        .tracking-form label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        .tracking-form .form-control {
+            height: 50px;
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .tracking-form .btn {
+            height: 50px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .form-text {
+            font-size: 0.85rem;
+            opacity: 0.8;
         }
     </style>
 </head>
@@ -115,39 +150,36 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <div class="container mt-5">
         <div class="tracking-container">
             <!-- Header -->
-            <div class="text-center mb-4">
-                <h1 class="display-5">
-                    <i class="fas fa-search me-3"></i>Track Your Application
-                </h1>
-                <p class="lead text-muted">
-                    Enter your tracking number to see the current status of your birth certificate application
-                </p>
+            <div class="tracking-header mb-4">
+                <p class="mb-2">Enter your tracking number to see the current status of your birth certificate application</p>
             </div>
 
             <!-- Tracking Form -->
-            <div class="tracking-form">
-                <form method="GET" class="row g-3">
-                    <div class="col-md-8">
-                        <label for="tracking_number" class="form-label">
-                            <i class="fas fa-hashtag me-2"></i>Tracking Number
-                        </label>
-                        <input type="text" class="form-control form-control-lg" 
-                               id="tracking_number" name="tracking_number" 
-                               value="<?= htmlspecialchars($trackingNumber) ?>"
-                               placeholder="e.g., TRK1234567890ABC" required>
-                        <div class="form-text text-white-50">
-                            Your tracking number was provided when you submitted your application
+            <div class="tracking-form-container">
+                <div class="tracking-form">
+                    <form method="GET" action="/track/search" class="row g-3">
+                        <div class="col-12 mb-2">
+                            <label for="tracking_number" class="form-label">
+                                <i class="fas fa-hashtag me-2"></i>Tracking Number
+                            </label>
+                            <input type="text" class="form-control form-control-lg" 
+                                id="tracking_number" name="tracking_number" 
+                                value="<?= htmlspecialchars($trackingNumber ?? '') ?>"
+                                placeholder="e.g., TRK1234567890ABC" required>
+                            <div class="form-text text-white-50 mt-1">
+                                Your tracking number was provided when you submitted your application
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                        <button type="submit" class="btn btn-light btn-lg w-100">
-                            <i class="fas fa-search me-2"></i>Track Application
-                        </button>
-                    </div>
-                </form>
+                        <div class="col-12 mt-3">
+                            <button type="submit" class="btn btn-light btn-lg w-100">
+                                <i class="fas fa-search me-2"></i>Track Application
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <!-- Error Message -->

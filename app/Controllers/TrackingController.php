@@ -13,6 +13,89 @@ use Exception;
 class TrackingController
 {
     /**
+     * Show the tracking form
+     */
+    public function showTrackingForm()
+    {
+        $pageTitle = 'Track Application - Digital Birth Certificate System';
+        
+        // Get tracking number from query string if available
+        $trackingNumber = $_GET['tracking_number'] ?? '';
+        
+        // Check if tracking form view exists
+        $viewPath = BASE_PATH . '/resources/views/tracking/form.php';
+        if (file_exists($viewPath)) {
+            include $viewPath;
+        } else {
+            // Fallback to applications/track.php if it exists
+            $fallbackPath = BASE_PATH . '/resources/views/applications/track.php';
+            if (file_exists($fallbackPath)) {
+                include $fallbackPath;
+            } else {
+                // Show a basic form if no view exists
+                echo $this->getBasicTrackingForm();
+            }
+        }
+    }
+    
+    /**
+     * Get a basic tracking form HTML
+     */
+    private function getBasicTrackingForm()
+    {
+        return '<!DOCTYPE html>
+        <html>
+        <head>
+            <title>Track Application - Digital Birth Certificate System</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        </head>
+        <body class="bg-light">
+            <div class="container mt-5">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>Track Your Application</h4>
+                            </div>
+                            <div class="card-body">
+                                ' . ($this->getFlashMessage()) . '
+                                <form action="/track/search" method="post">
+                                    <div class="mb-3">
+                                        <label for="tracking_number" class="form-label">Enter Tracking Number</label>
+                                        <input type="text" class="form-control" id="tracking_number" name="tracking_number" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Track Application</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="mt-3 text-center">
+                            <a href="/" class="btn btn-link">Back to Home</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>';
+    }
+    
+    /**
+     * Get flash message HTML
+     */
+    private function getFlashMessage()
+    {
+        $html = '';
+        if (isset($_SESSION['error'])) {
+            $html = '<div class="alert alert-danger">' . htmlspecialchars($_SESSION['error']) . '</div>';
+            unset($_SESSION['error']);
+        }
+        if (isset($_SESSION['success'])) {
+            $html = '<div class="alert alert-success">' . htmlspecialchars($_SESSION['success']) . '</div>';
+            unset($_SESSION['success']);
+        }
+        return $html;
+    }
+
+    /**
      * Search for application by tracking number
      */
     public function search()
@@ -87,6 +170,14 @@ class TrackingController
             header('Location: /track');
             exit;
         }
+    }
+    
+    /**
+     * Alias for show() method - used by the route /track/{trackingNumber}
+     */
+    public function trackApplication($trackingNumber = null)
+    {
+        return $this->show($trackingNumber);
     }
     
     /**

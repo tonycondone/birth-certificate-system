@@ -92,26 +92,103 @@ if ($_ENV['APP_DEBUG'] ?? false) {
 
 // Route definitions
 $routes = [
+    // Home and authentication routes
     '/' => 'App\Controllers\HomeController@index',
+    '/home' => 'App\Controllers\HomeController@index',
     '/login' => 'App\Controllers\AuthController@showLogin',
+    '/login/process' => 'App\Controllers\AuthController@login',
     '/register' => 'App\Controllers\AuthController@showRegister',
+    '/register/process' => 'App\Controllers\AuthController@register',
+    '/logout' => 'App\Controllers\AuthController@logout',
     '/auth/logout' => 'App\Controllers\AuthController@logout',
     '/auth/forgot-password' => 'App\Controllers\AuthController@showForgotPassword',
     '/auth/reset-password' => 'App\Controllers\AuthController@showResetPassword',
     '/auth/2fa' => 'App\Controllers\AuthController@showTwoFactorAuth',
     '/auth/verify' => 'App\Controllers\AuthController@verifyEmail',
     '/auth/verify-email' => 'App\Controllers\AuthController@verifyEmail',
+    
+    // Dashboard routes
     '/dashboard' => 'App\Controllers\DashboardController@index',
     '/dashboard/registrar' => 'App\Controllers\DashboardController@registrar',
-    '/dashboard/admin' => 'App\Controllers\AdminPortalController@dashboard',
+    '/dashboard/hospital' => 'App\Controllers\DashboardController@hospital',
+    '/dashboard/parent' => 'App\Controllers\DashboardController@parent',
+    '/dashboard/admin' => 'App\Controllers\DashboardController@admin',
     '/dashboard/pending' => 'App\Controllers\DashboardController@pending',
     '/dashboard/approved' => 'App\Controllers\DashboardController@approved',
     '/dashboard/reports' => 'App\Controllers\DashboardController@reports',
     '/dashboard/settings' => 'App\Controllers\DashboardController@settings',
-    '/profile' => 'App\Controllers\UserController@profile',
-    '/settings' => 'App\Controllers\UserController@settings',
-    '/user/delete-account' => 'App\Controllers\UserController@deleteAccount',
-    // Certificate routes (comprehensive)
+    
+    // Admin routes
+    '/admin' => 'App\Controllers\AdminPortalController@dashboard',
+    '/admin/dashboard' => 'App\Controllers\AdminPortalController@dashboard',
+    '/admin/users' => 'App\Controllers\AdminPortalController@users',
+    '/admin/users/create' => 'App\Controllers\AdminPortalController@createUser',
+    '/admin/users/store' => 'App\Controllers\AdminPortalController@storeUser',
+    '/admin/users/{id}' => 'App\Controllers\AdminPortalController@showUser',
+    '/admin/users/{id}/edit' => 'App\Controllers\AdminPortalController@editUser',
+    '/admin/users/{id}/update' => 'App\Controllers\AdminPortalController@updateUser',
+    '/admin/users/{id}/delete' => 'App\Controllers\AdminPortalController@deleteUser',
+    '/admin/users/bulk-action' => 'App\Controllers\AdminPortalController@bulkUserAction',
+    '/admin/users/export' => 'App\Controllers\AdminPortalController@exportUsers',
+    '/admin/users/import' => 'App\Controllers\AdminPortalController@importUsers',
+    '/admin/user-action' => 'App\Controllers\AdminPortalController@userAction',
+    '/admin/applications' => 'App\Controllers\AdminController@applications',
+    '/admin/applications/create' => 'App\Controllers\AdminController@createApplication',
+    '/admin/applications/{id}' => 'App\Controllers\AdminController@showApplication',
+    '/admin/applications/{id}/edit' => 'App\Controllers\AdminController@editApplication',
+    '/admin/applications/{id}/approve' => 'App\Controllers\AdminController@approveApplication',
+    '/admin/applications/{id}/reject' => 'App\Controllers\AdminController@rejectApplication',
+    '/admin/applications/bulk-action' => 'App\Controllers\AdminController@bulkApplicationAction',
+    '/admin/applications/export' => 'App\Controllers\AdminController@exportApplications',
+    '/admin/generic-applications' => 'App\Controllers\AdminController@genericApplications',
+    '/admin/applications/download/{id}' => 'App\Controllers\ApplicationController@download',
+    '/admin/certificates' => 'App\Controllers\AdminPortalController@certificates',
+    '/admin/certificates/create' => 'App\Controllers\AdminController@createCertificate',
+    '/admin/certificates/{id}' => 'App\Controllers\AdminController@showCertificate',
+    '/admin/certificates/{id}/edit' => 'App\Controllers\AdminController@editCertificate',
+    '/admin/certificates/{id}/revoke' => 'App\Controllers\AdminController@revokeCertificate',
+    '/admin/certificates/bulk-action' => 'App\Controllers\AdminController@bulkCertificateAction',
+    '/admin/certificates/templates' => 'App\Controllers\AdminController@certificateTemplates',
+    '/admin/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
+    '/admin/monitoring' => 'App\Controllers\AdminPortalController@systemMonitoring',
+    '/admin/settings' => 'App\Controllers\AdminPortalController@settings',
+    '/admin/reports' => 'App\Controllers\AdminPortalController@reports',
+    '/admin/backup' => 'App\Controllers\AdminPortalController@backup',
+    '/admin/backup/create' => 'App\Controllers\AdminPortalController@createBackup',
+    '/admin/backup/restore' => 'App\Controllers\AdminPortalController@restoreBackup',
+    '/admin/audit-trail' => 'App\Controllers\AdminPortalController@auditTrail',
+    '/admin/system-health' => 'App\Controllers\AdminPortalController@systemHealth',
+    '/admin/logs' => 'App\Controllers\AdminPortalController@systemLogs',
+    '/admin/mail-templates' => 'App\Controllers\AdminPortalController@mailTemplates',
+    '/admin/mail-templates/create' => 'App\Controllers\AdminPortalController@createMailTemplate',
+    '/admin/mail-templates/{id}/edit' => 'App\Controllers\AdminPortalController@editMailTemplate',
+    '/admin/notifications' => 'App\Controllers\AdminPortalController@notifications',
+    '/admin/api-keys' => 'App\Controllers\AdminPortalController@apiKeys',
+    '/admin/webhooks' => 'App\Controllers\AdminPortalController@webhooks',
+    '/admin/system-monitoring' => 'App\Controllers\AdminPortalController@systemMonitoring',
+    
+    // Application routes
+    '/applications' => 'App\Controllers\ApplicationController@index',
+    '/applications/new' => 'App\Controllers\ApplicationController@create',
+    '/applications/submit' => 'App\Controllers\ApplicationController@showSubmitForm',
+    '/applications/create' => 'App\Controllers\ApplicationController@create',
+    '/applications/{id}' => 'App\Controllers\ApplicationController@show',
+    '/applications/{id}/pay' => 'App\Controllers\PaymentController@pay',
+    '/applications/{id}/initialize-payment' => 'App\Controllers\PaymentController@initializePayment',
+    '/applications/{id}/payment-callback' => 'App\Controllers\PaymentController@callback',
+    '/applications/{id}/delete' => 'App\Controllers\ApplicationController@delete',
+    '/applications/download/{id}' => 'App\Controllers\ApplicationController@download',
+    '/applications/approve/{id}' => 'App\Controllers\ApplicationController@approve',
+    '/applications/reject/{id}' => 'App\Controllers\ApplicationController@reject',
+    
+    // Generic Application Submission
+    '/applications/submit/store' => 'App\Controllers\GenericApplicationController@store',
+    
+    // Certificate routes
+    '/certificates' => 'App\Controllers\CertificateController@index',
+    '/certificates/{id}' => 'App\Controllers\CertificateController@show',
+    '/certificates/{id}/download' => 'App\Controllers\CertificateController@download',
+    '/certificates/{id}/verify' => 'App\Controllers\CertificateController@verify',
     '/certificate/apply' => 'App\Controllers\CertificateController@apply',
     '/certificate/verify' => 'App\Controllers\CertificateController@verifyFromRequest',
     '/certificate/approve' => 'App\Controllers\CertificateController@approveApplication',
@@ -119,15 +196,11 @@ $routes = [
     '/certificate/sample' => 'App\Controllers\CertificateController@sample',
     '/certificate/generate/{id}' => 'App\Controllers\CertificateController@generate',
     '/certificate/list' => 'App\Controllers\CertificateController@listCertificates',
-    
-    // Certificates (plural) routes
-    '/certificates' => 'App\Controllers\CertificateController@listCertificates',
     '/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
     '/certificates/generate/{id}' => 'App\Controllers\CertificateController@generate',
     '/certificates/verify/{id}' => 'App\Controllers\CertificateController@verifyCertificate',
     '/certificates/reject/{id}' => 'App\Controllers\CertificateController@rejectCertificate',
     '/certificates/approve/{id}' => 'App\Controllers\CertificateController@approveApplication',
-    '/certificates/{id}' => 'App\Controllers\CertificateController@show',
     
     // Verification routes
     '/verify' => 'App\Controllers\CertificateController@verify',
@@ -136,53 +209,27 @@ $routes = [
     '/verifications' => 'App\Controllers\CertificateController@verifications',
     '/verifications/history' => 'App\Controllers\CertificateController@verificationHistory',
     
-    // API routes for certificates
-    '/api/certificate/verify' => 'App\Controllers\CertificateController@apiVerify',
-    '/api/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
-    '/api/certificates/generate/{id}' => 'App\Controllers\CertificateController@generate',
-    
-    '/reports' => 'App\Controllers\ReportController@index',
-    '/reports/export' => 'App\Controllers\ReportController@exportData',
-    
-    // Static pages
-    '/about' => 'App\Controllers\StaticPageController@about',
-    '/contact' => 'App\Controllers\StaticPageController@contact',
-    '/faq' => 'App\Controllers\StaticPageController@faq',
-    '/privacy' => 'App\Controllers\StaticPageController@privacy',
-    '/terms' => 'App\Controllers\StaticPageController@terms',
-    '/api-docs' => 'App\Controllers\StaticPageController@apiDocs',
-    
-    // User profile and settings
-    '/notifications' => 'App\Controllers\NotificationController@index',
-    
-    // Application routes
-    '/applications/new' => 'App\Controllers\ApplicationController@create',
-    '/applications' => 'App\Controllers\ApplicationController@index',
-    '/applications/{id}' => 'App\Controllers\ApplicationController@show',
-    '/applications/download/{id}' => 'App\Controllers\ApplicationController@download',
-    '/applications/approve/{id}' => 'App\Controllers\ApplicationController@approve',
-    '/applications/reject/{id}' => 'App\Controllers\ApplicationController@reject',
-    '/applications/{id}/delete' => 'App\Controllers\ApplicationController@delete',
-    
-    // Generic Application Submission
-    '/applications/submit' => 'App\Controllers\GenericApplicationController@create',
-    '/applications/submit/store' => 'App\Controllers\GenericApplicationController@store',
-
-    // Payment routes
-    '/applications/{id}/pay' => 'App\Controllers\PaymentController@pay',
-    '/applications/{id}/payment-callback' => 'App\Controllers\PaymentController@callback',
-    '/applications/{id}/initialize-payment' => 'App\Controllers\PaymentController@initializePayment',
-    '/paystack/webhook' => 'App\Controllers\PaymentController@webhook',
-
-    // Tracking lookup form and handler
-    '/track' => 'App\Controllers\ApplicationController@track',
+    // Tracking routes
+    '/track' => 'App\Controllers\TrackingController@showTrackingForm',
+    '/track/{trackingNumber}' => 'App\Controllers\TrackingController@trackApplication',
     '/track/search' => 'App\Controllers\TrackingController@search',
-    // Actual tracking detail route
-    '/track/{tracking_number}' => 'App\Controllers\TrackingController@show',
-
-    // Feedback routes
-    '/applications/{id}/feedback' => 'App\Controllers\FeedbackController@create',
-    '/applications/feedback/store' => 'App\Controllers\FeedbackController@store',
+    
+    // User profile routes
+    '/profile' => 'App\Controllers\UserController@profile',
+    '/profile/update' => 'App\Controllers\UserController@updateProfile',
+    '/profile/change-password' => 'App\Controllers\UserController@changePassword',
+    '/settings' => 'App\Controllers\UserController@settings',
+    '/user/delete-account' => 'App\Controllers\UserController@deleteAccount',
+    
+    // Notification routes
+    '/notifications' => 'App\Controllers\NotificationController@index',
+    '/notifications/{id}/mark-as-read' => 'App\Controllers\NotificationController@markAsRead',
+    '/notifications/mark-all-as-read' => 'App\Controllers\NotificationController@markAllAsRead',
+    
+    // Payment routes
+    '/paystack/webhook' => 'App\Controllers\PaymentController@webhook',
+    '/mock-payment/{id}/{reference}' => 'App\Controllers\MockPaymentController@showPaymentPage',
+    '/mock-payment/{id}/{reference}/process' => 'App\Controllers\MockPaymentController@processPayment',
     
     // Hospital routes
     '/hospital/submissions' => 'App\Controllers\AdminController@hospitalSubmissions',
@@ -209,64 +256,26 @@ $routes = [
     '/registrar/certificates' => 'App\Controllers\CertificateController@listCertificates',
     '/registrar/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
     
-    // Admin routes - Complete CRUD operations
-    '/admin' => 'App\Controllers\AdminPortalController@dashboard',
-    '/admin/dashboard' => 'App\Controllers\AdminPortalController@dashboard',
-    '/admin/users' => 'App\Controllers\AdminPortalController@users',
-    '/admin/users/create' => 'App\Controllers\AdminPortalController@createUser',
-    '/admin/users/store' => 'App\Controllers\AdminPortalController@storeUser',
-    '/admin/users/{id}' => 'App\Controllers\AdminPortalController@showUser',
-    '/admin/users/{id}/edit' => 'App\Controllers\AdminPortalController@editUser',
-    '/admin/users/{id}/update' => 'App\Controllers\AdminPortalController@updateUser',
-    '/admin/users/{id}/delete' => 'App\Controllers\AdminPortalController@deleteUser',
-    '/admin/users/bulk-action' => 'App\Controllers\AdminPortalController@bulkUserAction',
-    '/admin/users/export' => 'App\Controllers\AdminPortalController@exportUsers',
-    '/admin/users/import' => 'App\Controllers\AdminPortalController@importUsers',
-    '/admin/user-action' => 'App\Controllers\AdminPortalController@userAction',
+    // Feedback routes
+    '/applications/{id}/feedback' => 'App\Controllers\FeedbackController@create',
+    '/applications/feedback/store' => 'App\Controllers\FeedbackController@store',
     
-    // Admin system management
-    '/admin/monitoring' => 'App\Controllers\AdminPortalController@systemMonitoring',
-    '/admin/settings' => 'App\Controllers\AdminPortalController@settings',
-    '/admin/reports' => 'App\Controllers\AdminPortalController@reports',
-    '/admin/backup' => 'App\Controllers\AdminPortalController@backup',
-    '/admin/backup/create' => 'App\Controllers\AdminPortalController@createBackup',
-    '/admin/backup/restore' => 'App\Controllers\AdminPortalController@restoreBackup',
-    '/admin/audit-trail' => 'App\Controllers\AdminPortalController@auditTrail',
-    '/admin/system-health' => 'App\Controllers\AdminPortalController@systemHealth',
-    '/admin/logs' => 'App\Controllers\AdminPortalController@systemLogs',
-    '/admin/mail-templates' => 'App\Controllers\AdminPortalController@mailTemplates',
-    '/admin/mail-templates/create' => 'App\Controllers\AdminPortalController@createMailTemplate',
-    '/admin/mail-templates/{id}/edit' => 'App\Controllers\AdminPortalController@editMailTemplate',
-    '/admin/notifications' => 'App\Controllers\AdminPortalController@notifications',
-    '/admin/api-keys' => 'App\Controllers\AdminPortalController@apiKeys',
-    '/admin/webhooks' => 'App\Controllers\AdminPortalController@webhooks',
+    // API routes
+    '/api/certificate/verify' => 'App\Controllers\CertificateController@apiVerify',
+    '/api/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
+    '/api/certificates/generate/{id}' => 'App\Controllers\CertificateController@generate',
     
-    // Admin application management
-    '/admin/applications' => 'App\Controllers\AdminController@applications',
-    '/admin/applications/create' => 'App\Controllers\AdminController@createApplication',
-    '/admin/applications/{id}' => 'App\Controllers\AdminController@showApplication',
-    '/admin/applications/{id}/edit' => 'App\Controllers\AdminController@editApplication',
-    '/admin/applications/{id}/approve' => 'App\Controllers\AdminController@approveApplication',
-    '/admin/applications/{id}/reject' => 'App\Controllers\AdminController@rejectApplication',
-    '/admin/applications/bulk-action' => 'App\Controllers\AdminController@bulkApplicationAction',
-    '/admin/applications/export' => 'App\Controllers\AdminController@exportApplications',
-    '/admin/generic-applications' => 'App\Controllers\AdminController@genericApplications',
-    '/admin/applications/download/{id}' => 'App\Controllers\ApplicationController@download',
+    // Static pages
+    '/about' => 'App\Controllers\StaticPageController@about',
+    '/contact' => 'App\Controllers\StaticPageController@contact',
+    '/faq' => 'App\Controllers\StaticPageController@faq',
+    '/privacy' => 'App\Controllers\StaticPageController@privacy',
+    '/terms' => 'App\Controllers\StaticPageController@terms',
+    '/api-docs' => 'App\Controllers\StaticPageController@apiDocs',
     
-    // Admin certificate management
-    '/admin/certificates' => 'App\Controllers\AdminPortalController@certificates',
-    '/admin/certificates/create' => 'App\Controllers\AdminController@createCertificate',
-    '/admin/certificates/{id}' => 'App\Controllers\AdminController@showCertificate',
-    '/admin/certificates/{id}/edit' => 'App\Controllers\AdminController@editCertificate',
-    '/admin/certificates/{id}/revoke' => 'App\Controllers\AdminController@revokeCertificate',
-    '/admin/certificates/bulk-action' => 'App\Controllers\AdminController@bulkCertificateAction',
-    '/admin/certificates/templates' => 'App\Controllers\AdminController@certificateTemplates',
-    '/admin/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
-    
-    // Settings routes
-    '/dashboard/registrar' => 'App\Controllers\DashboardController@registrar',
-    '/dashboard/hospital' => 'App\Controllers\DashboardController@hospital',
-    '/dashboard/admin' => 'App\Controllers\DashboardController@admin',
+    // Reports
+    '/reports' => 'App\Controllers\ReportController@index',
+    '/reports/export' => 'App\Controllers\ReportController@exportData',
 ];
 
 // Comprehensive error handling for dependency injection

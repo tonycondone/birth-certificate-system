@@ -165,7 +165,12 @@ payButton.addEventListener('click', function() {
     })
     .then(result => {
         if (result.success && result.data && result.data.authorization_url) {
-            window.location.href = result.data.authorization_url; // Paystack hosted checkout
+            // Check if this is a mock payment response
+            if (result.data.is_mock) {
+                console.log('Using mock payment flow for development');
+            }
+            // Redirect to payment page (either Paystack or mock)
+            window.location.href = result.data.authorization_url;
         } else {
             throw new Error(result.error || 'Unknown error');
         }

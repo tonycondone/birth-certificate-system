@@ -831,7 +831,7 @@ class DashboardController
             $stmt->execute([$_SESSION['user_id']]);
             $user = $stmt->fetch();
             
-            if (!$user || $user['role'] !== 'registrar') {
+            if (!$user) {
                 $_SESSION['error'] = 'Access denied';
                 header('Location: /dashboard');
                 exit;
@@ -852,10 +852,10 @@ class DashboardController
             $stmt = $pdo->query("SELECT DISTINCT hospital_name FROM birth_applications WHERE hospital_name IS NOT NULL AND hospital_name != '' ORDER BY hospital_name");
             $hospitals = $stmt->fetchAll();
             
-            // Get pending applications with search and filters (both pending and submitted status)
+            // Get pending applications with search and filters (use all pending related statuses)
             list($pendingApplications, $totalCount) = $this->searchApplications(
                 $pdo,
-                ['pending', 'submitted'],
+                ['pending', 'submitted', 'under_review', 'in_progress', 'awaiting_review'],
                 $search,
                 $hospitalFilter,
                 $dateFilter,
@@ -869,6 +869,10 @@ class DashboardController
             
             // Get pending count for badge
             $pendingCount = $this->countPendingApprovals($pdo);
+            
+            // Load page elements needed for preview functionality
+            $previewEnabled = true;
+            $canApprove = in_array($user['role'], ['admin', 'registrar']);
             
             // Include view
             include BASE_PATH . '/resources/views/dashboard/pending.php';

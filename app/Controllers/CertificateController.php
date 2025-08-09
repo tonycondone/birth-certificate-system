@@ -1197,4 +1197,228 @@ class CertificateController
         // Include the professional certificate template
         include BASE_PATH . '/resources/views/certificates/birth_certificate_template.php';
     }
+
+    /**
+     * Index - List all certificates accessible to the current user
+     */
+    public function index()
+    {
+        // Check if user is logged in
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        try {
+            // Get current user information
+            $userId = $_SESSION['user_id'];
+            $role = $_SESSION['role'] ?? '';
+            
+            // Get search parameters
+            $search = $_GET['search'] ?? '';
+            $status = $_GET['status'] ?? '';
+            $date = $_GET['date'] ?? '';
+            $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+            $perPage = 10;
+            $offset = ($page - 1) * $perPage;
+            
+            // Determine which certificates to show based on user role
+            $certificates = [];
+            $totalCertificates = 0;
+            
+            if (in_array($role, ['admin', 'registrar'])) {
+                // Admins and Registrars can see all certificates
+                list($certificates, $totalCertificates) = $this->getAllCertificates($search, $status, $date, $offset, $perPage);
+            } else {
+                // Regular users can only see their own certificates
+                list($certificates, $totalCertificates) = $this->getUserCertificates($userId, $search, $status, $date, $offset, $perPage);
+            }
+            
+            // Calculate pagination
+            $totalPages = ceil($totalCertificates / $perPage);
+            $currentPage = $page;
+            
+            // Page title
+            $pageTitle = 'My Certificates';
+            if ($role === 'admin') {
+                $pageTitle = 'All Certificates';
+            } elseif ($role === 'registrar') {
+                $pageTitle = 'Issued Certificates';
+            }
+            
+            // Include view
+            include BASE_PATH . '/resources/views/certificates/index.php';
+            
+        } catch (Exception $e) {
+            error_log("Certificate index error: " . $e->getMessage());
+            $_SESSION['error'] = 'An error occurred while loading certificates. Please try again.';
+            header('Location: /dashboard');
+            exit;
+        }
+    }
+    
+    /**
+     * Get all certificates with filtering and pagination (admin/registrar access)
+     * 
+     * @param string $search Search term
+     * @param string $status Status filter
+     * @param string $date Date filter
+     * @param int $offset Pagination offset
+     * @param int $limit Pagination limit
+     * @return array [certificates, totalCount]
+     */
+    private function getAllCertificates($search = '', $status = '', $date = '', $offset = 0, $limit = 10)
+    {
+        $whereConditions = [];
+        $params = [];
+        
+        if (!empty($search)) {
+            $whereConditions[] = "(c.certificate_number LIKE ? OR CONCAT(ba.child_first_name, ' ', ba.child_last_name) LIKE ? OR ba.application_number LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm]);
+        }
+        
+        if (!empty($status)) {
+            $whereConditions[] = "c.status = ?";
+            $params[] = $status;
+        }
+        
+        if (!empty($date)) {
+            switch ($date) {
+                case 'today':
+                    $whereConditions[] = "DATE(c.issued_at) = CURDATE()";
+                    break;
+                case 'week':
+                    $whereConditions[] = "c.issued_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)";
+                    break;
+                case 'month':
+                    $whereConditions[] = "c.issued_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
+                    break;
+            }
+        }
+        
+        $whereClause = !empty($whereConditions) ? "WHERE " . implode(' AND ', $whereConditions) : "";
+        
+        // Get certificates
+        $query = "
+            SELECT c.*, 
+                   ba.child_first_name, ba.child_last_name, ba.date_of_birth, ba.place_of_birth,
+                   ba.father_name, ba.mother_name, ba.gender,
+                   u.first_name as issued_by_first_name, u.last_name as issued_by_last_name
+            FROM certificates c
+            LEFT JOIN birth_applications ba ON c.application_id = ba.id
+            LEFT JOIN users u ON c.issued_by = u.id
+            {$whereClause}
+            ORDER BY c.issued_at DESC
+            LIMIT ? OFFSET ?
+        ";
+        
+        $params[] = $limit;
+        $params[] = $offset;
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        $certificates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        // Get total count
+        $countQuery = "
+            SELECT COUNT(*) as total 
+            FROM certificates c
+            LEFT JOIN birth_applications ba ON c.application_id = ba.id
+            {$whereClause}
+        ";
+        
+        // Remove limit/offset for count query
+        array_pop($params);
+        array_pop($params);
+        
+        $countStmt = $this->db->prepare($countQuery);
+        $countStmt->execute($params);
+        $totalCount = $countStmt->fetchColumn();
+        
+        return [$certificates, $totalCount];
+    }
+    
+    /**
+     * Get certificates for a specific user with filtering and pagination
+     * 
+     * @param int $userId User ID
+     * @param string $search Search term
+     * @param string $status Status filter
+     * @param string $date Date filter
+     * @param int $offset Pagination offset
+     * @param int $limit Pagination limit
+     * @return array [certificates, totalCount]
+     */
+    private function getUserCertificates($userId, $search = '', $status = '', $date = '', $offset = 0, $limit = 10)
+    {
+        $whereConditions = ["ba.user_id = ?"];
+        $params = [$userId];
+        
+        if (!empty($search)) {
+            $whereConditions[] = "(c.certificate_number LIKE ? OR CONCAT(ba.child_first_name, ' ', ba.child_last_name) LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params = array_merge($params, [$searchTerm, $searchTerm]);
+        }
+        
+        if (!empty($status)) {
+            $whereConditions[] = "c.status = ?";
+            $params[] = $status;
+        }
+        
+        if (!empty($date)) {
+            switch ($date) {
+                case 'today':
+                    $whereConditions[] = "DATE(c.issued_at) = CURDATE()";
+                    break;
+                case 'week':
+                    $whereConditions[] = "c.issued_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)";
+                    break;
+                case 'month':
+                    $whereConditions[] = "c.issued_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
+                    break;
+            }
+        }
+        
+        $whereClause = "WHERE " . implode(' AND ', $whereConditions);
+        
+        // Get certificates
+        $query = "
+            SELECT c.*, 
+                   ba.child_first_name, ba.child_last_name, ba.date_of_birth, ba.place_of_birth,
+                   ba.father_name, ba.mother_name, ba.gender,
+                   u.first_name as issued_by_first_name, u.last_name as issued_by_last_name
+            FROM certificates c
+            LEFT JOIN birth_applications ba ON c.application_id = ba.id
+            LEFT JOIN users u ON c.issued_by = u.id
+            {$whereClause}
+            ORDER BY c.issued_at DESC
+            LIMIT ? OFFSET ?
+        ";
+        
+        $params[] = $limit;
+        $params[] = $offset;
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        $certificates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        // Get total count
+        $countQuery = "
+            SELECT COUNT(*) as total 
+            FROM certificates c
+            LEFT JOIN birth_applications ba ON c.application_id = ba.id
+            {$whereClause}
+        ";
+        
+        // Remove limit/offset for count query
+        array_pop($params);
+        array_pop($params);
+        
+        $countStmt = $this->db->prepare($countQuery);
+        $countStmt->execute($params);
+        $totalCount = $countStmt->fetchColumn();
+        
+        return [$certificates, $totalCount];
+    }
 } 

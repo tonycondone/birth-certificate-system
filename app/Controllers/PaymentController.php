@@ -118,6 +118,57 @@ class PaymentController
             $reference = 'BCS-'.time().'-'.uniqid();
             $appUrl = $_ENV['APP_URL'] ?? (isset($_SERVER['HTTP_HOST']) ? 'http://' . $_SERVER['HTTP_HOST'] : 'http://localhost:8000');
 
+            // Check if we should use the mock payment system in development mode
+            $useMockPayment = false;
+            if (($_ENV['APP_DEBUG'] ?? '') && strtolower($_ENV['APP_DEBUG']) !== '0' && ($_ENV['DEV_MODE'] ?? '') === 'true') {
+                // Try to ping Paystack API first
+                $ch = curl_init('https://api.paystack.co/ping');
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 3); // Short timeout for quick check
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+                $pingResponse = curl_exec($ch);
+                $pingError = curl_error($ch);
+                curl_close($ch);
+                
+                if ($pingResponse === false) {
+                    @file_put_contents($logDir . '/payments.log', "USING MOCK PAYMENT: Paystack unreachable - " . $pingError . "\n", FILE_APPEND);
+                    $useMockPayment = true;
+                }
+            }
+            
+            // Use mock payment in development when Paystack is unreachable
+            if ($useMockPayment) {
+                // Create a mock payment URL (local)
+                $mockPaymentUrl = "{$appUrl}/mock-payment/{$applicationId}/{$reference}";
+                
+                // Log the mock payment attempt
+                @file_put_contents($logDir . '/payments.log', "MOCK PAYMENT URL: {$mockPaymentUrl}\n", FILE_APPEND);
+                
+                // Store payment record
+                try {
+                    $stmt = $pdo->prepare(
+                        'INSERT INTO payments (application_id, amount, currency, transaction_id, status, payment_gateway) 
+                         VALUES (?, ?, ?, ?, ?, ?)'
+                    );
+                    $stmt->execute([$applicationId, $this->paymentAmount / 100, 'GHS', $reference, 'pending', 'mock_payment']);
+                } catch (Exception $e) {
+                    // Non-blocking error
+                    @file_put_contents($logDir . '/payments.log', "MOCK PAYMENT DB ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
+                }
+                
+                // Return success with mock payment URL
+                $safeJson(200, [
+                    'success' => true, 
+                    'data' => [
+                        'authorization_url' => $mockPaymentUrl,
+                        'access_code' => 'mock_' . substr($reference, -8),
+                        'reference' => $reference,
+                        'is_mock' => true
+                    ]
+                ]);
+            }
+
             $url = "https://api.paystack.co/transaction/initialize";
             $fields = [
                 'email' => $application['email'],
@@ -182,7 +233,17 @@ class PaymentController
                 }
                 error_log('Paystack init cURL error: ' . $err);
                 curl_close($ch);
-                $safeJson(502, ['success' => false, 'error' => 'Network error initializing payment']);
+                
+                // Check for specific network errors and provide better messages
+                if (strpos($err, 'Could not resolve host') !== false) {
+                    $safeJson(502, ['success' => false, 'error' => 'Cannot connect to payment server. Please check your internet connection and try again.']);
+                } else if (strpos($err, 'Connection was reset') !== false || strpos($err, 'Connection timed out') !== false) {
+                    $safeJson(502, ['success' => false, 'error' => 'Payment server connection interrupted. Please try again in a few moments.']);
+                } else if (strpos($err, 'SSL certificate problem') !== false) {
+                    $safeJson(502, ['success' => false, 'error' => 'Secure connection issue. Please try again or contact support.']);
+                } else {
+                    $safeJson(502, ['success' => false, 'error' => 'Network error initializing payment. Please check your connection and try again.']);
+                }
             }
 
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

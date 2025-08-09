@@ -160,12 +160,23 @@ class RegistrarController
             return;
         }
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        // Handle both GET and POST requests
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            // For GET requests, return the batch processing form/interface
+            $pageTitle = 'Batch Process Applications';
+            
+            // Get pending applications for processing
+            $applications = $this->getPendingApplications(50);
+            
+            include BASE_PATH . '/resources/views/registrar/batch-process.php';
+            return;
+        } else if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo json_encode(['error' => 'Method not allowed']);
             return;
         }
 
+        // Process POST request for batch processing
         $applicationIds = $_POST['application_ids'] ?? [];
         $action = $_POST['action'] ?? '';
         $comments = trim($_POST['comments'] ?? '');
@@ -227,12 +238,104 @@ class RegistrarController
         $pageTitle = 'Registrar Reports';
         
         $reportType = $_GET['type'] ?? 'monthly';
+        $date = $_GET['date'] ?? date('Y-m-d');
         $startDate = $_GET['start_date'] ?? date('Y-m-01');
         $endDate = $_GET['end_date'] ?? date('Y-m-t');
 
+        // Handle specific report types with date parameters
+        if ($reportType === 'daily' && !empty($date)) {
+            $startDate = $date;
+            $endDate = $date;
+        } else if ($reportType === 'weekly' && !empty($date)) {
+            // Calculate the start and end of the week containing the given date
+            $dayOfWeek = date('N', strtotime($date));
+            $startDate = date('Y-m-d', strtotime("-" . ($dayOfWeek - 1) . " days", strtotime($date)));
+            $endDate = date('Y-m-d', strtotime("+" . (7 - $dayOfWeek) . " days", strtotime($date)));
+        }
+
         $reportData = $this->generateReport($reportType, $startDate, $endDate);
+        $reportChartData = $this->prepareChartData($reportData, $reportType);
 
         include BASE_PATH . '/resources/views/registrar/reports.php';
+    }
+    
+    /**
+     * Prepare chart data for reports
+     */
+    private function prepareChartData($reportData, $reportType)
+    {
+        $chartData = [
+            'labels' => [],
+            'datasets' => [
+                [
+                    'label' => 'Total',
+                    'data' => [],
+                    'backgroundColor' => '#36a2eb'
+                ],
+                [
+                    'label' => 'Approved',
+                    'data' => [],
+                    'backgroundColor' => '#4bc0c0'
+                ],
+                [
+                    'label' => 'Rejected',
+                    'data' => [],
+                    'backgroundColor' => '#ff6384'
+                ],
+                [
+                    'label' => 'Pending',
+                    'data' => [],
+                    'backgroundColor' => '#ffcd56'
+                ]
+            ]
+        ];
+        
+        foreach ($reportData as $item) {
+            if ($reportType === 'performance') {
+                $chartData['labels'][] = $item['first_name'] . ' ' . $item['last_name'];
+                $chartData['datasets'][0]['data'][] = $item['total_reviewed'];
+                $chartData['datasets'][1]['data'][] = $item['approved'];
+                $chartData['datasets'][2]['data'][] = $item['rejected'];
+                $chartData['datasets'][3]['data'][] = 0; // No pending for performance report
+            } else {
+                $chartData['labels'][] = $item['date'];
+                $chartData['datasets'][0]['data'][] = $item['total'];
+                $chartData['datasets'][1]['data'][] = $item['approved'];
+                $chartData['datasets'][2]['data'][] = $item['rejected'];
+                $chartData['datasets'][3]['data'][] = $item['pending'];
+            }
+        }
+        
+        return json_encode($chartData);
+    }
+
+    /**
+     * View approved applications
+     */
+    public function approved()
+    {
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'registrar') {
+            header('Location: /login');
+            exit;
+        }
+
+        $pageTitle = 'Approved Applications';
+        
+        // Get search and filter parameters
+        $search = trim($_GET['search'] ?? '');
+        $dateFilter = $_GET['date_filter'] ?? '';
+        $page = max(1, intval($_GET['page'] ?? 1));
+        $perPage = 10;
+        $offset = ($page - 1) * $perPage;
+
+        // Get approved applications with filters
+        $applications = $this->getApprovedApplicationsWithFilters($search, $dateFilter, $offset, $perPage);
+        $totalCount = $this->countApprovedApplications($search, $dateFilter);
+        
+        // Calculate pagination
+        $totalPages = ceil($totalCount / $perPage);
+
+        include BASE_PATH . '/resources/views/registrar/approved.php';
     }
 
     /**
@@ -397,6 +500,107 @@ class RegistrarController
             return $stmt->fetchColumn();
         } catch (Exception $e) {
             error_log("Error counting applications: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Get approved applications with filters
+     */
+    private function getApprovedApplicationsWithFilters($search, $dateFilter, $offset, $limit)
+    {
+        try {
+            $whereConditions = ["ba.status = 'approved'"];
+            $params = [];
+
+            if (!empty($search)) {
+                $whereConditions[] = "(ba.child_first_name LIKE ? OR ba.child_last_name LIKE ? OR ba.application_number LIKE ? OR u.email LIKE ?)";
+                $searchTerm = "%{$search}%";
+                $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+            }
+
+            if (!empty($dateFilter)) {
+                switch ($dateFilter) {
+                    case 'today':
+                        $whereConditions[] = "DATE(ba.reviewed_at) = CURDATE()";
+                        break;
+                    case 'week':
+                        $whereConditions[] = "ba.reviewed_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)";
+                        break;
+                    case 'month':
+                        $whereConditions[] = "ba.reviewed_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
+                        break;
+                }
+            }
+
+            $whereClause = implode(' AND ', $whereConditions);
+            $params[] = $limit;
+            $params[] = $offset;
+
+            $stmt = $this->db->prepare("
+                SELECT ba.*, 
+                       CONCAT(ba.child_first_name, ' ', ba.child_last_name) as child_name,
+                       u.email as applicant_email,
+                       u.first_name as applicant_first_name,
+                       u.last_name as applicant_last_name,
+                       DATEDIFF(NOW(), ba.reviewed_at) as days_since_approval,
+                       c.certificate_number
+                FROM birth_applications ba
+                JOIN users u ON ba.user_id = u.id
+                LEFT JOIN certificates c ON ba.id = c.application_id
+                WHERE {$whereClause}
+                ORDER BY ba.reviewed_at DESC
+                LIMIT ? OFFSET ?
+            ");
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting approved applications: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Count approved applications
+     */
+    private function countApprovedApplications($search, $dateFilter)
+    {
+        try {
+            $whereConditions = ["ba.status = 'approved'"];
+            $params = [];
+
+            if (!empty($search)) {
+                $whereConditions[] = "(ba.child_first_name LIKE ? OR ba.child_last_name LIKE ? OR ba.application_number LIKE ? OR u.email LIKE ?)";
+                $searchTerm = "%{$search}%";
+                $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+            }
+
+            if (!empty($dateFilter)) {
+                switch ($dateFilter) {
+                    case 'today':
+                        $whereConditions[] = "DATE(ba.reviewed_at) = CURDATE()";
+                        break;
+                    case 'week':
+                        $whereConditions[] = "ba.reviewed_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)";
+                        break;
+                    case 'month':
+                        $whereConditions[] = "ba.reviewed_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
+                        break;
+                }
+            }
+
+            $whereClause = implode(' AND ', $whereConditions);
+
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) 
+                FROM birth_applications ba
+                JOIN users u ON ba.user_id = u.id
+                WHERE {$whereClause}
+            ");
+            $stmt->execute($params);
+            return $stmt->fetchColumn();
+        } catch (Exception $e) {
+            error_log("Error counting approved applications: " . $e->getMessage());
             return 0;
         }
     }
