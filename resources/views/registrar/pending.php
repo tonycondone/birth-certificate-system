@@ -264,13 +264,17 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <div>
-                                                <?= date('M j, Y', strtotime($app['submitted_at'])) ?>
-                                                <br>
-                                                <small class="text-muted">
-                                                    <?= date('g:i A', strtotime($app['submitted_at'])) ?>
-                                                </small>
-                                            </div>
+                                                                                            <div>
+                                                    <?php if (!empty($app['submitted_at'])): ?>
+                                                        <?= date('M j, Y', strtotime($app['submitted_at'])) ?>
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            <?= date('g:i A', strtotime($app['submitted_at'])) ?>
+                                                        </small>
+                                                    <?php else: ?>
+                                                        <span class="text-muted">—</span>
+                                                    <?php endif; ?>
+                                                </div>
                                         </td>
                                         <td>
                                             <span class="badge bg-<?= $priorityClass ?> <?= $priorityClass === 'warning' ? 'text-dark' : '' ?>">
