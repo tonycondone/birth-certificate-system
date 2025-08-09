@@ -269,10 +269,10 @@ class ApplicationController
             // If payments table missing, fall back to status rule: allow only pending/submitted
         }
 
-        if (!in_array(strtolower($application['status']), ['pending', 'submitted', 'processing', 'rejected'])) {
+        if (!in_array(strtolower($application['status']), ['pending', 'submitted', 'processing'])) {
             http_response_code(409);
             header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Only pending/in-progress or rejected applications can be deleted.']);
+            echo json_encode(['success' => false, 'error' => 'Only pending/in-progress applications can be deleted.']);
             return;
         }
 
