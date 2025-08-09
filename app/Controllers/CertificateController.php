@@ -1214,6 +1214,10 @@ class CertificateController
             if ($this->db === null) {
                 $this->db = Database::getConnection();
             }
+            
+            // Ensure certificates table exists
+            $this->ensureCertificatesTableExists();
+            
             // Get current user information
             $userId = $_SESSION['user_id'];
             $role = $_SESSION['role'] ?? '';
