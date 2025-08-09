@@ -117,6 +117,11 @@ $routes = [
     '/dashboard/approved' => 'App\Controllers\DashboardController@approved',
     '/dashboard/reports' => 'App\Controllers\DashboardController@reports',
     '/dashboard/settings' => 'App\Controllers\DashboardController@settings',
+    '/dashboard/registrar/approved' => 'App\Controllers\RegistrarController@approved',
+    '/dashboard/registrar/reports' => 'App\Controllers\RegistrarController@reports',
+    '/dashboard/reports/daily' => 'App\Controllers\ReportsController@daily',
+    '/dashboard/reports/weekly' => 'App\Controllers\ReportsController@weekly',
+    '/dashboard/reports/monthly' => 'App\Controllers\ReportsController@monthly',
     
     // Admin routes
     '/admin' => 'App\Controllers\AdminPortalController@dashboard',
@@ -272,6 +277,14 @@ $routes = [
     '/privacy' => 'App\Controllers\StaticPageController@privacy',
     '/terms' => 'App\Controllers\StaticPageController@terms',
     '/api-docs' => 'App\Controllers\StaticPageController@apiDocs',
+    
+    // Guide routes
+    '/guide' => 'App\Controllers\StaticPageController@guide',
+    '/guide/section/{section}' => 'App\Controllers\GuideController@section',
+    '/guide/tutorial/{topic}' => 'App\Controllers\GuideController@tutorial',
+    '/guide/video/{id}' => 'App\Controllers\GuideController@video',
+    '/guide/support' => 'App\Controllers\GuideController@support',
+    '/guide/videos' => 'App\Controllers\GuideController@videos',
     
     // Reports
     '/reports' => 'App\Controllers\ReportController@index',
