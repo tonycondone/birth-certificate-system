@@ -1206,6 +1206,9 @@ class CertificateController
             // Ensure database connection is available
             if ($this->db === null) {
                 $this->db = Database::getConnection();
+                if ($this->db === null) {
+                    throw new Exception("Failed to establish database connection");
+                }
             }
             
             // Ensure certificates table exists
