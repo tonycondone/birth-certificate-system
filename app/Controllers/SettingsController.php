@@ -202,7 +202,7 @@ class SettingsController
 
             if ($success) {
                 // Send notification
-                $this->notificationService->sendNotification(
+                $this->sendNotification(
                     $userId,
                     '🔐 Password Changed',
                     'Your password has been changed successfully. If this wasn\'t you, please contact support immediately.',
