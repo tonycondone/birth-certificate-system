@@ -244,7 +244,7 @@
                                                 <br>
                                                 <small class="text-muted">
                                                     <i class="fas fa-calendar me-1"></i>
-                                                    <?= date('M j, Y', strtotime($app['date_of_birth'])) ?>
+                                                    <?= !empty($app['date_of_birth']) ? date('M j, Y', strtotime($app['date_of_birth'])) : '—' ?>
                                                 </small>
                                                 <br>
                                                 <small class="text-muted">
