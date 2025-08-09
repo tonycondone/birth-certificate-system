@@ -338,7 +338,7 @@ $pageTitle = $pageTitle ?? 'Certificate Details';
                     <div class="info-row">
                         <div class="info-label">Certificate Number</div>
                         <div class="info-value">
-                            <code><?= htmlspecialchars($certificate['certificate_number']) ?></code>
+                            <code><?= htmlspecialchars($certificate['certificate_number'] ?? 'BC' . date('Y') . '-PENDING') ?></code>
                         </div>
                     </div>
 
