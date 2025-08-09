@@ -291,7 +291,7 @@ $pageTitle = $pageTitle ?? 'Certificate Details';
                     <div class="info-row">
                         <div class="info-label">Physician License</div>
                         <div class="info-value">
-                            <?= htmlspecialchars($certificate['physician_license']) ?>
+                            <?= htmlspecialchars($certificate['physician_license'] ?? 'Not specified') ?>
                         </div>
                     </div>
                     <?php endif; ?>
