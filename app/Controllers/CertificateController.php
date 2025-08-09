@@ -800,7 +800,10 @@ class CertificateController
             
         } catch (Exception $e) {
             error_log("Certificate download error: " . $e->getMessage());
-            echo "Error: " . $e->getMessage();
+            error_log("Certificate ID: " . $certificateId);
+            $_SESSION['error'] = 'An error occurred while downloading the certificate: ' . $e->getMessage();
+            header('Location: /certificates');
+            exit;
         }
     }
 
