@@ -106,7 +106,7 @@ $pageTitle = $pageTitle ?? 'Certificate Details';
                 <div class="col-md-8">
                     <h1 class="mb-2">Certificate Details</h1>
                     <div class="certificate-number">
-                        <?= htmlspecialchars($certificate['certificate_number'] ?? 'N/A') ?>
+                        <?= htmlspecialchars($certificate['certificate_number'] ?? 'BC' . date('Y') . '-PENDING') ?>
                     </div>
                 </div>
                 <div class="col-md-4 text-md-end">
