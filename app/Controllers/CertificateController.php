@@ -1259,7 +1259,8 @@ class CertificateController
             
         } catch (Exception $e) {
             error_log("Certificate index error: " . $e->getMessage());
-            $_SESSION['error'] = 'An error occurred while loading certificates. Please try again.';
+            error_log("Certificate index stack trace: " . $e->getTraceAsString());
+            $_SESSION['error'] = 'An error occurred while loading certificates. Please try again. Error: ' . $e->getMessage();
             header('Location: /dashboard');
             exit;
         }
