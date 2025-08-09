@@ -199,7 +199,7 @@ include __DIR__ . '/../layouts/base.php';
 
                         <?php
                         // Determine if deletion should be available (owner/staff logic is enforced on server)
-                        $canDelete = in_array(strtolower($application['status']), ['pending','submitted','processing','rejected']);
+                        $canDelete = in_array(strtolower($application['status']), ['pending','submitted','processing']);
                         ?>
                         <?php if (!empty($canPay) || $canDelete): ?>
                             <div class="card shadow">
