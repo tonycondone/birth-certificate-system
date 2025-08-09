@@ -1308,7 +1308,9 @@ class CertificateController
         $query = "
             SELECT c.*, 
                    ba.child_first_name, ba.child_last_name, ba.date_of_birth, ba.place_of_birth,
-                   ba.father_name, ba.mother_name, ba.gender,
+                   CONCAT(ba.father_first_name, ' ', ba.father_last_name) as father_name, 
+                   CONCAT(ba.mother_first_name, ' ', ba.mother_last_name) as mother_name, 
+                   ba.gender,
                    u.first_name as issued_by_first_name, u.last_name as issued_by_last_name
             FROM certificates c
             LEFT JOIN birth_applications ba ON c.application_id = ba.id
