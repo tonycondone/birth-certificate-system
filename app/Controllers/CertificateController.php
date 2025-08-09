@@ -751,7 +751,10 @@ class CertificateController
             $data = $stmt->fetch();
             
             if (!$data) {
-                throw new Exception('Certificate not found');
+                error_log("Certificate download: Certificate ID $certificateId not found in database");
+                $_SESSION['error'] = 'Certificate not found. Please check the certificate ID and try again.';
+                header('Location: /certificates');
+                exit;
             }
             
             // Check if user has permission to download this certificate
