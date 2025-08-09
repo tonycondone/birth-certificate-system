@@ -451,6 +451,33 @@ $attending_physician = $application['attending_physician'] ?? 'N/A';
                 </div>
             </div>
 
+            <!-- Data Validation Notice -->
+            <?php 
+            $hasCorrections = false;
+            $corrections = [];
+            
+            // Check for gender corrections
+            if (!empty($child_first_name)) {
+                $firstName = strtolower(trim($child_first_name));
+                $originalGender = $application['gender'] ?? '';
+                if (in_array($firstName, ['ama', 'akosua', 'adwoa', 'yaa', 'efua', 'aba', 'akua', 'afia']) && strtolower($originalGender) === 'male') {
+                    $corrections[] = "Gender corrected from Male to Female based on traditional name";
+                    $hasCorrections = true;
+                } elseif (in_array($firstName, ['kwame', 'kwaku', 'kwadwo', 'yaw', 'kofi', 'kwabena', 'kweku', 'kojo']) && strtolower($originalGender) === 'female') {
+                    $corrections[] = "Gender corrected from Female to Male based on traditional name";
+                    $hasCorrections = true;
+                }
+            }
+            
+            if ($hasCorrections): ?>
+            <div style="margin-top: 20px; padding: 10px; border: 1px solid #ff6b35; background: #fff3f0; font-size: 10px;">
+                <strong>REGISTRAR NOTES:</strong><br>
+                <?php foreach ($corrections as $correction): ?>
+                • <?= htmlspecialchars($correction) ?><br>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
             <div style="text-align: center; margin-top: 30px; font-size: 10px; border-top: 1px solid #000; padding-top: 10px;">
                 <strong>WARNING:</strong> Any person who willfully and knowingly makes any false statement in a birth certificate 
                 shall be guilty of a misdemeanor and upon conviction thereof shall be punished by a fine or imprisonment or both.
