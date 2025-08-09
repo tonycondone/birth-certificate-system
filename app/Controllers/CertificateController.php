@@ -204,9 +204,9 @@ class CertificateController
             return;
         }
         
-        // Validate certificate number format (12 characters, alphanumeric)
-        if (!preg_match('/^[A-Z0-9]{12}$/', $certificateId)) {
-            $error = "Invalid certificate number format. Please enter a 12-character alphanumeric code.";
+        // Validate certificate number format (BC followed by 12 alphanumeric characters)
+        if (!preg_match('/^BC[A-Z0-9]{12}$/', $certificateId)) {
+            $error = "Invalid certificate number format. Please enter a valid certificate number (e.g., BC202508D7C911).";
             include BASE_PATH . '/resources/views/verify.php';
             return;
         }
