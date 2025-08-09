@@ -367,13 +367,35 @@ $attending_physician = $application['attending_physician'] ?? 'N/A';
             <div class="form-row">
                 <div class="form-field">
                     <span class="field-number">16</span>
-                    <label class="field-label">Weight at Birth (lbs/oz)</label>
-                    <div class="field-value"><?= htmlspecialchars($weight_at_birth) ?> kg</div>
+                    <label class="field-label">Weight at Birth</label>
+                    <div class="field-value">
+                        <?php
+                        // Convert kg to lbs and oz for display, but show original unit
+                        $weight = $weight_at_birth;
+                        if (is_numeric($weight)) {
+                            $weightLbs = round($weight * 2.20462, 1);
+                            echo htmlspecialchars($weight) . " kg ($weightLbs lbs)";
+                        } else {
+                            echo htmlspecialchars($weight);
+                        }
+                        ?>
+                    </div>
                 </div>
                 <div class="form-field">
                     <span class="field-number">17</span>
-                    <label class="field-label">Length at Birth (inches)</label>
-                    <div class="field-value"><?= htmlspecialchars($length_at_birth) ?> cm</div>
+                    <label class="field-label">Length at Birth</label>
+                    <div class="field-value">
+                        <?php
+                        // Convert cm to inches for display, but show original unit
+                        $length = $length_at_birth;
+                        if (is_numeric($length)) {
+                            $lengthInches = round($length / 2.54, 1);
+                            echo htmlspecialchars($length) . " cm ($lengthInches in)";
+                        } else {
+                            echo htmlspecialchars($length);
+                        }
+                        ?>
+                    </div>
                 </div>
             </div>
 
