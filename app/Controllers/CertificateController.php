@@ -204,8 +204,8 @@ class CertificateController
             return;
         }
         
-        // Validate certificate number format (BC followed by 12 alphanumeric characters)
-        if (!preg_match('/^BC[A-Z0-9]{12}$/', $certificateId)) {
+        // Validate certificate number format (BC followed by 14 alphanumeric characters)
+        if (!preg_match('/^BC[A-Z0-9]{14}$/', $certificateId)) {
             $error = "Invalid certificate number format. Please enter a valid certificate number (e.g., BC202508D7C911).";
             include BASE_PATH . '/resources/views/verify.php';
             return;
@@ -236,14 +236,13 @@ class CertificateController
                     ba.father_last_name,
                     ba.mother_first_name,
                     ba.mother_last_name,
-                    CONCAT(u.first_name, ' ', u.last_name) as registrar_name,
-                    u.email as registrar_email,
-                    h.name as hospital_name,
-                    h.address as hospital_address
+                    COALESCE(CONCAT(u.first_name, ' ', u.last_name), 'System') as registrar_name,
+                    COALESCE(u.email, 'system@birthcerts.gov') as registrar_email,
+                    ba.hospital_name,
+                    '' as hospital_address
                 FROM certificates c
                 JOIN birth_applications ba ON c.application_id = ba.id
-                JOIN users u ON c.issued_by = u.id
-                LEFT JOIN hospitals h ON ba.hospital_id = h.id
+                LEFT JOIN users u ON c.issued_by = u.id
                 WHERE c.certificate_number = ? AND c.status = 'active'
             ");
             $stmt->execute([$certificateId]);
@@ -344,11 +343,16 @@ class CertificateController
             
             try {
                 $stmt = $pdo->prepare('
-                    SELECT c.*, ba.child_name, ba.date_of_birth, ba.gender, ba.place_of_birth,
-                           ba.mother_name, ba.father_name
+                    SELECT c.*, 
+                           CONCAT(ba.child_first_name, " ", COALESCE(ba.child_middle_name, ""), " ", ba.child_last_name) as child_name,
+                           ba.date_of_birth, 
+                           ba.gender, 
+                           ba.place_of_birth,
+                           CONCAT(ba.mother_first_name, " ", ba.mother_last_name) as mother_name,
+                           CONCAT(ba.father_first_name, " ", ba.father_last_name) as father_name
                     FROM certificates c 
                     JOIN birth_applications ba ON c.application_id = ba.id 
-                    WHERE c.certificate_number = ?
+                    WHERE c.certificate_number = ? AND c.status = "active"
                 ');
                 $stmt->execute([$certNumber]);
                 $certificate = $stmt->fetch();

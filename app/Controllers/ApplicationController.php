@@ -158,6 +158,11 @@ class ApplicationController
             exit;
         }
 
+        // Generate CSRF token if not exists
+        if (!isset($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+
         $application = $this->getApplicationById($id);
         
         if (!$application) {
@@ -223,97 +228,138 @@ class ApplicationController
      */
     public function delete($id)
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
-            return;
-        }
-
-        if (!isset($_SESSION['user_id'])) {
-            http_response_code(401);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Unauthorized']);
-            return;
-        }
-
-        $application = $this->getApplicationById($id);
-        if (!$application) {
-            http_response_code(404);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Application not found']);
-            return;
-        }
-
-        $isOwner = $application['user_id'] == $_SESSION['user_id'];
-        $isStaff = in_array($_SESSION['role'] ?? '', ['admin', 'registrar']);
-        if (!$isOwner && !$isStaff) {
-            http_response_code(403);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Forbidden']);
-            return;
-        }
-
+        error_log("ApplicationController::delete called with ID: $id");
+        
+        // Set proper headers early
+        header('Content-Type: application/json');
+        
         try {
-            // Block deletion if a completed payment exists
-            $stmt = $this->db->prepare("SELECT COUNT(*) FROM payments WHERE application_id = ? AND LOWER(status) = 'completed'");
-            $stmt->execute([$id]);
-            $hasCompletedPayment = (int)$stmt->fetchColumn() > 0;
-            if ($hasCompletedPayment) {
-                http_response_code(409);
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'error' => 'Cannot delete. Payment already completed.']);
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                error_log("Wrong request method: " . $_SERVER['REQUEST_METHOD']);
+                http_response_code(405);
+                echo json_encode(['success' => false, 'error' => 'Method not allowed']);
                 return;
             }
-        } catch (\Exception $e) {
-            // If payments table missing, fall back to status rule: allow only pending/submitted
-        }
 
-        $allowedStatuses = ['pending','submitted','processing','rejected'];
-        if (!in_array(strtolower($application['status']), $allowedStatuses)) {
-            http_response_code(409);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Only pending, in-progress, or rejected applications can be deleted.']);
-            return;
-        }
+            if (!isset($_SESSION['user_id'])) {
+                error_log("No user_id in session");
+                http_response_code(401);
+                echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+                return;
+            }
 
-        try {
-            $this->db->beginTransaction();
-            // Delete related documents
-            $stmt = $this->db->prepare("DELETE FROM application_documents WHERE application_id = ?");
-            $stmt->execute([$id]);
-            // Delete progress
-            $stmt = $this->db->prepare("DELETE FROM application_progress WHERE application_id = ?");
-            $stmt->execute([$id]);
-            // Delete tracking
-            $stmt = $this->db->prepare("DELETE FROM application_tracking WHERE application_id = ?");
-            $stmt->execute([$id]);
-            // Delete pending payments (if any)
+            // Check if database connection exists
+            if (!$this->db) {
+                error_log("Database connection not available");
+                // Clean any output buffer before sending response
+                if (ob_get_level()) {
+                    ob_clean();
+                }
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => 'Database connection failed']);
+                return;
+            }
+
+            $application = $this->getApplicationById($id);
+            if (!$application) {
+                error_log("Application $id not found");
+                // Clean any output buffer before sending response
+                if (ob_get_level()) {
+                    ob_clean();
+                }
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Application not found']);
+                return;
+            }
+
+            error_log("Application found: " . json_encode($application));
+
+            $isOwner = $application['user_id'] == $_SESSION['user_id'];
+            $isStaff = in_array($_SESSION['role'] ?? '', ['admin', 'registrar']);
+            if (!$isOwner && !$isStaff) {
+                error_log("Access denied - User {$_SESSION['user_id']} not owner ({$application['user_id']}) or staff");
+                // Clean any output buffer before sending response
+                if (ob_get_level()) {
+                    ob_clean();
+                }
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'You do not have permission to delete this application']);
+                return;
+            }
+
             try {
-                $stmt = $this->db->prepare("DELETE FROM payments WHERE application_id = ? AND LOWER(status) <> 'completed'");
+                // Block deletion if a completed payment exists
+                $stmt = $this->db->prepare("SELECT COUNT(*) FROM payments WHERE application_id = ? AND LOWER(status) = 'completed'");
                 $stmt->execute([$id]);
+                $hasCompletedPayment = (int)$stmt->fetchColumn() > 0;
+                if ($hasCompletedPayment) {
+                    error_log("Cannot delete - completed payment exists");
+                    http_response_code(409);
+                    echo json_encode(['success' => false, 'error' => 'Cannot delete. Payment already completed.']);
+                    return;
+                }
             } catch (\Exception $e) {
-                // ignore if table missing
+                error_log("Payment check failed: " . $e->getMessage());
+                // If payments table missing, fall back to status rule: allow only pending/submitted
             }
-            // Delete application
-            $stmt = $this->db->prepare("DELETE FROM birth_applications WHERE id = ?");
-            $stmt->execute([$id]);
-            $this->db->commit();
 
-            // If AJAX
-            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH'])==='xmlhttprequest') {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => true]);
-            } else {
-                $_SESSION['success'] = 'Application deleted successfully';
-                header('Location: /applications');
+            $allowedStatuses = ['pending','submitted','processing','rejected'];
+            if (!in_array(strtolower($application['status']), $allowedStatuses)) {
+                error_log("Status '{$application['status']}' not allowed for deletion");
+                http_response_code(409);
+                echo json_encode(['success' => false, 'error' => 'Only pending, in-progress, or rejected applications can be deleted.']);
+                return;
             }
+
+            error_log("Starting deletion process for application $id");
+
+            $this->db->beginTransaction();
+            
+            try {
+                // Delete related documents
+                $stmt = $this->db->prepare("DELETE FROM application_documents WHERE application_id = ?");
+                $stmt->execute([$id]);
+                // Delete progress
+                $stmt = $this->db->prepare("DELETE FROM application_progress WHERE application_id = ?");
+                $stmt->execute([$id]);
+                // Delete tracking
+                $stmt = $this->db->prepare("DELETE FROM application_tracking WHERE application_id = ?");
+                $stmt->execute([$id]);
+                // Delete pending payments (if any)
+                try {
+                    $stmt = $this->db->prepare("DELETE FROM payments WHERE application_id = ? AND LOWER(status) <> 'completed'");
+                    $stmt->execute([$id]);
+                } catch (\Exception $e) {
+                    error_log("Failed to delete payments: " . $e->getMessage());
+                    // ignore if table missing
+                }
+                // Delete application
+                $stmt = $this->db->prepare("DELETE FROM birth_applications WHERE id = ?");
+                $stmt->execute([$id]);
+                
+                $this->db->commit();
+
+                error_log("Application $id deleted successfully");
+
+                // Always return JSON for AJAX requests
+                echo json_encode(['success' => true, 'message' => 'Application deleted successfully']);
+                
+            } catch (\Exception $e) {
+                $this->db->rollBack();
+                error_log('Transaction rollback error: ' . $e->getMessage());
+                throw $e; // Re-throw to be caught by outer try-catch
+            }
+            
         } catch (\Exception $e) {
-            if ($this->db && $this->db->inTransaction()) { $this->db->rollBack(); }
             error_log('Delete application error: ' . $e->getMessage());
+            error_log('Error stack trace: ' . $e->getTraceAsString());
             http_response_code(500);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Failed to delete application']);
+            echo json_encode(['success' => false, 'error' => 'Failed to delete application: ' . $e->getMessage()]);
+        } catch (\Error $e) {
+            error_log('Delete application fatal error: ' . $e->getMessage());
+            error_log('Error stack trace: ' . $e->getTraceAsString());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internal server error']);
         }
     }
 

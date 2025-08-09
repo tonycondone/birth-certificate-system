@@ -99,6 +99,14 @@
                     </div>
                 </div>
 
+                <!-- Error Display -->
+                <?php if (isset($error)): ?>
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <?= htmlspecialchars($error) ?>
+                    </div>
+                <?php endif; ?>
+
                 <!-- Verification Result -->
                 <?php if (isset($certificate)): ?>
                     <?php if ($certificate['is_valid']): ?>

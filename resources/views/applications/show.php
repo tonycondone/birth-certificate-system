@@ -249,8 +249,27 @@ include __DIR__ . '/../layouts/base.php';
     </div>
 </div>
 
+<!-- SweetAlert2 -->
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 function deleteApplication(id) {
+    console.log('🚀 Delete application called for ID:', id);
+    console.log('🔗 Will send request to:', `/applications/${id}/delete`);
+    
+    // Check if SweetAlert2 is loaded
+    if (typeof Swal === 'undefined') {
+        console.error('❌ SweetAlert2 not loaded!');
+        alert('SweetAlert2 library not loaded. Using basic confirm instead.');
+        if (!confirm('Are you sure you want to delete this application?')) {
+            return;
+        }
+        // Proceed with basic fetch
+        deleteWithBasicConfirm(id);
+        return;
+    }
+    
     Swal.fire({
         title: 'Are you sure?',
         text: "You won't be able to revert this!",
@@ -261,42 +280,115 @@ function deleteApplication(id) {
         confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch(`/applications/${id}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    csrf_token: '<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire(
-                        'Deleted!',
-                        'Your application has been deleted.',
-                        'success'
-                    ).then(() => {
-                        window.location.href = '/applications';
-                    });
-                } else {
-                    Swal.fire(
-                        'Error!',
-                        data.error || 'An error occurred while deleting the application.',
-                        'error'
-                    );
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire(
-                    'Error!',
-                    'An error occurred while deleting the application.',
-                    'error'
-                );
-            });
+            console.log('✅ User confirmed deletion, sending request...');
+            performDelete(id);
+        } else {
+            console.log('❌ User cancelled deletion');
         }
     });
 }
+
+function deleteWithBasicConfirm(id) {
+    console.log('🔄 Using basic confirm for deletion');
+    performDelete(id);
+}
+
+function performDelete(id) {
+    const url = `/applications/${id}/delete`;
+    const requestData = {
+        csrf_token: '<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>'
+    };
+    
+    console.log('📡 Sending DELETE request to:', url);
+    console.log('📦 Request data:', requestData);
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        console.log('📨 Response received:');
+        console.log('   Status:', response.status);
+        console.log('   Status Text:', response.statusText);
+        console.log('   Headers:', [...response.headers.entries()]);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response.text(); // Get as text first to see what we're getting
+    })
+    .then(text => {
+        console.log('📄 Raw response text:', text);
+        
+        let data;
+        try {
+            data = JSON.parse(text);
+            console.log('✅ Parsed JSON data:', data);
+        } catch (e) {
+            console.error('❌ Failed to parse JSON:', e);
+            console.error('Raw text was:', text);
+            throw new Error('Invalid JSON response');
+        }
+        
+        if (data.success) {
+            console.log('🎉 Delete successful!');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire(
+                    'Deleted!',
+                    'Your application has been deleted.',
+                    'success'
+                ).then(() => {
+                    console.log('🔄 Redirecting to /applications');
+                    window.location.href = '/applications';
+                });
+            } else {
+                alert('Application deleted successfully!');
+                window.location.href = '/applications';
+            }
+        } else {
+            console.error('❌ Delete failed:', data.error);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire(
+                    'Error!',
+                    data.error || 'An error occurred while deleting the application.',
+                    'error'
+                );
+            } else {
+                alert('Error: ' + (data.error || 'An error occurred while deleting the application.'));
+            }
+        }
+    })
+    .catch(error => {
+        console.error('💥 Delete error:', error);
+        console.error('Error stack:', error.stack);
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire(
+                'Error!',
+                'An error occurred while deleting the application: ' + error.message,
+                'error'
+            );
+        } else {
+            alert('Error: An error occurred while deleting the application: ' + error.message);
+        }
+    });
+}
+
+// Test function to verify everything is working
+function testDeleteSetup() {
+    console.log('🧪 Testing delete setup...');
+    console.log('   SweetAlert2 available:', typeof Swal !== 'undefined');
+    console.log('   Fetch available:', typeof fetch !== 'undefined');
+    console.log('   CSRF token:', '<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? 'NOT_SET'); ?>');
+}
+
+// Run test on page load
+document.addEventListener('DOMContentLoaded', function() {
+    testDeleteSetup();
+});
 </script> 

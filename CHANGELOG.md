@@ -2,6 +2,46 @@
 
 All notable changes to the Digital Birth Certificate System are documented in this file.
 
+## [2.0.1] - 2025-08-09
+
+### 🔧 Critical Bug Fixes & System Improvements
+
+#### Certificate Verification System Overhaul
+- **Fixed Certificate Verification**: Resolved database query issues that prevented certificate verification
+- **Database Schema Fixes**: Removed non-existent hospitals table joins from verification queries  
+- **Certificate Format Validation**: Updated regex to accept 14-character format (BC + 12 alphanumeric)
+- **Missing Table Creation**: Added `application_documents`, `application_progress`, and `application_tracking` tables
+- **Certificate Sync**: Automatically sync approved applications to certificates table for verification
+
+#### Application Management Fixes
+- **Delete Functionality**: Fixed application deletion with proper permission checks and database cleanup
+- **Admin Role Management**: Enhanced role-based access control for application management
+- **CSRF Protection**: Improved CSRF token handling in application operations
+- **Error Handling**: Added comprehensive error logging and user-friendly error messages
+
+#### Tracking System Improvements  
+- **Tracking Number Generation**: Automatic generation of unique tracking numbers for all applications
+- **Certificate vs Tracking**: Clear distinction between certificate numbers (for verification) and tracking numbers (for status)
+- **Data Consistency**: Fixed verification status updates for approved certificates
+
+#### User Interface Enhancements
+- **Settings Page**: Complete rebuild of user settings page with proper functionality
+- **Error Display**: Added proper error message handling in verification views
+- **Delete Confirmations**: Improved delete confirmation dialogs with SweetAlert2
+- **Output Buffer Management**: Fixed "headers already sent" warnings in AJAX responses
+
+#### Database & Performance
+- **Query Optimization**: Improved database queries with proper joins and indexing
+- **Transaction Safety**: Enhanced transaction management for batch operations
+- **Data Integrity**: Added foreign key constraints and proper cascading deletes
+- **Migration 027**: Created comprehensive migration to document and apply all fixes
+
+#### Security Enhancements
+- **Permission Validation**: Strict ownership and role-based access control
+- **Input Sanitization**: Enhanced input validation and sanitization
+- **Error Logging**: Comprehensive error logging without exposing sensitive information
+- **Session Management**: Improved session handling and CSRF protection
+
 ## [2.0.0] - 2025-01-09
 
 ### 🎉 Major System Overhaul - Production Ready Release

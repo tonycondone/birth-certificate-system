@@ -35,6 +35,14 @@
 <body class="bg-light">
     <?php include BASE_PATH . '/resources/views/layouts/base.php'; ?>
 
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="h3 mb-4">Account Settings</h1>
+            </div>
+        </div>
+    </div>
+
     <div class="container mt-4">
         <div class="row">
             <!-- Sidebar -->
@@ -191,7 +199,7 @@
                         </div>
                     </div>
 
-                    <!-- Applications Tab -->
+                    <!-- My Applications Tab -->
                     <div class="tab-pane fade" id="v-pills-applications" role="tabpanel">
                         <div class="card settings-card">
                             <div class="card-header settings-header">
@@ -332,24 +340,20 @@
             }
         });
 
-        // Password form submission
+        // Load applications when tab is activated
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Settings page loaded, attaching event listeners...');
             
+            // Load applications initially
+            loadApplications();
+
+            // Password change form
             const passwordForm = document.getElementById('passwordForm');
-            if (!passwordForm) {
-                console.error('Password form not found!');
-                return;
-            }
-            
-            passwordForm.addEventListener('submit', async function(e) {
+            if (passwordForm) {
+                passwordForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                console.log('Password form submitted');
                 
                 const formData = new FormData(this);
                 const data = Object.fromEntries(formData.entries());
-                
-                console.log('Form data:', data);
                 
                 // Validate passwords match
                 if (data.new_password !== data.confirm_password) {
@@ -370,7 +374,6 @@
                 submitBtn.disabled = true;
                 
                 try {
-                    console.log('Sending password change request...');
                     const response = await fetch('/settings/change-password', {
                         method: 'POST',
                         headers: {
@@ -380,14 +383,11 @@
                         body: JSON.stringify(data)
                     });
                     
-                    console.log('Response status:', response.status);
-                    
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                     
                     const result = await response.json();
-                    console.log('Response data:', result);
                     
                     if (result.success) {
                         showAlert('Password changed successfully!', 'success');
@@ -396,7 +396,6 @@
                         showAlert(result.message || 'Failed to change password', 'danger');
                     }
                 } catch (error) {
-                    console.error('Password change error:', error);
                     showAlert('An error occurred: ' + error.message, 'danger');
                 } finally {
                     // Restore button state
@@ -404,6 +403,7 @@
                     submitBtn.disabled = false;
                 }
             });
+        }
         });
 
         // Load applications
@@ -426,15 +426,12 @@
 
         // Make deleteApplication function global so it can be called from onclick
         window.deleteApplication = async function(id) {
-            console.log('Delete application called with ID:', id);
             
             if (!confirm('Are you sure you want to delete this application?')) {
-                console.log('User cancelled deletion');
                 return;
             }
             
             try {
-                console.log('Sending delete request for application ID:', id);
                 const response = await fetch(`/settings/applications/${id}`, {
                     method: 'DELETE',
                     headers: {
@@ -442,14 +439,11 @@
                     }
                 });
                 
-                console.log('Delete response status:', response.status);
-                
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
                 const result = await response.json();
-                console.log('Delete response data:', result);
                 
                 if (result.success) {
                     showAlert('Application deleted successfully!', 'success');
@@ -458,13 +452,11 @@
                     showAlert(result.message || 'Failed to delete application', 'danger');
                 }
             } catch (error) {
-                console.error('Delete application error:', error);
                 showAlert('An error occurred: ' + error.message, 'danger');
             }
         };
 
         function displayApplications(applications) {
-            console.log('Displaying applications:', applications);
             
             if (applications.length === 0) {
                 document.getElementById('applicationsContent').innerHTML = 
@@ -478,8 +470,6 @@
             applications.forEach(app => {
                 const statusClass = app.status === 'approved' ? 'success' : 
                                    app.status === 'rejected' ? 'danger' : 'warning';
-                
-                console.log('App can_delete:', app.can_delete, 'for app ID:', app.id);
                 
                 html += `<tr>
                     <td>${app.application_number || 'N/A'}</td>
@@ -554,18 +544,31 @@
         }
 
         // Utility function to show alerts
-        function showAlert(message, type) {
+        function showAlert(message, type = 'info') {
+            // Remove any existing alerts first
+            const existingAlerts = document.querySelectorAll('.alert:not(#debugSection):not(.alert-warning)');
+            existingAlerts.forEach(alert => {
+                if (alert.classList.contains('fade')) {
+                    alert.remove();
+                }
+            });
+
             const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 1055; max-width: 400px;';
             alertDiv.innerHTML = `
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
             
-            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.row'));
+            // Append to body instead of trying to find a specific container
+            document.body.appendChild(alertDiv);
             
+            // Auto-remove after 5 seconds
             setTimeout(() => {
-                alertDiv.remove();
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
             }, 5000);
         }
 
