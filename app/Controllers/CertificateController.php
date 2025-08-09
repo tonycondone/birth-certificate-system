@@ -26,17 +26,10 @@ class CertificateController
     private $verificationService;
 
     public function __construct($db = null, $authService = null, $verificationService = null) {
-        try {
-            $this->db = $db ?: Database::getConnection();
-            $this->authService = $authService ?: new AuthService();
-            $this->verificationService = $verificationService ?: new CertificateVerificationService();
-        } catch (Exception $e) {
-            error_log("CertificateController initialization error: " . $e->getMessage());
-            // Initialize with null values to prevent fatal errors
-            $this->db = null;
-            $this->authService = null;
-            $this->verificationService = null;
-        }
+        // Initialize database connection - defer to when actually needed
+        $this->db = $db;
+        $this->authService = $authService;
+        $this->verificationService = $verificationService;
     }
 
     /**
