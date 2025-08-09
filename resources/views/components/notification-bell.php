@@ -517,4 +517,237 @@ window.addEventListener('beforeunload', function() {
         clearInterval(notificationUpdateInterval);
     }
 });
+
+// Enhanced real-time polling system
+let lastPollTime = Math.floor(Date.now() / 1000);
+let realTimePollingInterval;
+let isPollingActive = false;
+
+function startRealTimePolling() {
+    if (isPollingActive) return;
+    
+    isPollingActive = true;
+    realTimePollingInterval = setInterval(pollForNewNotifications, 15000); // Poll every 15 seconds
+    
+    // Also poll when user becomes active
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden && isPollingActive) {
+            pollForNewNotifications();
+        }
+    });
+}
+
+function stopRealTimePolling() {
+    if (realTimePollingInterval) {
+        clearInterval(realTimePollingInterval);
+        realTimePollingInterval = null;
+    }
+    isPollingActive = false;
+}
+
+function pollForNewNotifications() {
+    fetch(`/notifications/poll?since=${lastPollTime}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update last poll time
+            lastPollTime = data.server_time;
+            
+            // Update unread count
+            const badge = document.getElementById('notificationBadge');
+            const count = parseInt(data.unread_count) || 0;
+            
+            if (badge) {
+                const oldCount = parseInt(badge.textContent) || 0;
+                badge.textContent = count;
+                badge.classList.toggle('hidden', count === 0);
+                
+                // Animate badge if count increased
+                if (count > oldCount) {
+                    animateNotificationBadge();
+                }
+            }
+            
+            // Handle new notifications
+            if (data.new_notifications && data.new_notifications.length > 0) {
+                data.new_notifications.forEach(notification => {
+                    showRealTimeNotification(notification);
+                });
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error polling for notifications:', error);
+    });
+}
+
+function showRealTimeNotification(notification) {
+    // Show browser notification if permission granted
+    if (Notification.permission === 'granted') {
+        const browserNotification = new Notification(notification.title, {
+            body: notification.message,
+            icon: '/images/logo.svg',
+            badge: '/images/logo.svg',
+            tag: 'notification-' + notification.id,
+            requireInteraction: notification.priority === 'high' || notification.priority === 'urgent'
+        });
+        
+        browserNotification.onclick = function() {
+            window.focus();
+            // Mark as read when clicked
+            markAsReadAndView(notification.id);
+            browserNotification.close();
+        };
+        
+        // Auto close after 5 seconds for normal notifications
+        if (notification.priority !== 'high' && notification.priority !== 'urgent') {
+            setTimeout(() => browserNotification.close(), 5000);
+        }
+    }
+    
+    // Show in-app toast notification
+    showInAppNotification(notification);
+    
+    // Play notification sound
+    playNotificationSound();
+    
+    // Update the notification list if dropdown is open
+    const dropdown = document.getElementById('notificationBell');
+    if (dropdown && dropdown.querySelector('.dropdown-menu').classList.contains('show')) {
+        setTimeout(loadNotifications, 1000); // Reload after a short delay
+    }
+}
+
+function showInAppNotification(notification) {
+    // Create toast notification
+    const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+    
+    const toastId = 'toast-' + notification.id;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.id = toastId;
+    
+    const typeIcons = {
+        success: 'fa-check-circle text-success',
+        error: 'fa-times-circle text-danger',
+        warning: 'fa-exclamation-triangle text-warning',
+        info: 'fa-info-circle text-info'
+    };
+    
+    const iconClass = typeIcons[notification.type] || typeIcons.info;
+    
+    toast.innerHTML = `
+        <div class="toast-header">
+            <i class="fas ${iconClass} me-2"></i>
+            <strong class="me-auto">${escapeHtml(notification.title)}</strong>
+            <small class="text-muted">Just now</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            ${escapeHtml(notification.message)}
+            <div class="mt-2">
+                <button class="btn btn-sm btn-outline-primary" onclick="markAsReadAndView(${notification.id})">
+                    Mark as Read
+                </button>
+            </div>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast, {
+        autohide: notification.priority === 'high' || notification.priority === 'urgent' ? false : true,
+        delay: 8000
+    });
+    bsToast.show();
+    
+    // Remove toast after it's hidden
+    toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+    });
+}
+
+function animateNotificationBadge() {
+    const badge = document.getElementById('notificationBadge');
+    if (badge) {
+        badge.style.animation = 'none';
+        setTimeout(() => {
+            badge.style.animation = 'pulse 2s infinite';
+        }, 10);
+    }
+}
+
+function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                showToast('success', 'Browser notifications enabled! You\'ll now receive real-time updates.');
+            }
+        });
+    }
+}
+
+// Enhanced initialization
+document.addEventListener('DOMContentLoaded', function() {
+    // Start real-time polling
+    startRealTimePolling();
+    
+    // Request notification permission after a short delay
+    setTimeout(requestNotificationPermission, 3000);
+    
+    // Stop polling when page is about to unload
+    window.addEventListener('beforeunload', stopRealTimePolling);
+    
+    // Add notification permission button to dropdown header
+    const notificationHeader = document.querySelector('.notification-header');
+    if (notificationHeader && 'Notification' in window && Notification.permission !== 'granted') {
+        const permissionBtn = document.createElement('button');
+        permissionBtn.className = 'btn btn-sm btn-outline-light ms-2';
+        permissionBtn.innerHTML = '<i class="fas fa-bell-slash me-1"></i>Enable';
+        permissionBtn.title = 'Enable browser notifications';
+        permissionBtn.onclick = requestNotificationPermission;
+        
+        notificationHeader.querySelector('.d-flex').appendChild(permissionBtn);
+    }
+});
+
+// Update the existing loadNotifications function to work with real-time updates
+const originalLoadNotifications = loadNotifications;
+loadNotifications = function() {
+    // Update last poll time when manually loading
+    lastPollTime = Math.floor(Date.now() / 1000);
+    originalLoadNotifications();
+};
+
+// Add visual indicator for real-time status
+function addRealTimeIndicator() {
+    const bell = document.querySelector('#notificationDropdown');
+    if (bell && isPollingActive) {
+        bell.style.position = 'relative';
+        
+        // Add a small green dot to indicate real-time is active
+        const indicator = document.createElement('span');
+        indicator.className = 'position-absolute';
+        indicator.style.cssText = `
+            top: 2px;
+            right: 2px;
+            width: 6px;
+            height: 6px;
+            background: #28a745;
+            border-radius: 50%;
+            border: 1px solid white;
+        `;
+        indicator.title = 'Real-time notifications active';
+        
+        bell.appendChild(indicator);
+    }
+}
+
+// Add the real-time indicator after initialization
+setTimeout(addRealTimeIndicator, 1000);
 </script> 
