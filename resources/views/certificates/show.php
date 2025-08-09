@@ -197,7 +197,7 @@ $pageTitle = $pageTitle ?? 'Certificate Details';
                             <div class="col-md-6">
                                 <div class="info-label">Weight at Birth</div>
                                 <div class="info-value">
-                                    <?= htmlspecialchars($certificate['weight_at_birth']) ?> kg
+                                    <?= htmlspecialchars($certificate['weight_at_birth'] ?? '0') ?> kg
                                 </div>
                             </div>
                             <?php endif; ?>
