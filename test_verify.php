@@ -30,25 +30,22 @@ try {
         $url = "http://localhost:8000/verify?certificate_number=$certNumber";
         echo "URL: $url\n";
         
-        // Test the regex validation
-        if (preg_match('/^[A-Z0-9]{12}$/', $certNumber)) {
-            echo "✓ Certificate number format is valid (12 chars)\n";
+        // Test the NEW regex validation
+        if (preg_match('/^BC[A-Z0-9]{12}$/', $certNumber)) {
+            echo "✓ Certificate number format is valid (BC + 12 chars)\n";
         } else {
             echo "✗ Certificate number format is invalid\n";
             echo "  Length: " . strlen($certNumber) . "\n";
             echo "  Pattern: " . $certNumber . "\n";
         }
         
+        // Test accessing the verification page directly
+        echo "\nTesting direct URL access...\n";
+        $verifyUrl = "http://localhost:8000/verify?certificate_number=$certNumber";
+        echo "Try visiting: $verifyUrl\n";
+        
     } else {
         echo "✗ Certificate not found\n";
-    }
-    
-    // Test all certificates
-    echo "\nAll certificates in database:\n";
-    $stmt = $pdo->query('SELECT certificate_number, status FROM certificates ORDER BY id');
-    $certs = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($certs as $c) {
-        echo "  - {$c['certificate_number']} (Status: {$c['status']})\n";
     }
     
 } catch (Exception $e) {
