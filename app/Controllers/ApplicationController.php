@@ -77,6 +77,7 @@ class ApplicationController
             // Prepare application data
             $applicationData = [
                 'application_number' => $applicationNumber,
+                // reference_number omitted for compatibility; DB trigger or later process may populate it
                 'user_id' => $_SESSION['user_id'],
                 'child_first_name' => trim($_POST['child_first_name']),
                 'child_last_name' => trim($_POST['child_last_name']),
@@ -100,8 +101,8 @@ class ApplicationController
                 'hospital_name' => trim($_POST['hospital_name'] ?? ''),
                 'attending_physician' => trim($_POST['attending_physician'] ?? ''),
                 'physician_license' => trim($_POST['physician_license'] ?? ''),
-                'status' => 'pending_payment', // Changed from 'submitted' to 'pending_payment'
-                'created_at' => date('Y-m-d H:i:s') // Store creation time
+                'status' => 'submitted',
+                'created_at' => date('Y-m-d H:i:s')
             ];
 
             // Insert application
@@ -114,7 +115,7 @@ class ApplicationController
             $applicationId = $this->db->lastInsertId();
 
             // Create initial progress entry
-            $this->createProgressEntry($applicationId, 'pending_payment', 'Application created, waiting for payment');
+            $this->createProgressEntry($applicationId, 'submitted', 'Application submitted, proceed to payment');
 
             // Redirect to payment page instead of submitting directly
             header("Location: /applications/{$applicationId}/pay");
@@ -122,8 +123,13 @@ class ApplicationController
 
         } catch (Exception $e) {
             error_log("Application submission error: " . $e->getMessage());
+            if ($this->db) {
+                $errorInfo = $this->db->errorInfo();
+                error_log("PDO Error Info: " . print_r($errorInfo, true));
+            }
             return ['success' => false, 'message' => 'Error submitting application. Please try again.'];
         }
+
     }
 
     /**
@@ -172,6 +178,18 @@ class ApplicationController
         $progress = $this->getApplicationProgress($id);
         $documents = $this->getApplicationDocuments($id);
 
+        // Determine whether user should see Pay Now (no completed payment yet)
+        $canPay = false;
+        try {
+            $stmt = $this->db->prepare("SELECT status FROM payments WHERE application_id = ? ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$id]);
+            $lastPayment = $stmt->fetch();
+            $canPay = !$lastPayment || strtolower($lastPayment['status'] ?? '') !== 'completed';
+        } catch (\Exception $e) {
+            // If payments table not available, allow Pay Now to be shown for submitted/pending
+            $canPay = in_array($application['status'], ['submitted','pending','processing']);
+        }
+
         include BASE_PATH . '/resources/views/applications/show.php';
     }
 
@@ -198,6 +216,105 @@ class ApplicationController
         }
 
         include BASE_PATH . '/resources/views/applications/track.php';
+    }
+
+    /**
+     * Delete application
+     */
+    public function delete($id)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(401);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+            return;
+        }
+
+        $application = $this->getApplicationById($id);
+        if (!$application) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Application not found']);
+            return;
+        }
+
+        $isOwner = $application['user_id'] == $_SESSION['user_id'];
+        $isStaff = in_array($_SESSION['role'] ?? '', ['admin', 'registrar']);
+        if (!$isOwner && !$isStaff) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Forbidden']);
+            return;
+        }
+
+        try {
+            // Block deletion if a completed payment exists
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM payments WHERE application_id = ? AND LOWER(status) = 'completed'");
+            $stmt->execute([$id]);
+            $hasCompletedPayment = (int)$stmt->fetchColumn() > 0;
+            if ($hasCompletedPayment) {
+                http_response_code(409);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Cannot delete. Payment already completed.']);
+                return;
+            }
+        } catch (\Exception $e) {
+            // If payments table missing, fall back to status rule: allow only pending/submitted
+        }
+
+        $allowedStatuses = ['pending','submitted','processing','rejected'];
+        if (!in_array(strtolower($application['status']), $allowedStatuses)) {
+            http_response_code(409);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Only pending, in-progress, or rejected applications can be deleted.']);
+            return;
+        }
+
+        try {
+            $this->db->beginTransaction();
+            // Delete related documents
+            $stmt = $this->db->prepare("DELETE FROM application_documents WHERE application_id = ?");
+            $stmt->execute([$id]);
+            // Delete progress
+            $stmt = $this->db->prepare("DELETE FROM application_progress WHERE application_id = ?");
+            $stmt->execute([$id]);
+            // Delete tracking
+            $stmt = $this->db->prepare("DELETE FROM application_tracking WHERE application_id = ?");
+            $stmt->execute([$id]);
+            // Delete pending payments (if any)
+            try {
+                $stmt = $this->db->prepare("DELETE FROM payments WHERE application_id = ? AND LOWER(status) <> 'completed'");
+                $stmt->execute([$id]);
+            } catch (\Exception $e) {
+                // ignore if table missing
+            }
+            // Delete application
+            $stmt = $this->db->prepare("DELETE FROM birth_applications WHERE id = ?");
+            $stmt->execute([$id]);
+            $this->db->commit();
+
+            // If AJAX
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH'])==='xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true]);
+            } else {
+                $_SESSION['success'] = 'Application deleted successfully';
+                header('Location: /applications');
+            }
+        } catch (\Exception $e) {
+            if ($this->db && $this->db->inTransaction()) { $this->db->rollBack(); }
+            error_log('Delete application error: ' . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Failed to delete application']);
+        }
     }
 
     /**
@@ -465,14 +582,15 @@ class ApplicationController
     }
 
     /**
-     * Generate unique tracking number
+     * Generate unique reference number
      */
-    private function generateTrackingNumber()
+    private function generateReferenceNumber()
     {
-        $prefix = 'TRK';
-        $timestamp = time();
+        $prefix = 'REF';
+        $year = date('Y');
+        $month = date('m');
         $random = strtoupper(substr(md5(uniqid()), 0, 6));
-        return $prefix . $timestamp . $random;
+        return $prefix . $year . $month . $random;
     }
 
     /**

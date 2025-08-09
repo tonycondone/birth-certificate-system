@@ -244,7 +244,7 @@
                                                 <br>
                                                 <small class="text-muted">
                                                     <i class="fas fa-calendar me-1"></i>
-                                                    <?= date('M j, Y', strtotime($app['date_of_birth'])) ?>
+                                                    <?= !empty($app['date_of_birth']) ? date('M j, Y', strtotime($app['date_of_birth'])) : '—' ?>
                                                 </small>
                                                 <br>
                                                 <small class="text-muted">
@@ -265,17 +265,21 @@
                                         </td>
                                         <td>
                                             <div>
+                                                    <?php if (!empty($app['submitted_at'])): ?>
                                                 <?= date('M j, Y', strtotime($app['submitted_at'])) ?>
                                                 <br>
                                                 <small class="text-muted">
                                                     <?= date('g:i A', strtotime($app['submitted_at'])) ?>
                                                 </small>
+                                                    <?php else: ?>
+                                                        <span class="text-muted">—</span>
+                                                    <?php endif; ?>
                                             </div>
                                         </td>
                                         <td>
                                             <span class="badge bg-<?= $priorityClass ?> <?= $priorityClass === 'warning' ? 'text-dark' : '' ?>">
                                                 <i class="fas fa-clock me-1"></i>
-                                                <?= $app['days_pending'] ?> days
+                                                    <?= (int)($app['days_pending'] ?? 0) ?> days
                                             </span>
                                             <br>
                                             <small class="text-<?= $priorityClass ?>">
@@ -304,12 +308,12 @@
                                                         title="Quick Reject">
                                                     <i class="fas fa-times"></i>
                                                 </button>
-                                                <div class="btn-group btn-group-sm">
+                                                <div class="btn-group btn-group-sm position-static">
                                                     <button class="btn btn-outline-secondary dropdown-toggle action-btn" 
-                                                            data-bs-toggle="dropdown" title="More Actions">
+                                                            data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" title="More Actions">
                                                         <i class="fas fa-ellipsis-v"></i>
                                                     </button>
-                                                    <ul class="dropdown-menu">
+                                                    <ul class="dropdown-menu dropdown-menu-end shadow" style="z-index: 1055;">
                                                         <li>
                                                             <a class="dropdown-item" href="/applications/<?= $app['id'] ?>">
                                                                 <i class="fas fa-file-alt me-2"></i>View Details

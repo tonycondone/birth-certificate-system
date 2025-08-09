@@ -130,6 +130,61 @@ class DashboardController
             exit;
         }
     }
+
+    /**
+     * Registrar dashboard entry point
+     */
+    public function registrar()
+    {
+        // Check if user is logged in
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        try {
+            $pdo = Database::getConnection();
+            
+            // Get user information
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+            $stmt->execute([$_SESSION['user_id']]);
+            $user = $stmt->fetch();
+            
+            if (!$user) {
+                // User not found in database
+                error_log("Dashboard error: User ID {$_SESSION['user_id']} not found in database");
+                session_destroy();
+                header('Location: /login?error=session_expired');
+                exit;
+            }
+            
+            // Check if user has registrar role
+            if ($user['role'] !== 'registrar') {
+                $_SESSION['error'] = 'Access denied. Registrar privileges required.';
+                header('Location: /dashboard');
+                exit;
+            }
+            
+            // Set page title
+            $pageTitle = 'Registrar Dashboard - Digital Birth Certificate System';
+            
+            // Call registrar dashboard
+            return $this->registrarDashboard($pdo, $user, $pageTitle);
+            
+        } catch (PDOException $e) {
+            // Database connection error
+            error_log("Dashboard database error: " . $e->getMessage());
+            $_SESSION['error'] = 'Database connection error. Please try again later.';
+            header('Location: /');
+            exit;
+        } catch (Exception $e) {
+            // Generic error
+            error_log("Dashboard error: " . $e->getMessage());
+            $_SESSION['error'] = 'Unable to load dashboard. Please try again.';
+            header('Location: /');
+            exit;
+        }
+    }
     
     /**
      * Admin Dashboard
@@ -326,14 +381,15 @@ class DashboardController
     {
         try {
             $stmt = $pdo->prepare("
-                SELECT a.*, 
-                       h.name as hospital_name,
-                       CONCAT(c.first_name, ' ', c.last_name) as child_name
-                FROM applications a
-                LEFT JOIN hospitals h ON a.hospital_id = h.id
-                LEFT JOIN children c ON a.child_id = c.id
-                WHERE a.status = 'pending'
-                ORDER BY a.created_at DESC
+                SELECT ba.*, 
+                       u.first_name as parent_first_name,
+                       u.last_name as parent_last_name,
+                       ba.hospital_name,
+                       CONCAT(ba.child_first_name, ' ', ba.child_last_name) as child_name
+                FROM birth_applications ba
+                LEFT JOIN users u ON ba.user_id = u.id
+                WHERE ba.status IN ('pending', 'submitted')
+                ORDER BY ba.created_at DESC
                 LIMIT 10
             ");
             $stmt->execute();
@@ -585,8 +641,8 @@ class DashboardController
         try {
             $stmt = $pdo->prepare("
                 SELECT COUNT(*) as count 
-                FROM applications 
-                WHERE status = 'pending'
+                FROM birth_applications 
+                WHERE status IN ('pending', 'submitted')
             ");
             $stmt->execute();
             $result = $stmt->fetch();
@@ -775,7 +831,7 @@ class DashboardController
             $stmt->execute([$_SESSION['user_id']]);
             $user = $stmt->fetch();
             
-            if (!$user || $user['role'] !== 'registrar') {
+            if (!$user) {
                 $_SESSION['error'] = 'Access denied';
                 header('Location: /dashboard');
                 exit;
@@ -792,14 +848,14 @@ class DashboardController
             $perPage = 10;
             $offset = ($page - 1) * $perPage;
             
-            // Get all hospitals for the filter dropdown
-            $stmt = $pdo->query("SELECT id, name FROM hospitals ORDER BY name");
+            // Get all unique hospital names for the filter dropdown
+            $stmt = $pdo->query("SELECT DISTINCT hospital_name FROM birth_applications WHERE hospital_name IS NOT NULL AND hospital_name != '' ORDER BY hospital_name");
             $hospitals = $stmt->fetchAll();
             
-            // Get pending applications with search and filters
+            // Get pending applications with search and filters (use all pending related statuses)
             list($pendingApplications, $totalCount) = $this->searchApplications(
                 $pdo,
-                'pending',
+                ['pending', 'submitted', 'under_review', 'in_progress', 'awaiting_review'],
                 $search,
                 $hospitalFilter,
                 $dateFilter,
@@ -813,6 +869,10 @@ class DashboardController
             
             // Get pending count for badge
             $pendingCount = $this->countPendingApprovals($pdo);
+            
+            // Load page elements needed for preview functionality
+            $previewEnabled = true;
+            $canApprove = in_array($user['role'], ['admin', 'registrar']);
             
             // Include view
             include BASE_PATH . '/resources/views/dashboard/pending.php';
@@ -842,87 +902,99 @@ class DashboardController
         try {
             // Base query
             $query = "
-                SELECT a.*, 
-                       h.name as hospital_name,
-                       CONCAT(c.first_name, ' ', c.last_name) as child_name,
-                       c.first_name as child_first_name,
-                       c.last_name as child_last_name,
-                       c.date_of_birth
-                FROM applications a
-                LEFT JOIN hospitals h ON a.hospital_id = h.id
-                LEFT JOIN children c ON a.child_id = c.id
+                SELECT ba.*, 
+                       u.first_name as parent_first_name,
+                       u.last_name as parent_last_name,
+                       u.email as parent_email,
+                       ba.child_first_name,
+                       ba.child_last_name,
+                       ba.date_of_birth,
+                       ba.reference_number,
+                       ba.created_at as submitted_at
+                FROM birth_applications ba
+                LEFT JOIN users u ON ba.user_id = u.id
                 WHERE 1=1
             ";
             
-            $countQuery = "SELECT COUNT(*) as count FROM applications a WHERE 1=1";
+            $countQuery = "SELECT COUNT(*) as count FROM birth_applications ba WHERE 1=1";
             $params = [];
             
             // Add status filter
             if ($status) {
-                $query .= " AND a.status = ?";
-                $countQuery .= " AND a.status = ?";
-                $params[] = $status;
+                if (is_array($status)) {
+                    $placeholders = str_repeat('?,', count($status) - 1) . '?';
+                    $query .= " AND ba.status IN ($placeholders)";
+                    $countQuery .= " AND ba.status IN ($placeholders)";
+                    $params = array_merge($params, $status);
+                } else {
+                    $query .= " AND ba.status = ?";
+                    $countQuery .= " AND ba.status = ?";
+                    $params[] = $status;
+                }
             }
             
             // Add search term
             if ($search) {
                 $query .= " AND (
-                    a.reference_number LIKE ? OR
-                    c.first_name LIKE ? OR
-                    c.last_name LIKE ? OR
-                    h.name LIKE ?
+                    ba.reference_number LIKE ? OR
+                    ba.child_first_name LIKE ? OR
+                    ba.child_last_name LIKE ? OR
+                    u.first_name LIKE ? OR
+                    u.last_name LIKE ?
                 )";
                 $countQuery .= " AND (
-                    a.reference_number LIKE ? OR
-                    EXISTS (SELECT 1 FROM children c WHERE c.id = a.child_id AND (c.first_name LIKE ? OR c.last_name LIKE ?)) OR
-                    EXISTS (SELECT 1 FROM hospitals h WHERE h.id = a.hospital_id AND h.name LIKE ?)
+                    ba.reference_number LIKE ? OR
+                    ba.child_first_name LIKE ? OR
+                    ba.child_last_name LIKE ? OR
+                    EXISTS (SELECT 1 FROM users u WHERE u.id = ba.user_id AND (u.first_name LIKE ? OR u.last_name LIKE ?))
                 )";
                 $searchTerm = "%$search%";
                 $params[] = $searchTerm;
                 $params[] = $searchTerm;
                 $params[] = $searchTerm;
                 $params[] = $searchTerm;
+                $params[] = $searchTerm;
             }
             
-            // Add hospital filter
+            // Add hospital filter (search by hospital name)
             if ($hospitalFilter) {
-                $query .= " AND a.hospital_id = ?";
-                $countQuery .= " AND a.hospital_id = ?";
-                $params[] = $hospitalFilter;
+                $query .= " AND ba.hospital_name LIKE ?";
+                $countQuery .= " AND ba.hospital_name LIKE ?";
+                $params[] = "%$hospitalFilter%";
             }
             
             // Add date filter
             if ($dateFilter) {
                 switch ($dateFilter) {
                     case 'today':
-                        $query .= " AND DATE(a.created_at) = CURDATE()";
-                        $countQuery .= " AND DATE(a.created_at) = CURDATE()";
+                        $query .= " AND DATE(ba.created_at) = CURDATE()";
+                        $countQuery .= " AND DATE(ba.created_at) = CURDATE()";
                         break;
                     case 'yesterday':
-                        $query .= " AND DATE(a.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
-                        $countQuery .= " AND DATE(a.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
+                        $query .= " AND DATE(ba.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
+                        $countQuery .= " AND DATE(ba.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
                         break;
                     case 'this_week':
-                        $query .= " AND YEARWEEK(a.created_at) = YEARWEEK(CURDATE())";
-                        $countQuery .= " AND YEARWEEK(a.created_at) = YEARWEEK(CURDATE())";
+                        $query .= " AND YEARWEEK(ba.created_at) = YEARWEEK(CURDATE())";
+                        $countQuery .= " AND YEARWEEK(ba.created_at) = YEARWEEK(CURDATE())";
                         break;
                     case 'last_week':
-                        $query .= " AND YEARWEEK(a.created_at) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK))";
-                        $countQuery .= " AND YEARWEEK(a.created_at) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK))";
+                        $query .= " AND YEARWEEK(ba.created_at) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK))";
+                        $countQuery .= " AND YEARWEEK(ba.created_at) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK))";
                         break;
                     case 'this_month':
-                        $query .= " AND YEAR(a.created_at) = YEAR(CURDATE()) AND MONTH(a.created_at) = MONTH(CURDATE())";
-                        $countQuery .= " AND YEAR(a.created_at) = YEAR(CURDATE()) AND MONTH(a.created_at) = MONTH(CURDATE())";
+                        $query .= " AND YEAR(ba.created_at) = YEAR(CURDATE()) AND MONTH(ba.created_at) = MONTH(CURDATE())";
+                        $countQuery .= " AND YEAR(ba.created_at) = YEAR(CURDATE()) AND MONTH(ba.created_at) = MONTH(CURDATE())";
                         break;
                     case 'last_month':
-                        $query .= " AND YEAR(a.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(a.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
-                        $countQuery .= " AND YEAR(a.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(a.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
+                        $query .= " AND YEAR(ba.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(ba.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
+                        $countQuery .= " AND YEAR(ba.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(ba.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
                         break;
                 }
             }
             
             // Add sorting
-            $query .= " ORDER BY a.created_at DESC";
+            $query .= " ORDER BY ba.created_at DESC";
             
             // Add pagination
             $query .= " LIMIT ? OFFSET ?";

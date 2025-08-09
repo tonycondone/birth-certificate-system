@@ -24,6 +24,12 @@ include __DIR__ . '/../layouts/base.php';
 <div class="container py-5">
     <div class="row">
         <div class="col-12">
+            <?php if (!empty($_SESSION['error'])): ?>
+                <div class="alert alert-danger"><?= htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?></div>
+            <?php endif; ?>
+            <?php if (!empty($_SESSION['success'])): ?>
+                <div class="alert alert-success"><?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?></div>
+            <?php endif; ?>
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>
                     <i class="fas fa-file-alt me-2"></i>
@@ -136,7 +142,11 @@ include __DIR__ . '/../layouts/base.php';
                                 switch ($application['status']) {
                                     case 'pending':
                                         $statusClass = 'badge bg-warning fs-6';
-                                        $statusText = 'Pending Review';
+                                        $statusText = 'Pending';
+                                        break;
+                                    case 'submitted':
+                                        $statusClass = 'badge bg-info fs-6';
+                                        $statusText = 'In Progress';
                                         break;
                                     case 'approved':
                                         $statusClass = 'badge bg-success fs-6';
@@ -187,7 +197,11 @@ include __DIR__ . '/../layouts/base.php';
                             </div>
                         </div>
 
-                        <?php if ($application['status'] === 'pending'): ?>
+                        <?php
+                        // Determine if deletion should be available (owner/staff logic is enforced on server)
+                        $canDelete = in_array(strtolower($application['status']), ['pending','submitted','processing','rejected']);
+                        ?>
+                        <?php if (!empty($canPay) || $canDelete): ?>
                             <div class="card shadow">
                                 <div class="card-header bg-warning text-dark">
                                     <h5 class="mb-0">
@@ -197,17 +211,21 @@ include __DIR__ . '/../layouts/base.php';
                                 </div>
                                 <div class="card-body">
                                     <div class="d-grid gap-2">
-                                        <a href="/applications/<?php echo $application['id']; ?>/edit" 
-                                           class="btn btn-outline-primary">
-                                            <i class="fas fa-edit me-2"></i>
-                                            Edit Application
-                                        </a>
-                                        <button type="button" 
-                                                class="btn btn-outline-danger"
-                                                onclick="deleteApplication(<?php echo $application['id']; ?>)">
-                                            <i class="fas fa-trash me-2"></i>
-                                            Delete Application
-                                        </button>
+                                        <?php if (!empty($canPay)): ?>
+                                            <a href="/applications/<?php echo $application['id']; ?>/pay"
+                                               class="btn btn-success">
+                                                <i class="fas fa-credit-card me-2"></i>
+                                                Pay Now
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if ($canDelete): ?>
+                                            <button type="button" 
+                                                    class="btn btn-outline-danger"
+                                                    onclick="deleteApplication(<?php echo $application['id']; ?>)">
+                                                <i class="fas fa-trash me-2"></i>
+                                                Delete Application
+                                            </button>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>

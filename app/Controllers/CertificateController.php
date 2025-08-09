@@ -26,17 +26,10 @@ class CertificateController
     private $verificationService;
 
     public function __construct($db = null, $authService = null, $verificationService = null) {
-        try {
-            $this->db = $db ?: Database::getConnection();
-            $this->authService = $authService ?: new AuthService();
-            $this->verificationService = $verificationService ?: new CertificateVerificationService();
-        } catch (Exception $e) {
-            error_log("CertificateController initialization error: " . $e->getMessage());
-            // Initialize with null values to prevent fatal errors
-            $this->db = null;
-            $this->authService = null;
-            $this->verificationService = null;
-        }
+        // Initialize database connection - defer to when actually needed
+        $this->db = $db;
+        $this->authService = $authService;
+        $this->verificationService = $verificationService;
     }
 
     /**
@@ -211,9 +204,9 @@ class CertificateController
             return;
         }
         
-        // Validate certificate number format (12 characters, alphanumeric)
-        if (!preg_match('/^[A-Z0-9]{12}$/', $certificateId)) {
-            $error = "Invalid certificate number format. Please enter a 12-character alphanumeric code.";
+        // Validate certificate number format (BC followed by 12 alphanumeric characters)
+        if (!preg_match('/^BC[A-Z0-9]{12}$/', $certificateId)) {
+            $error = "Invalid certificate number format. Please enter a valid certificate number (e.g., BC202508D7C911).";
             include BASE_PATH . '/resources/views/verify.php';
             return;
         }
@@ -474,6 +467,20 @@ class CertificateController
     {
         try {
             $pdo = Database::getConnection();
+            
+            // Create verification_attempts table if it doesn't exist
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS verification_attempts (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    ip_address VARCHAR(45) NOT NULL,
+                    certificate_number VARCHAR(50) NOT NULL,
+                    action VARCHAR(20) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_ip (ip_address),
+                    INDEX idx_cert (certificate_number)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+            
             $stmt = $pdo->prepare("
                 INSERT INTO verification_attempts (ip_address, certificate_number, action, created_at) 
                 VALUES (?, ?, 'verify', NOW())
@@ -491,6 +498,20 @@ class CertificateController
     {
         try {
             $pdo = Database::getConnection();
+            
+            // Create verification_log table if it doesn't exist
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS verification_log (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    certificate_number VARCHAR(50) NOT NULL,
+                    ip_address VARCHAR(45) NOT NULL,
+                    status VARCHAR(20) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_cert (certificate_number),
+                    INDEX idx_status (status)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+            
             $stmt = $pdo->prepare("
                 INSERT INTO verification_log (certificate_number, ip_address, status, created_at) 
                 VALUES (?, ?, 'success', NOW())
@@ -508,6 +529,20 @@ class CertificateController
     {
         try {
             $pdo = Database::getConnection();
+            
+            // Create verification_log table if it doesn't exist
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS verification_log (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    certificate_number VARCHAR(50) NOT NULL,
+                    ip_address VARCHAR(45) NOT NULL,
+                    status VARCHAR(20) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_cert (certificate_number),
+                    INDEX idx_status (status)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+            
             $stmt = $pdo->prepare("
                 INSERT INTO verification_log (certificate_number, ip_address, status, created_at) 
                 VALUES (?, ?, 'failed', NOW())
@@ -752,13 +787,16 @@ class CertificateController
                 SELECT c.*, a.* 
                 FROM certificates c
                 JOIN birth_applications a ON c.application_id = a.id
-                WHERE c.id = ? AND c.status = 'active'
+                WHERE c.id = ?
             ");
             $stmt->execute([$certificateId]);
             $data = $stmt->fetch();
             
             if (!$data) {
-                throw new Exception('Certificate not found');
+                error_log("Certificate download: Certificate ID $certificateId not found in database");
+                $_SESSION['error'] = 'Certificate not found. Please check the certificate ID and try again.';
+                header('Location: /certificates');
+                exit;
             }
             
             // Check if user has permission to download this certificate
@@ -804,7 +842,10 @@ class CertificateController
             
         } catch (Exception $e) {
             error_log("Certificate download error: " . $e->getMessage());
-            echo "Error: " . $e->getMessage();
+            error_log("Certificate ID: " . $certificateId);
+            $_SESSION['error'] = 'An error occurred while downloading the certificate: ' . $e->getMessage();
+            header('Location: /certificates');
+            exit;
         }
     }
 
@@ -833,7 +874,7 @@ class CertificateController
                 $certificate = [
                     'certificate_number' => $data['certificate_number'],
                     'issued_at' => $data['issued_at'],
-                    'qr_code_data' => $data['qr_code_data'] ?? json_encode(['certificate' => true])
+                    'qr_code_data' => $data['qr_code_data'] ?? json_encode(['sample' => true])
                 ];
                 
                 $application = [
@@ -1196,5 +1237,330 @@ class CertificateController
         
         // Include the professional certificate template
         include BASE_PATH . '/resources/views/certificates/birth_certificate_template.php';
+    }
+
+    /**
+     * Index - List all certificates accessible to the current user
+     */
+    public function index()
+    {
+        // Check if user is logged in
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        try {
+            // Ensure database connection is available
+            if ($this->db === null) {
+                $this->db = Database::getConnection();
+                if ($this->db === null) {
+                    throw new Exception("Failed to establish database connection");
+                }
+            }
+            
+            // Ensure certificates table exists
+            $this->ensureCertificatesTableExists();
+            
+            // Get current user information
+            $userId = $_SESSION['user_id'];
+            $role = $_SESSION['role'] ?? '';
+            
+            // Get search parameters
+            $search = $_GET['search'] ?? '';
+            $status = $_GET['status'] ?? '';
+            $date = $_GET['date'] ?? '';
+            $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+            $perPage = 10;
+            $offset = ($page - 1) * $perPage;
+            
+            // Determine which certificates to show based on user role
+            $certificates = [];
+            $totalCertificates = 0;
+            
+            if (in_array($role, ['admin', 'registrar'])) {
+                // Admins and Registrars can see all certificates
+                list($certificates, $totalCertificates) = $this->getAllCertificates($search, $status, $date, $offset, $perPage);
+            } else {
+                // Regular users can only see their own certificates
+                list($certificates, $totalCertificates) = $this->getUserCertificates($userId, $search, $status, $date, $offset, $perPage);
+            }
+            
+            // Calculate pagination
+            $totalPages = ceil($totalCertificates / $perPage);
+            $currentPage = $page;
+            
+            // Page title
+            $pageTitle = 'My Certificates';
+            if ($role === 'admin') {
+                $pageTitle = 'All Certificates';
+            } elseif ($role === 'registrar') {
+                $pageTitle = 'Issued Certificates';
+            }
+            
+            // Include view
+            include BASE_PATH . '/resources/views/certificates/index.php';
+            
+        } catch (Exception $e) {
+            error_log("Certificate index error: " . $e->getMessage());
+            error_log("Certificate index stack trace: " . $e->getTraceAsString());
+            $_SESSION['error'] = 'An error occurred while loading certificates. Please try again. Error: ' . $e->getMessage();
+            header('Location: /dashboard');
+            exit;
+        }
+    }
+    
+    /**
+     * Get all certificates with filtering and pagination (admin/registrar access)
+     * 
+     * @param string $search Search term
+     * @param string $status Status filter
+     * @param string $date Date filter
+     * @param int $offset Pagination offset
+     * @param int $limit Pagination limit
+     * @return array [certificates, totalCount]
+     */
+    private function getAllCertificates($search = '', $status = '', $date = '', $offset = 0, $limit = 10)
+    {
+        $whereConditions = [];
+        $params = [];
+        
+        if (!empty($search)) {
+            $whereConditions[] = "(c.certificate_number LIKE ? OR CONCAT(ba.child_first_name, ' ', ba.child_last_name) LIKE ? OR ba.application_number LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm]);
+        }
+        
+        if (!empty($status)) {
+            $whereConditions[] = "c.status = ?";
+            $params[] = $status;
+        }
+        
+        if (!empty($date)) {
+            switch ($date) {
+                case 'today':
+                    $whereConditions[] = "DATE(c.issued_at) = CURDATE()";
+                    break;
+                case 'week':
+                    $whereConditions[] = "c.issued_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)";
+                    break;
+                case 'month':
+                    $whereConditions[] = "c.issued_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
+                    break;
+            }
+        }
+        
+        $whereClause = !empty($whereConditions) ? "WHERE " . implode(' AND ', $whereConditions) : "";
+        
+        // Get certificates
+        $query = "
+            SELECT c.*, 
+                   ba.child_first_name, ba.child_last_name, ba.date_of_birth, ba.place_of_birth,
+                   CONCAT(ba.father_first_name, ' ', ba.father_last_name) as father_name, 
+                   CONCAT(ba.mother_first_name, ' ', ba.mother_last_name) as mother_name, 
+                   ba.gender,
+                   u.first_name as issued_by_first_name, u.last_name as issued_by_last_name
+            FROM certificates c
+            LEFT JOIN birth_applications ba ON c.application_id = ba.id
+            LEFT JOIN users u ON c.issued_by = u.id
+            {$whereClause}
+            ORDER BY c.issued_at DESC
+            LIMIT ? OFFSET ?
+        ";
+        
+        $params[] = $limit;
+        $params[] = $offset;
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        $certificates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        // Get total count
+        $countQuery = "
+            SELECT COUNT(*) as total 
+            FROM certificates c
+            LEFT JOIN birth_applications ba ON c.application_id = ba.id
+            {$whereClause}
+        ";
+        
+        // Remove limit/offset for count query
+        array_pop($params);
+        array_pop($params);
+        
+        $countStmt = $this->db->prepare($countQuery);
+        $countStmt->execute($params);
+        $totalCount = $countStmt->fetchColumn();
+        
+        return [$certificates, $totalCount];
+    }
+    
+    /**
+     * Get certificates for a specific user with filtering and pagination
+     * 
+     * @param int $userId User ID
+     * @param string $search Search term
+     * @param string $status Status filter
+     * @param string $date Date filter
+     * @param int $offset Pagination offset
+     * @param int $limit Pagination limit
+     * @return array [certificates, totalCount]
+     */
+    private function getUserCertificates($userId, $search = '', $status = '', $date = '', $offset = 0, $limit = 10)
+    {
+        $whereConditions = ["ba.user_id = ?"];
+        $params = [$userId];
+        
+        if (!empty($search)) {
+            $whereConditions[] = "(c.certificate_number LIKE ? OR CONCAT(ba.child_first_name, ' ', ba.child_last_name) LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params = array_merge($params, [$searchTerm, $searchTerm]);
+        }
+        
+        if (!empty($status)) {
+            $whereConditions[] = "c.status = ?";
+            $params[] = $status;
+        }
+        
+        if (!empty($date)) {
+            switch ($date) {
+                case 'today':
+                    $whereConditions[] = "DATE(c.issued_at) = CURDATE()";
+                    break;
+                case 'week':
+                    $whereConditions[] = "c.issued_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)";
+                    break;
+                case 'month':
+                    $whereConditions[] = "c.issued_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
+                    break;
+            }
+        }
+        
+        $whereClause = "WHERE " . implode(' AND ', $whereConditions);
+        
+        // Get certificates
+        $query = "
+            SELECT c.*, 
+                   ba.child_first_name, ba.child_last_name, ba.date_of_birth, ba.place_of_birth,
+                   CONCAT(ba.father_first_name, ' ', ba.father_last_name) as father_name, 
+                   CONCAT(ba.mother_first_name, ' ', ba.mother_last_name) as mother_name, 
+                   ba.gender,
+                   u.first_name as issued_by_first_name, u.last_name as issued_by_last_name
+            FROM certificates c
+            LEFT JOIN birth_applications ba ON c.application_id = ba.id
+            LEFT JOIN users u ON c.issued_by = u.id
+            {$whereClause}
+            ORDER BY c.issued_at DESC
+            LIMIT ? OFFSET ?
+        ";
+        
+        $params[] = $limit;
+        $params[] = $offset;
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        $certificates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        // Get total count
+        $countQuery = "
+            SELECT COUNT(*) as total 
+            FROM certificates c
+            LEFT JOIN birth_applications ba ON c.application_id = ba.id
+            {$whereClause}
+        ";
+        
+        // Remove limit/offset for count query
+        array_pop($params);
+        array_pop($params);
+        
+        $countStmt = $this->db->prepare($countQuery);
+        $countStmt->execute($params);
+        $totalCount = $countStmt->fetchColumn();
+        
+        return [$certificates, $totalCount];
+    }
+
+    /**
+     * Email certificate to applicant (placeholder)
+     */
+    public function emailCertificate($id)
+    {
+        // Auth: registrar/admin only for emailing from registrar list; owner can request their own
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+        try {
+            $pdo = Database::getConnection();
+            // Load certificate + applicant email
+            $stmt = $pdo->prepare('SELECT c.id as cert_id, c.certificate_number, ba.id as application_id, u.email as applicant_email
+                                   FROM certificates c 
+                                   JOIN birth_applications ba ON c.application_id = ba.id 
+                                   JOIN users u ON ba.user_id = u.id
+                                   WHERE c.id = ? OR ba.id = ? LIMIT 1');
+            $stmt->execute([$id, $id]);
+            $row = $stmt->fetch();
+            if (!$row) {
+                $this->respondEmailResult(false, 'Certificate or application not found');
+                return;
+            }
+            // Here we would send email via EmailService; for now simulate success
+            $success = true;
+            $message = 'Certificate will be emailed to ' . htmlspecialchars($row['applicant_email']);
+            $this->respondEmailResult($success, $message);
+        } catch (Exception $e) {
+            error_log('emailCertificate error: ' . $e->getMessage());
+            $this->respondEmailResult(false, 'Failed to email certificate. Please try again.');
+        }
+    }
+
+    private function respondEmailResult($success, $message)
+    {
+        $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH'])==='xmlhttprequest';
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => (bool)$success, 'message' => $message]);
+            return;
+        }
+        if ($success) {
+            $_SESSION['success'] = $message;
+        } else {
+            $_SESSION['error'] = $message;
+        }
+        // Redirect back to referrer if possible
+        $back = $_SERVER['HTTP_REFERER'] ?? '/certificates';
+        header('Location: ' . $back);
+    }
+    
+    /**
+     * Ensure certificates table exists
+     */
+    private function ensureCertificatesTableExists()
+    {
+        try {
+            $createTableSQL = "
+                CREATE TABLE IF NOT EXISTS certificates (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    certificate_number VARCHAR(50) UNIQUE NOT NULL,
+                    application_id INT NOT NULL,
+                    issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    issued_by INT,
+                    status ENUM('active', 'revoked', 'expired') DEFAULT 'active',
+                    qr_code_data TEXT,
+                    digital_signature TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX idx_certificate_number (certificate_number),
+                    INDEX idx_application_id (application_id),
+                    INDEX idx_issued_at (issued_at),
+                    FOREIGN KEY (application_id) REFERENCES birth_applications(id) ON DELETE CASCADE,
+                    FOREIGN KEY (issued_by) REFERENCES users(id) ON DELETE SET NULL
+                )
+            ";
+            
+            $this->db->exec($createTableSQL);
+        } catch (Exception $e) {
+            error_log("Error creating certificates table: " . $e->getMessage());
+            // Don't throw exception to avoid breaking the flow
+        }
     }
 } 

@@ -13,6 +13,89 @@ use Exception;
 class TrackingController
 {
     /**
+     * Show the tracking form
+     */
+    public function showTrackingForm()
+    {
+        $pageTitle = 'Track Application - Digital Birth Certificate System';
+        
+        // Get tracking number from query string if available
+        $trackingNumber = $_GET['tracking_number'] ?? '';
+        
+        // Check if tracking form view exists
+        $viewPath = BASE_PATH . '/resources/views/tracking/form.php';
+        if (file_exists($viewPath)) {
+            include $viewPath;
+        } else {
+            // Fallback to applications/track.php if it exists
+            $fallbackPath = BASE_PATH . '/resources/views/applications/track.php';
+            if (file_exists($fallbackPath)) {
+                include $fallbackPath;
+            } else {
+                // Show a basic form if no view exists
+                echo $this->getBasicTrackingForm();
+            }
+        }
+    }
+    
+    /**
+     * Get a basic tracking form HTML
+     */
+    private function getBasicTrackingForm()
+    {
+        return '<!DOCTYPE html>
+        <html>
+        <head>
+            <title>Track Application - Digital Birth Certificate System</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        </head>
+        <body class="bg-light">
+            <div class="container mt-5">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>Track Your Application</h4>
+                            </div>
+                            <div class="card-body">
+                                ' . ($this->getFlashMessage()) . '
+                                <form action="/track/search" method="post">
+                                    <div class="mb-3">
+                                        <label for="tracking_number" class="form-label">Enter Tracking Number</label>
+                                        <input type="text" class="form-control" id="tracking_number" name="tracking_number" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Track Application</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="mt-3 text-center">
+                            <a href="/" class="btn btn-link">Back to Home</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>';
+    }
+    
+    /**
+     * Get flash message HTML
+     */
+    private function getFlashMessage()
+    {
+        $html = '';
+        if (isset($_SESSION['error'])) {
+            $html = '<div class="alert alert-danger">' . htmlspecialchars($_SESSION['error']) . '</div>';
+            unset($_SESSION['error']);
+        }
+        if (isset($_SESSION['success'])) {
+            $html = '<div class="alert alert-success">' . htmlspecialchars($_SESSION['success']) . '</div>';
+            unset($_SESSION['success']);
+        }
+        return $html;
+    }
+
+    /**
      * Search for application by tracking number
      */
     public function search()
@@ -46,14 +129,15 @@ class TrackingController
             
             // Get application details
             $stmt = $pdo->prepare("
-                SELECT a.*, u.first_name, u.last_name, u.email,
-                       h.name as hospital_name
-                FROM applications a
-                LEFT JOIN users u ON a.user_id = u.id
-                LEFT JOIN hospitals h ON a.hospital_id = h.id
-                WHERE a.reference_number = ? OR a.tracking_number = ?
+                SELECT ba.*, u.first_name, u.last_name, u.email,
+                       ba.hospital_name,
+                       ba.application_number as reference_number,
+                       ba.application_number as tracking_number
+                FROM birth_applications ba
+                LEFT JOIN users u ON ba.user_id = u.id
+                WHERE ba.application_number = ?
             ");
-            $stmt->execute([$trackingNumber, $trackingNumber]);
+            $stmt->execute([$trackingNumber]);
             $application = $stmt->fetch();
             
             if (!$application) {
@@ -62,14 +146,38 @@ class TrackingController
                 exit;
             }
             
-            // Get status history
-            $stmt = $pdo->prepare("
-                SELECT * FROM application_status_history 
-                WHERE application_id = ? 
-                ORDER BY created_at ASC
-            ");
-            $stmt->execute([$application['id']]);
-            $statusHistory = $stmt->fetchAll();
+            // Get status history (simplified - using current status and timestamps from application)
+            $statusHistory = [];
+            if (!empty($application['created_at'])) {
+                $statusHistory[] = [
+                    'status' => 'submitted',
+                    'created_at' => $application['created_at'],
+                    'description' => 'Application submitted'
+                ];
+            }
+            if (!empty($application['submitted_at'])) {
+                $statusHistory[] = [
+                    'status' => 'under_review',
+                    'created_at' => $application['submitted_at'],
+                    'description' => 'Application under review'
+                ];
+            }
+            if (!empty($application['reviewed_at'])) {
+                $statusHistory[] = [
+                    'status' => $application['status'],
+                    'created_at' => $application['reviewed_at'],
+                    'description' => ucfirst($application['status'])
+                ];
+            }
+            
+            // If no specific timestamps, just show current status
+            if (empty($statusHistory)) {
+                $statusHistory[] = [
+                    'status' => $application['status'] ?? 'pending',
+                    'created_at' => $application['created_at'] ?? date('Y-m-d H:i:s'),
+                    'description' => ucfirst($application['status'] ?? 'pending')
+                ];
+            }
             
             $pageTitle = 'Track Application - Digital Birth Certificate System';
             
@@ -87,6 +195,14 @@ class TrackingController
             header('Location: /track');
             exit;
         }
+    }
+    
+    /**
+     * Alias for show() method - used by the route /track/{trackingNumber}
+     */
+    public function trackApplication($trackingNumber = null)
+    {
+        return $this->show($trackingNumber);
     }
     
     /**

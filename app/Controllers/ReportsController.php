@@ -171,4 +171,177 @@ class ReportsController
             throw new Exception('Report date range cannot exceed 1 year');
         }
     }
+
+    /**
+     * Generate daily report with specified date parameter
+     */
+    public function daily()
+    {
+        // Check if user is logged in with appropriate role
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'registrar'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        // Get report date parameter
+        $date = $_GET['date'] ?? date('Y-m-d');
+        
+        try {
+            // Validate date format
+            $this->validateDateRange($date, $date);
+            
+            // Generate report data
+            $reportData = [];
+            
+            if ($_SESSION['role'] === 'admin') {
+                // Admin gets comprehensive report
+                $reportData['applications'] = $this->generateApplicationStatusReport($date, $date);
+                $reportData['certificates'] = $this->generateCertificateIssuanceReport($date, $date);
+                $reportData['performance'] = $this->generateRegistrarPerformanceReport($date, $date);
+            } else {
+                // Registrar gets more limited report
+                $reportData['applications'] = $this->generateApplicationStatusReport($date, $date);
+                $reportData['certificates'] = $this->generateCertificateIssuanceReport($date, $date);
+            }
+            
+            // Set page title and report metadata
+            $pageTitle = 'Daily Report: ' . date('F j, Y', strtotime($date));
+            $reportType = 'daily';
+            $reportDate = $date;
+            
+            // Include the report view
+            include BASE_PATH . '/resources/views/reports/daily.php';
+            
+        } catch (Exception $e) {
+            error_log("Daily Report Generation Error: " . $e->getMessage());
+            $_SESSION['error'] = 'Unable to generate report. Please try again or contact support.';
+            header('Location: /dashboard/reports');
+            exit;
+        }
+    }
+    
+    /**
+     * Generate weekly report with specified date parameter
+     */
+    public function weekly()
+    {
+        // Check if user is logged in with appropriate role
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'registrar'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        // Get report date parameter (any day within the week)
+        $date = $_GET['date'] ?? date('Y-m-d');
+        
+        try {
+            // Calculate the start and end of the week containing the given date
+            $dayOfWeek = date('N', strtotime($date));
+            $startDate = date('Y-m-d', strtotime("-" . ($dayOfWeek - 1) . " days", strtotime($date)));
+            $endDate = date('Y-m-d', strtotime("+" . (7 - $dayOfWeek) . " days", strtotime($date)));
+            
+            // Validate date range
+            $this->validateDateRange($startDate, $endDate);
+            
+            // Generate report data
+            $reportData = [];
+            
+            if ($_SESSION['role'] === 'admin') {
+                // Admin gets comprehensive report
+                $reportData['applications'] = $this->generateApplicationStatusReport($startDate, $endDate);
+                $reportData['certificates'] = $this->generateCertificateIssuanceReport($startDate, $endDate);
+                $reportData['performance'] = $this->generateRegistrarPerformanceReport($startDate, $endDate);
+            } else {
+                // Registrar gets more limited report
+                $reportData['applications'] = $this->generateApplicationStatusReport($startDate, $endDate);
+                $reportData['certificates'] = $this->generateCertificateIssuanceReport($startDate, $endDate);
+            }
+            
+            // Set page title and report metadata
+            $pageTitle = 'Weekly Report: ' . date('F j', strtotime($startDate)) . ' - ' . date('F j, Y', strtotime($endDate));
+            $reportType = 'weekly';
+            $reportDate = $date;
+            $weekStartDate = $startDate;
+            $weekEndDate = $endDate;
+            
+            // Include the report view
+            include BASE_PATH . '/resources/views/reports/weekly.php';
+            
+        } catch (Exception $e) {
+            error_log("Weekly Report Generation Error: " . $e->getMessage());
+            $_SESSION['error'] = 'Unable to generate report. Please try again or contact support.';
+            header('Location: /dashboard/reports');
+            exit;
+        }
+    }
+    
+    /**
+     * Generate monthly report with specified date parameter
+     */
+    public function monthly()
+    {
+        // Check if user is logged in with appropriate role
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'registrar'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        // Get report month and year parameters
+        $month = intval($_GET['month'] ?? date('m'));
+        $year = intval($_GET['year'] ?? date('Y'));
+        
+        try {
+            // Calculate start and end dates for the month
+            $startDate = sprintf('%04d-%02d-01', $year, $month);
+            $endDate = date('Y-m-t', strtotime($startDate));
+            
+            // Validate date range
+            $this->validateDateRange($startDate, $endDate);
+            
+            // Generate report data
+            $reportData = [];
+            
+            if ($_SESSION['role'] === 'admin') {
+                // Admin gets comprehensive report
+                $reportData['applications'] = $this->generateApplicationStatusReport($startDate, $endDate);
+                $reportData['certificates'] = $this->generateCertificateIssuanceReport($startDate, $endDate);
+                $reportData['performance'] = $this->generateRegistrarPerformanceReport($startDate, $endDate);
+                $reportData['trends'] = $this->generateMonthlyTrends($month, $year);
+            } else {
+                // Registrar gets more limited report
+                $reportData['applications'] = $this->generateApplicationStatusReport($startDate, $endDate);
+                $reportData['certificates'] = $this->generateCertificateIssuanceReport($startDate, $endDate);
+                $reportData['trends'] = $this->generateMonthlyTrends($month, $year);
+            }
+            
+            // Set page title and report metadata
+            $pageTitle = 'Monthly Report: ' . date('F Y', strtotime($startDate));
+            $reportType = 'monthly';
+            $reportMonth = $month;
+            $reportYear = $year;
+            
+            // Include the report view
+            include BASE_PATH . '/resources/views/reports/monthly.php';
+            
+        } catch (Exception $e) {
+            error_log("Monthly Report Generation Error: " . $e->getMessage());
+            $_SESSION['error'] = 'Unable to generate report. Please try again or contact support.';
+            header('Location: /dashboard/reports');
+            exit;
+        }
+    }
+    
+    /**
+     * Generate monthly trends data
+     */
+    private function generateMonthlyTrends($month, $year)
+    {
+        try {
+            $reportsRepository = new \App\Repositories\ReportsRepository();
+            return $reportsRepository->getMonthlyTrends($month, $year);
+        } catch (Exception $e) {
+            error_log("Monthly Trends Error: " . $e->getMessage());
+            return [];
+        }
+    }
 } 
