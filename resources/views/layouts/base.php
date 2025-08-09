@@ -109,6 +109,11 @@
                 </ul>
                 <ul class="navbar-nav">
                     <?php if (isset($_SESSION['user'])): ?>
+                        <?php 
+                        // Include notification bell component
+                        $db = App\Database\Database::getConnection();
+                        include __DIR__ . '/../components/notification-bell.php'; 
+                        ?>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
                                data-bs-toggle="dropdown">
