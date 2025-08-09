@@ -3,7 +3,7 @@
 namespace App\Controllers;
 
 use App\Database\Database;
-use App\Services\NotificationService;
+// use App\Services\NotificationService;
 use Exception;
 
 class SettingsController
