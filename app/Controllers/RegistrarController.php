@@ -127,9 +127,6 @@ class RegistrarController
         $applicationId = intval($_POST['application_id'] ?? 0);
         $action = $_POST['action'] ?? '';
         $comments = trim($_POST['comments'] ?? '');
-        $override = filter_var($_POST['override'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
-        $overrideAction = $_POST['override_action'] ?? '';
-        $overrideReason = trim($_POST['override_reason'] ?? '');
 
         if (!$applicationId || !in_array($action, ['approve', 'reject'])) {
             http_response_code(400);
@@ -138,55 +135,9 @@ class RegistrarController
         }
 
         try {
-            // Guard: If rejecting but payment already completed, require explicit override
-            if ($action === 'reject' && $this->hasCompletedPayment($applicationId)) {
-                if (!$override || !in_array($overrideAction, ['reinstate_approve', 'reject_refund']) || $overrideReason === '') {
-                    http_response_code(409);
-                    echo json_encode([
-                        'error' => 'Completed payment exists. Override with a reason is required.',
-                        'requires_override' => true,
-                        'allowed_actions' => ['reinstate_approve', 'reject_refund']
-                    ]);
-                    return;
-                }
-
-                if ($overrideAction === 'reinstate_approve') {
-                    // Reinstate and approve using existing payment
-                    $result = $this->approveApplication($applicationId, $_SESSION['user_id'], $comments !== '' ? $comments : ('Reinstated and approved. Reason: ' . $overrideReason));
-                    // Extra log/notification
-                    $this->logActivity($_SESSION['user_id'], 'override_reinstate_approve', "Reinstated and approved application ID: {$applicationId} due to: {$overrideReason}");
-                    $this->sendNotification($applicationId, 'approved');
-
-                    echo json_encode($result);
-                    return;
-                }
-
-                if ($overrideAction === 'reject_refund') {
-                    // Refund then reject
-                    $refundOk = $this->refundLatestCompletedPayment($applicationId, $_SESSION['user_id'], $overrideReason);
-                    if (!$refundOk) {
-                        http_response_code(500);
-                        echo json_encode(['error' => 'Refund failed. Rejection cancelled.']);
-                        return;
-                    }
-                    $this->sendNotification($applicationId, 'refunded');
-                    $this->logActivity($_SESSION['user_id'], 'override_reject_refund', "Refunded payment and rejected application ID: {$applicationId}. Reason: {$overrideReason}");
-
-                    $result = $this->rejectApplication($applicationId, $_SESSION['user_id'], $comments !== '' ? $comments : ('Rejected after refund. Reason: ' . $overrideReason));
-                    echo json_encode($result);
-                    return;
-                }
-            }
-
             if ($action === 'approve') {
                 $result = $this->approveApplication($applicationId, $_SESSION['user_id'], $comments);
             } else {
-                // Normal reject path (no completed payment)
-                if ($comments === '') {
-                    http_response_code(400);
-                    echo json_encode(['error' => 'Rejection reason is required']);
-                    return;
-                }
                 $result = $this->rejectApplication($applicationId, $_SESSION['user_id'], $comments);
             }
 
@@ -1116,10 +1067,6 @@ class RegistrarController
                 $title = 'Application Rejected';
                 $typeForSchema = 'error';
                 $message = 'Your birth certificate application has been rejected. Please contact support for details.';
-            } elseif ($eventType === 'refunded') {
-                $title = 'Payment Refunded';
-                $typeForSchema = 'warning';
-                $message = 'Your birth certificate application payment has been refunded. Please contact support for details.';
             }
 
             $stmt = $this->db->prepare("
@@ -1356,69 +1303,6 @@ class RegistrarController
             error_log("Error creating table: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        }
-    }
-
-    /**
-     * Check if there is a completed payment for application
-     */
-    private function hasCompletedPayment(int $applicationId): bool
-    {
-        try {
-            $stmt = $this->db->prepare("SELECT COUNT(*) FROM payments WHERE application_id = ? AND LOWER(status) = 'completed'");
-            $stmt->execute([$applicationId]);
-            return ((int)$stmt->fetchColumn()) > 0;
-        } catch (Exception $e) {
-            // If payments table missing, assume false
-            return false;
-        }
-    }
-
-    /**
-     * Refund the latest completed payment for an application (soft integration)
-     */
-    private function refundLatestCompletedPayment(int $applicationId, int $adminId, string $reason): bool
-    {
-        try {
-            // Find latest completed payment
-            $stmt = $this->db->prepare("SELECT id, amount, currency, gateway, reference FROM payments WHERE application_id = ? AND LOWER(status) = 'completed' ORDER BY id DESC LIMIT 1");
-            $stmt->execute([$applicationId]);
-            $payment = $stmt->fetch(\PDO::FETCH_ASSOC);
-            if (!$payment) { return false; }
-
-            // Attempt gateway refund
-            $gatewayRefundId = null;
-            $refundOk = true;
-            try {
-                if (class_exists('App\\Services\\RefundService')) {
-                    $svc = new \App\Services\RefundService();
-                    $res = $svc->refund($payment, $reason);
-                    $refundOk = (bool)($res['success'] ?? false);
-                    $gatewayRefundId = $res['gateway_refund_id'] ?? null;
-                }
-            } catch (\Throwable $t) {
-                $refundOk = false;
-            }
-            if (!$refundOk) { return false; }
-
-            $this->db->beginTransaction();
-            // Update payment row
-            try {
-                $stmt = $this->db->prepare("UPDATE payments SET status = 'refunded', refunded_at = NOW(), refund_reason = ?, gateway_refund_id = ? WHERE id = ?");
-                $stmt->execute([$reason, $gatewayRefundId, $payment['id']]);
-            } catch (\Exception $e) {
-                // Fallback if columns missing
-                $stmt = $this->db->prepare("UPDATE payments SET status = 'refunded' WHERE id = ?");
-                $stmt->execute([$payment['id']]);
-            }
-
-            $this->logActivity($adminId, 'payment_refund', "Refunded payment ID {$payment['id']} for application {$applicationId}. Reason: {$reason}");
-            $this->db->commit();
-            return true;
-        } catch (Exception $e) {
-            if ($this->db && $this->db->inTransaction()) { $this->db->rollBack(); }
-            error_log('Refund error: ' . $e->getMessage());
-            return false;
         }
     }
 }

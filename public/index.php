@@ -171,8 +171,6 @@ $routes = [
     '/admin/api-keys' => 'App\Controllers\AdminPortalController@apiKeys',
     '/admin/webhooks' => 'App\Controllers\AdminPortalController@webhooks',
     '/admin/system-monitoring' => 'App\Controllers\AdminPortalController@systemMonitoring',
-    '/admin/audit/overrides' => 'App\\Controllers\\AdminAuditController@overrides',
-    '/admin/audit/schema' => 'App\\Controllers\\AdminAuditController@schema',
     
     // Application routes
     '/applications' => 'App\Controllers\ApplicationController@index',
