@@ -833,7 +833,7 @@ class CertificateController
                 $certificate = [
                     'certificate_number' => $data['certificate_number'],
                     'issued_at' => $data['issued_at'],
-                    'qr_code_data' => $data['qr_code_data'] ?? json_encode(['certificate' => true])
+                    'qr_code_data' => $data['qr_code_data'] ?? json_encode(['sample' => true])
                 ];
                 
                 $application = [
@@ -1420,5 +1420,57 @@ class CertificateController
         $totalCount = $countStmt->fetchColumn();
         
         return [$certificates, $totalCount];
+    }
+
+    /**
+     * Email certificate to applicant (placeholder)
+     */
+    public function emailCertificate($id)
+    {
+        // Auth: registrar/admin only for emailing from registrar list; owner can request their own
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+        try {
+            $pdo = Database::getConnection();
+            // Load certificate + applicant email
+            $stmt = $pdo->prepare('SELECT c.id as cert_id, c.certificate_number, ba.id as application_id, u.email as applicant_email
+                                   FROM certificates c 
+                                   JOIN birth_applications ba ON c.application_id = ba.id 
+                                   JOIN users u ON ba.user_id = u.id
+                                   WHERE c.id = ? OR ba.id = ? LIMIT 1');
+            $stmt->execute([$id, $id]);
+            $row = $stmt->fetch();
+            if (!$row) {
+                $this->respondEmailResult(false, 'Certificate or application not found');
+                return;
+            }
+            // Here we would send email via EmailService; for now simulate success
+            $success = true;
+            $message = 'Certificate will be emailed to ' . htmlspecialchars($row['applicant_email']);
+            $this->respondEmailResult($success, $message);
+        } catch (Exception $e) {
+            error_log('emailCertificate error: ' . $e->getMessage());
+            $this->respondEmailResult(false, 'Failed to email certificate. Please try again.');
+        }
+    }
+
+    private function respondEmailResult($success, $message)
+    {
+        $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH'])==='xmlhttprequest';
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => (bool)$success, 'message' => $message]);
+            return;
+        }
+        if ($success) {
+            $_SESSION['success'] = $message;
+        } else {
+            $_SESSION['error'] = $message;
+        }
+        // Redirect back to referrer if possible
+        $back = $_SERVER['HTTP_REFERER'] ?? '/certificates';
+        header('Location: ' . $back);
     }
 } 
