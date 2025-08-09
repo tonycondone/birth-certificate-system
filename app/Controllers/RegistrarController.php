@@ -191,14 +191,24 @@ class RegistrarController
 
         if (empty($applicationIds) || !in_array($action, ['approve', 'reject'])) {
             http_response_code(400);
-            echo json_encode(['error' => 'Invalid request. Please select applications and choose an action.']);
+            if ($this->isAjaxRequest()) {
+                echo json_encode(['error' => 'Invalid request. Please select applications and choose an action.']);
+            } else {
+                $_SESSION['error'] = 'Invalid request. Please select applications and choose an action.';
+                header('Location: /registrar/batch-process');
+            }
             return;
         }
 
         // Require a reason when rejecting applications
         if ($action === 'reject' && $comments === '') {
             http_response_code(400);
-            echo json_encode(['error' => 'A rejection reason is required when rejecting applications.']);
+            if ($this->isAjaxRequest()) {
+                echo json_encode(['error' => 'A rejection reason is required when rejecting applications.']);
+            } else {
+                $_SESSION['error'] = 'A rejection reason is required when rejecting applications.';
+                header('Location: /registrar/batch-process');
+            }
             return;
         }
 
@@ -276,7 +286,19 @@ class RegistrarController
                 $response['diagnostic'] = $diagnosticInfo;
             }
             
-            echo json_encode($response);
+            if ($this->isAjaxRequest()) {
+                echo json_encode($response);
+            } else {
+                if ($response['success']) {
+                    $_SESSION['success'] = $response['message'];
+                } else {
+                    $_SESSION['error'] = $response['message'];
+                }
+                if (!empty($response['errors'])) {
+                    $_SESSION['errors_list'] = $response['errors'];
+                }
+                header('Location: /registrar/batch-process');
+            }
             
         } catch (Exception $e) {
             error_log("Error in batch processing: " . $e->getMessage());
@@ -290,13 +312,28 @@ class RegistrarController
                 error_log("Diagnostic error: " . $diagEx->getMessage());
             }
             
-            echo json_encode([
-                'error' => 'Internal server error', 
-                'message' => $e->getMessage(),
-                'details' => 'Please check PHP error log for more information.',
-                'diagnostic' => $diagnosticInfo
-            ]);
+            if ($this->isAjaxRequest()) {
+                echo json_encode([
+                    'error' => 'Internal server error', 
+                    'message' => $e->getMessage(),
+                    'details' => 'Please check PHP error log for more information.',
+                    'diagnostic' => $diagnosticInfo
+                ]);
+            } else {
+                $_SESSION['error'] = 'Internal server error: ' . $e->getMessage();
+                header('Location: /registrar/batch-process');
+            }
         }
+    }
+
+    /**
+     * Determine if the current request is an AJAX/JSON request
+     */
+    private function isAjaxRequest(): bool
+    {
+        $isXmlHttp = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+        $acceptsJson = isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
+        return $isXmlHttp || $acceptsJson;
     }
     
     /**
