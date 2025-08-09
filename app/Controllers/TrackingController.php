@@ -129,12 +129,13 @@ class TrackingController
             
             // Get application details
             $stmt = $pdo->prepare("
-                SELECT a.*, u.first_name, u.last_name, u.email,
-                       h.name as hospital_name
-                FROM applications a
-                LEFT JOIN users u ON a.user_id = u.id
-                LEFT JOIN hospitals h ON a.hospital_id = h.id
-                WHERE a.reference_number = ? OR a.tracking_number = ?
+                SELECT ba.*, u.first_name, u.last_name, u.email,
+                       ba.hospital_name,
+                       ba.application_number as reference_number,
+                       ba.application_number as tracking_number
+                FROM birth_applications ba
+                LEFT JOIN users u ON ba.user_id = u.id
+                WHERE ba.application_number = ?
             ");
             $stmt->execute([$trackingNumber, $trackingNumber]);
             $application = $stmt->fetch();
