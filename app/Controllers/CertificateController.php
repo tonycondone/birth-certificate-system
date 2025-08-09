@@ -1481,4 +1481,37 @@ class CertificateController
         $back = $_SERVER['HTTP_REFERER'] ?? '/certificates';
         header('Location: ' . $back);
     }
+    
+    /**
+     * Ensure certificates table exists
+     */
+    private function ensureCertificatesTableExists()
+    {
+        try {
+            $createTableSQL = "
+                CREATE TABLE IF NOT EXISTS certificates (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    certificate_number VARCHAR(50) UNIQUE NOT NULL,
+                    application_id INT NOT NULL,
+                    issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    issued_by INT,
+                    status ENUM('active', 'revoked', 'expired') DEFAULT 'active',
+                    qr_code_data TEXT,
+                    digital_signature TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX idx_certificate_number (certificate_number),
+                    INDEX idx_application_id (application_id),
+                    INDEX idx_issued_at (issued_at),
+                    FOREIGN KEY (application_id) REFERENCES birth_applications(id) ON DELETE CASCADE,
+                    FOREIGN KEY (issued_by) REFERENCES users(id) ON DELETE SET NULL
+                )
+            ";
+            
+            $this->db->exec($createTableSQL);
+        } catch (Exception $e) {
+            error_log("Error creating certificates table: " . $e->getMessage());
+            // Don't throw exception to avoid breaking the flow
+        }
+    }
 } 
