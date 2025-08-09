@@ -237,24 +237,38 @@ $pageTitle = $pageTitle ?? 'Batch Process Applications';
             document.getElementById('batchProcessForm').addEventListener('submit', function(e) {
                 const checkedBoxes = document.querySelectorAll('.app-checkbox:checked');
                 const action = document.querySelector('input[name="action"]:checked').value;
-                const comments = document.getElementById('comments').value.trim();
-                
+                const commentsEl = document.getElementById('comments');
+                const comments = commentsEl.value.trim();
+
                 if (checkedBoxes.length === 0) {
                     e.preventDefault();
                     alert('Please select at least one application to process.');
                     return;
                 }
-                
+
                 if (action === 'reject' && comments === '') {
                     e.preventDefault();
-                    alert('Comments are required when rejecting applications. Please provide a reason for rejection.');
+                    commentsEl.classList.add('is-invalid');
+                    if (!document.getElementById('commentsFeedback')) {
+                        const fb = document.createElement('div');
+                        fb.id = 'commentsFeedback';
+                        fb.className = 'invalid-feedback d-block';
+                        fb.textContent = 'A rejection reason is required when rejecting applications.';
+                        commentsEl.insertAdjacentElement('afterend', fb);
+                    }
+                    commentsEl.focus();
                     return;
                 }
-                
-                if (checkedBoxes.length > 10 && !confirm(`Are you sure you want to ${action} ${checkedBoxes.length} applications at once?`)) {
-                    e.preventDefault();
-                    return;
-                }
+
+                // Disable submit button to avoid duplicate submissions
+                processBatchBtn.disabled = true;
+            });
+
+            // Clear error when user starts typing
+            document.getElementById('comments').addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+                const fb = document.getElementById('commentsFeedback');
+                if (fb) fb.remove();
             });
             
             // Initial count update

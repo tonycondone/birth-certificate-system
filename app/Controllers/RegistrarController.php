@@ -195,6 +195,13 @@ class RegistrarController
             return;
         }
 
+        // Require a reason when rejecting applications
+        if ($action === 'reject' && $comments === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'A rejection reason is required when rejecting applications.']);
+            return;
+        }
+
         try {
             // Check if database connection is valid before processing
             if (!$this->db) {
@@ -761,14 +768,15 @@ class RegistrarController
     private function approveApplication($applicationId, $reviewerId, $comments)
     {
         try {
-            // Check if db connection is valid
             if (!$this->db) {
                 return ['success' => false, 'message' => 'Database connection error'];
             }
-            
-            // Ensure certificates table exists
+
+            // Pre-ensure required tables BEFORE starting a transaction (avoid DDL inside TX)
             $this->ensureCertificatesTableExists();
-            
+            $this->ensureActivityLogTableExists();
+            $this->ensureNotificationsTableExists();
+
             // Check if application exists and can be approved
             $stmt = $this->db->prepare("SELECT status FROM birth_applications WHERE id = ?");
             $stmt->execute([$applicationId]);
@@ -777,14 +785,11 @@ class RegistrarController
             if (!$status) {
                 return ['success' => false, 'message' => 'Application not found'];
             }
-            
             if ($status === 'approved' || $status === 'rejected') {
                 return ['success' => false, 'message' => 'Application already processed'];
             }
 
-            // Start transaction
             $this->db->beginTransaction();
-
             try {
                 // Update application status
                 $updateStmt = $this->db->prepare("
@@ -796,15 +801,13 @@ class RegistrarController
                     WHERE id = ?
                 ");
                 $updateResult = $updateStmt->execute([$reviewerId, $comments, $applicationId]);
-                
                 if (!$updateResult) {
-                    throw new Exception("Failed to update application status");
+                    throw new Exception('Failed to update application status');
                 }
-    
+
                 // Generate certificate
                 $certificateNumber = $this->generateCertificateNumber();
                 $qrCodeHash = $this->generateQRCodeHash($certificateNumber);
-                
                 $insertStmt = $this->db->prepare("
                     INSERT INTO certificates (
                         certificate_number, application_id, qr_code_hash, 
@@ -812,19 +815,16 @@ class RegistrarController
                     ) VALUES (?, ?, ?, ?, NOW(), 'active')
                 ");
                 $insertResult = $insertStmt->execute([$certificateNumber, $applicationId, $qrCodeHash, $reviewerId]);
-                
                 if (!$insertResult) {
-                    throw new Exception("Failed to create certificate record");
+                    throw new Exception('Failed to create certificate record');
                 }
-    
-                // Log activity (don't throw exception if this fails)
+
+                // Side-effect operations (no DDL here)
                 $this->logActivity($reviewerId, 'approve_application', "Approved application ID: {$applicationId}");
-    
-                // Send notification (don't throw exception if this fails)
                 $this->sendNotification($applicationId, 'approved');
-    
+
                 $this->db->commit();
-    
+
                 return [
                     'success' => true,
                     'message' => 'Application approved successfully',
@@ -832,16 +832,15 @@ class RegistrarController
                     'application_id' => $applicationId
                 ];
             } catch (Exception $e) {
-                // Roll back the transaction if it's active
                 if ($this->db && $this->db->inTransaction()) {
                     $this->db->rollBack();
                 }
-                throw $e; // Re-throw for outer catch block
+                throw $e;
             }
         } catch (Exception $e) {
             error_log("Error approving application: " . $e->getMessage());
             return [
-                'success' => false, 
+                'success' => false,
                 'message' => 'Error approving application: ' . $e->getMessage(),
                 'application_id' => $applicationId
             ];
@@ -854,11 +853,14 @@ class RegistrarController
     private function rejectApplication($applicationId, $reviewerId, $comments)
     {
         try {
-            // Check if db connection is valid
             if (!$this->db) {
                 return ['success' => false, 'message' => 'Database connection error'];
             }
-            
+
+            // Pre-ensure required tables BEFORE starting a transaction (avoid DDL inside TX)
+            $this->ensureActivityLogTableExists();
+            $this->ensureNotificationsTableExists();
+
             // Check if application exists and can be rejected
             $stmt = $this->db->prepare("SELECT status FROM birth_applications WHERE id = ?");
             $stmt->execute([$applicationId]);
@@ -867,46 +869,47 @@ class RegistrarController
             if (!$status) {
                 return ['success' => false, 'message' => 'Application not found'];
             }
-            
             if ($status === 'approved' || $status === 'rejected') {
                 return ['success' => false, 'message' => 'Application already processed'];
             }
-            
-            // Start transaction
+
             $this->db->beginTransaction();
+            try {
+                // Update application status
+                $stmt = $this->db->prepare("
+                    UPDATE birth_applications 
+                    SET status = 'rejected', 
+                        reviewed_by = ?, 
+                        reviewed_at = NOW(), 
+                        review_notes = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$reviewerId, $comments, $applicationId]);
 
-            // Update application status
-            $stmt = $this->db->prepare("
-                UPDATE birth_applications 
-                SET status = 'rejected', 
-                    reviewed_by = ?, 
-                    reviewed_at = NOW(), 
-                    review_notes = ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$reviewerId, $comments, $applicationId]);
+                // Side-effect operations (no DDL here)
+                $this->logActivity($reviewerId, 'reject_application', "Rejected application ID: {$applicationId}");
+                $this->sendNotification($applicationId, 'rejected');
 
-            // Log activity
-            $this->logActivity($reviewerId, 'reject_application', "Rejected application ID: {$applicationId}");
+                $this->db->commit();
 
-            // Send notification
-            $this->sendNotification($applicationId, 'rejected');
-
-            $this->db->commit();
-
-            return [
-                'success' => true,
-                'message' => 'Application rejected successfully',
-                'application_id' => $applicationId
-            ];
+                return [
+                    'success' => true,
+                    'message' => 'Application rejected successfully',
+                    'application_id' => $applicationId
+                ];
+            } catch (Exception $e) {
+                if ($this->db && $this->db->inTransaction()) {
+                    $this->db->rollBack();
+                }
+                throw $e;
+            }
         } catch (Exception $e) {
-            // Only roll back if a transaction is active
             if ($this->db && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             error_log("Error rejecting application: " . $e->getMessage());
             return [
-                'success' => false, 
+                'success' => false,
                 'message' => 'Error rejecting application: ' . $e->getMessage(),
                 'application_id' => $applicationId
             ];
@@ -979,9 +982,10 @@ class RegistrarController
     private function logActivity($userId, $action, $description)
     {
         try {
-            // First make sure the activity log table exists
-            $this->ensureActivityLogTableExists();
-            
+            // Avoid DDL inside active transactions
+            if (!$this->db->inTransaction()) {
+                $this->ensureActivityLogTableExists();
+            }
             $stmt = $this->db->prepare("
                 INSERT INTO activity_log (user_id, action, description, created_at)
                 VALUES (?, ?, ?, NOW())
@@ -990,44 +994,52 @@ class RegistrarController
             return true;
         } catch (Exception $e) {
             error_log("Error logging activity: " . $e->getMessage());
-            // Don't throw exception - let the main transaction continue even if logging fails
             return false;
         }
     }
 
     /**
-     * Send notification
+     * Send notification (conform to notifications schema)
      */
-    private function sendNotification($applicationId, $type)
+    private function sendNotification($applicationId, $eventType)
     {
         try {
-            // Make sure notifications table exists
-            $this->ensureNotificationsTableExists();
-            
+            // Avoid DDL inside active transactions
+            if (!$this->db->inTransaction()) {
+                $this->ensureNotificationsTableExists();
+            }
+
             // Get application user
             $stmt = $this->db->prepare("SELECT user_id FROM birth_applications WHERE id = ?");
             $stmt->execute([$applicationId]);
             $userId = $stmt->fetchColumn();
-
-            if ($userId) {
-                $messages = [
-                    'approved' => 'Your birth certificate application has been approved!',
-                    'rejected' => 'Your birth certificate application has been rejected. Please contact support for details.'
-                ];
-
-                $message = $messages[$type] ?? 'Application status updated';
-
-                $stmt = $this->db->prepare("
-                    INSERT INTO notifications (user_id, type, message, application_id, created_at, is_read)
-                    VALUES (?, ?, ?, ?, NOW(), 0)
-                ");
-                $stmt->execute([$userId, $type, $message, $applicationId]);
-                return true;
+            if (!$userId) {
+                return false;
             }
-            return false;
+
+            // Map event types to schema enum and titles
+            $title = 'Application Update';
+            $typeForSchema = 'info'; // enum: info, success, warning, error
+            $message = 'Application status updated';
+
+            if ($eventType === 'approved') {
+                $title = 'Application Approved';
+                $typeForSchema = 'success';
+                $message = 'Your birth certificate application has been approved!';
+            } elseif ($eventType === 'rejected') {
+                $title = 'Application Rejected';
+                $typeForSchema = 'error';
+                $message = 'Your birth certificate application has been rejected. Please contact support for details.';
+            }
+
+            $stmt = $this->db->prepare("
+                INSERT INTO notifications (user_id, title, message, type, application_id, created_at, is_read)
+                VALUES (?, ?, ?, ?, ?, NOW(), 0)
+            ");
+            $stmt->execute([$userId, $title, $message, $typeForSchema, $applicationId]);
+            return true;
         } catch (Exception $e) {
             error_log("Error sending notification: " . $e->getMessage());
-            // Don't throw exception - let the main transaction continue even if notification fails
             return false;
         }
     }
@@ -1066,8 +1078,9 @@ class RegistrarController
                 CREATE TABLE IF NOT EXISTS notifications (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     user_id INT NOT NULL,
-                    type VARCHAR(50) NOT NULL,
+                    title VARCHAR(255) NOT NULL,
                     message TEXT NOT NULL,
+                    type ENUM('info', 'success', 'warning', 'error') NOT NULL,
                     application_id INT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     is_read TINYINT(1) DEFAULT 0,
