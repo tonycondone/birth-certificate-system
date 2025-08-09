@@ -112,7 +112,7 @@ class SettingsController
                 $_SESSION['user']['last_name'] = $lastName;
 
                 // Send notification
-                $this->notificationService->sendNotification(
+                $this->sendNotification(
                     $userId,
                     '✅ Profile Updated',
                     'Your profile information has been updated successfully.',
