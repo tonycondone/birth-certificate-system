@@ -205,7 +205,7 @@ $pageTitle = $pageTitle ?? 'Certificate Details';
                             <div class="col-md-6">
                                 <div class="info-label">Length at Birth</div>
                                 <div class="info-value">
-                                    <?= htmlspecialchars($certificate['length_at_birth']) ?> cm
+                                    <?= htmlspecialchars($certificate['length_at_birth'] ?? '0') ?> cm
                                 </div>
                             </div>
                             <?php endif; ?>
