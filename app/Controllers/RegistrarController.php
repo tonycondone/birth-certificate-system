@@ -183,23 +183,40 @@ class RegistrarController
 
         if (empty($applicationIds) || !in_array($action, ['approve', 'reject'])) {
             http_response_code(400);
-            echo json_encode(['error' => 'Invalid request']);
+            echo json_encode(['error' => 'Invalid request. Please select applications and choose an action.']);
             return;
         }
 
         try {
+            // Check if database connection is valid before processing
+            if (!$this->db) {
+                throw new Exception('Database connection not available');
+            }
+            
+            // Verify if required tables exist
+            if ($action === 'approve') {
+                $this->ensureCertificatesTableExists();
+            }
+            
             $results = [];
             $successCount = 0;
             $errorCount = 0;
-
+            $detailedErrors = [];
+            
+            // Process each application
             foreach ($applicationIds as $applicationId) {
                 try {
+                    // Convert to integer to avoid injection
+                    $applicationId = (int)$applicationId;
+                    
+                    if ($applicationId <= 0) {
+                        throw new Exception("Invalid application ID: $applicationId");
+                    }
+                    
                     // Handle each application in its own transaction
                     if ($action === 'approve') {
-                        // approveApplication has its own transaction management
                         $result = $this->approveApplication($applicationId, $_SESSION['user_id'], $comments);
                     } else {
-                        // rejectApplication has its own transaction management
                         $result = $this->rejectApplication($applicationId, $_SESSION['user_id'], $comments);
                     }
                     
@@ -207,12 +224,14 @@ class RegistrarController
                         $successCount++;
                     } else {
                         $errorCount++;
+                        $detailedErrors[] = "App #$applicationId: " . ($result['message'] ?? 'Unknown error');
                     }
                     
                     $results[] = $result;
                 } catch (Exception $e) {
                     error_log("Error processing application ID $applicationId: " . $e->getMessage());
                     $errorCount++;
+                    $detailedErrors[] = "App #$applicationId: " . $e->getMessage();
                     $results[] = [
                         'success' => false, 
                         'message' => $e->getMessage(),
@@ -221,15 +240,26 @@ class RegistrarController
                 }
             }
 
-            echo json_encode([
-                'success' => true,
-                'message' => "Batch processing completed. {$successCount} successful, {$errorCount} errors.",
+            $response = [
+                'success' => $successCount > 0,
+                'message' => "Batch processing completed. $successCount successful, $errorCount errors.",
                 'results' => $results
-            ]);
+            ];
+            
+            if ($errorCount > 0) {
+                $response['errors'] = $detailedErrors;
+            }
+            
+            echo json_encode($response);
+            
         } catch (Exception $e) {
             error_log("Error in batch processing: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Internal server error: ' . $e->getMessage()]);
+            echo json_encode([
+                'error' => 'Internal server error', 
+                'message' => $e->getMessage(),
+                'details' => 'Please check PHP error log for more information.'
+            ]);
         }
     }
 
