@@ -146,14 +146,38 @@ class TrackingController
                 exit;
             }
             
-            // Get status history
-            $stmt = $pdo->prepare("
-                SELECT * FROM application_status_history 
-                WHERE application_id = ? 
-                ORDER BY created_at ASC
-            ");
-            $stmt->execute([$application['id']]);
-            $statusHistory = $stmt->fetchAll();
+            // Get status history (simplified - using current status and timestamps from application)
+            $statusHistory = [];
+            if (!empty($application['created_at'])) {
+                $statusHistory[] = [
+                    'status' => 'submitted',
+                    'created_at' => $application['created_at'],
+                    'description' => 'Application submitted'
+                ];
+            }
+            if (!empty($application['submitted_at'])) {
+                $statusHistory[] = [
+                    'status' => 'under_review',
+                    'created_at' => $application['submitted_at'],
+                    'description' => 'Application under review'
+                ];
+            }
+            if (!empty($application['reviewed_at'])) {
+                $statusHistory[] = [
+                    'status' => $application['status'],
+                    'created_at' => $application['reviewed_at'],
+                    'description' => ucfirst($application['status'])
+                ];
+            }
+            
+            // If no specific timestamps, just show current status
+            if (empty($statusHistory)) {
+                $statusHistory[] = [
+                    'status' => $application['status'] ?? 'pending',
+                    'created_at' => $application['created_at'] ?? date('Y-m-d H:i:s'),
+                    'description' => ucfirst($application['status'] ?? 'pending')
+                ];
+            }
             
             $pageTitle = 'Track Application - Digital Birth Certificate System';
             
