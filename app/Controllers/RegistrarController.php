@@ -194,9 +194,12 @@ class RegistrarController
 
             foreach ($applicationIds as $applicationId) {
                 try {
+                    // Handle each application in its own transaction
                     if ($action === 'approve') {
+                        // approveApplication has its own transaction management
                         $result = $this->approveApplication($applicationId, $_SESSION['user_id'], $comments);
                     } else {
+                        // rejectApplication has its own transaction management
                         $result = $this->rejectApplication($applicationId, $_SESSION['user_id'], $comments);
                     }
                     
@@ -208,8 +211,13 @@ class RegistrarController
                     
                     $results[] = $result;
                 } catch (Exception $e) {
+                    error_log("Error processing application ID $applicationId: " . $e->getMessage());
                     $errorCount++;
-                    $results[] = ['success' => false, 'message' => $e->getMessage()];
+                    $results[] = [
+                        'success' => false, 
+                        'message' => $e->getMessage(),
+                        'application_id' => $applicationId
+                    ];
                 }
             }
 
@@ -221,7 +229,7 @@ class RegistrarController
         } catch (Exception $e) {
             error_log("Error in batch processing: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Internal server error']);
+            echo json_encode(['error' => 'Internal server error: ' . $e->getMessage()]);
         }
     }
 
