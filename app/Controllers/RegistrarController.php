@@ -1178,19 +1178,56 @@ class RegistrarController
     {
         try {
             $data = [];
-            
+            $dateExpr = "COALESCE(submitted_at, created_at)"; // fallback if submitted_at is null
+
             switch ($type) {
-                case 'monthly':
+                case 'daily':
+                    // Aggregate for a single day (group by date to keep format consistent)
                     $stmt = $this->db->prepare("
                         SELECT 
-                            DATE(submitted_at) as date,
+                            DATE($dateExpr) as date,
                             COUNT(*) as total,
                             SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
                             SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
-                            SUM(CASE WHEN status IN ('submitted', 'under_review') THEN 1 ELSE 0 END) as pending
+                            SUM(CASE WHEN status IN ('submitted','under_review','pending','processing') THEN 1 ELSE 0 END) as pending
                         FROM birth_applications
-                        WHERE submitted_at BETWEEN ? AND ?
-                        GROUP BY DATE(submitted_at)
+                        WHERE $dateExpr BETWEEN ? AND ?
+                        GROUP BY DATE($dateExpr)
+                        ORDER BY date
+                    ");
+                    $stmt->execute([$startDate, $endDate]);
+                    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    break;
+
+                case 'weekly':
+                    // Same aggregation over a week range
+                    $stmt = $this->db->prepare("
+                        SELECT 
+                            DATE($dateExpr) as date,
+                            COUNT(*) as total,
+                            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
+                            SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+                            SUM(CASE WHEN status IN ('submitted','under_review','pending','processing') THEN 1 ELSE 0 END) as pending
+                        FROM birth_applications
+                        WHERE $dateExpr BETWEEN ? AND ?
+                        GROUP BY DATE($dateExpr)
+                        ORDER BY date
+                    ");
+                    $stmt->execute([$startDate, $endDate]);
+                    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    break;
+
+                case 'monthly':
+                    $stmt = $this->db->prepare("
+                        SELECT 
+                            DATE($dateExpr) as date,
+                            COUNT(*) as total,
+                            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
+                            SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+                            SUM(CASE WHEN status IN ('submitted','under_review','pending','processing') THEN 1 ELSE 0 END) as pending
+                        FROM birth_applications
+                        WHERE $dateExpr BETWEEN ? AND ?
+                        GROUP BY DATE($dateExpr)
                         ORDER BY date
                     ");
                     $stmt->execute([$startDate, $endDate]);
