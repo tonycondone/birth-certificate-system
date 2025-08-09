@@ -453,7 +453,7 @@ class SettingsController
                 $this->db->commit();
 
                 // Send notification
-                $this->notificationService->sendNotification(
+                $this->sendNotification(
                     $userId,
                     '🗑️ Application Deleted',
                     "Application for {$application['child_first_name']} {$application['child_last_name']} has been deleted successfully.",
@@ -542,6 +542,25 @@ class SettingsController
             error_log("Error exporting data: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Internal server error']);
+        }
+    }
+
+    /**
+     * Send notification to user
+     */
+    private function sendNotification($userId, $title, $message, $type = 'info', $priority = 'normal')
+    {
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO notifications (user_id, title, message, type, priority, created_at)
+                VALUES (?, ?, ?, ?, ?, NOW())
+            ");
+            
+            return $stmt->execute([$userId, $title, $message, $type, $priority]);
+            
+        } catch (Exception $e) {
+            error_log("Failed to send notification: " . $e->getMessage());
+            return false;
         }
     }
 
