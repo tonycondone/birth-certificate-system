@@ -15,6 +15,7 @@ $child_last_name = $application['child_last_name'] ?? 'N/A';
 $date_of_birth = $application['date_of_birth'] ?? 'N/A';
 $time_of_birth = $application['time_of_birth'] ?? 'N/A';
 $place_of_birth = $application['place_of_birth'] ?? 'N/A';
+
 // Gender with validation
 $gender = $application['gender'] ?? 'N/A';
 // Auto-correct common gender inconsistencies based on names
@@ -46,7 +47,8 @@ $attending_physician = $application['attending_physician'] ?? 'N/A';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Birth Certificate - <?= htmlspecialchars($certificate_number) ?></title>
+    <title>Birth Certificate - <?= htmlspecialchars($child_first_name . ' ' . $child_last_name) ?></title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Dancing+Script:wght@400;700&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -55,146 +57,201 @@ $attending_physician = $application['attending_physician'] ?? 'N/A';
         }
 
         body {
-            font-family: 'Times New Roman', serif;
-            background: white;
-            padding: 0;
-            color: #000;
-            line-height: 1.4;
+            font-family: 'Crimson Text', serif;
+            background: #f5f5f5;
+            padding: 20px;
+            color: #2c1810;
+            line-height: 1.6;
         }
 
         .certificate-container {
             width: 8.5in;
             height: 11in;
             margin: 0 auto;
-            background: white;
-            border: 3px solid #000;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(218, 165, 32, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 69, 19, 0.03) 0%, transparent 50%),
+                linear-gradient(45deg, #faf8f3 0%, #f5f1e8 100%);
             position: relative;
             padding: 0.5in;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
         }
 
-        /* Official Header */
+        /* Ornate Border */
+        .ornate-border {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            border: 4px solid #DAA520;
+            border-radius: 15px;
+            background: 
+                linear-gradient(45deg, transparent 0%, rgba(218, 165, 32, 0.05) 50%, transparent 100%);
+            box-shadow: 
+                inset 0 0 0 2px #DAA520,
+                inset 0 0 0 8px #faf8f3,
+                inset 0 0 0 12px #DAA520;
+        }
+
+        /* Corner decorations */
+        .corner-decoration {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #DAA520 30%, transparent 70%);
+            border-radius: 50%;
+            opacity: 0.3;
+        }
+
+        .corner-decoration.top-left { top: 10px; left: 10px; }
+        .corner-decoration.top-right { top: 10px; right: 10px; }
+        .corner-decoration.bottom-left { bottom: 10px; left: 10px; }
+        .corner-decoration.bottom-right { bottom: 10px; right: 10px; }
+
+        /* Vintage pattern overlay */
+        .certificate-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 2px 2px, rgba(218, 165, 32, 0.1) 1px, transparent 0),
+                radial-gradient(circle at 20px 20px, rgba(139, 69, 19, 0.05) 1px, transparent 0);
+            background-size: 40px 40px, 60px 60px;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Header */
         .certificate-header {
             text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 20px;
-            margin-bottom: 25px;
-        }
-
-        .state-seal {
-            width: 80px;
-            height: 80px;
-            border: 3px solid #000;
-            border-radius: 50%;
-            margin: 0 auto 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: bold;
-            background: white;
-        }
-
-        .department-name {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            text-transform: uppercase;
+            margin-top: 60px;
+            margin-bottom: 50px;
+            position: relative;
+            z-index: 2;
         }
 
         .certificate-title {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 15px 0 10px 0;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+            font-family: 'Playfair Display', serif;
+            font-size: 48px;
+            font-weight: 700;
+            color: #2c1810;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            letter-spacing: 3px;
         }
 
-        .file-number {
-            position: absolute;
-            top: 0.5in;
-            right: 0.5in;
-            font-size: 12px;
-            border: 1px solid #000;
-            padding: 5px 10px;
+        .certificate-subtitle {
+            font-size: 18px;
+            color: #5d4e37;
+            margin-bottom: 40px;
+            font-style: italic;
         }
 
-        /* Form Layout */
-        .form-section {
-            margin-bottom: 20px;
-        }
-
-        .section-title {
-            font-size: 14px;
-            font-weight: bold;
-            background: #000;
-            color: white;
-            padding: 5px 10px;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-        }
-
-        .form-row {
-            display: flex;
-            margin-bottom: 12px;
-            align-items: flex-end;
-        }
-
-        .form-field {
-            flex: 1;
-            margin-right: 20px;
+        /* Child Name Section */
+        .child-name-section {
+            text-align: center;
+            margin: 40px 0;
             position: relative;
+            z-index: 2;
         }
 
-        .form-field:last-child {
-            margin-right: 0;
+        .child-name {
+            font-family: 'Dancing Script', cursive;
+            font-size: 56px;
+            font-weight: 700;
+            color: #DAA520;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            line-height: 1.2;
         }
 
-        .field-label {
-            font-size: 10px;
-            font-weight: bold;
-            display: block;
-            margin-bottom: 3px;
-            text-transform: uppercase;
+        .name-underline {
+            width: 400px;
+            height: 2px;
+            background: linear-gradient(to right, transparent 0%, #DAA520 20%, #DAA520 80%, transparent 100%);
+            margin: 20px auto;
         }
 
-        .field-value {
-            border-bottom: 1px solid #000;
-            padding: 3px 0;
-            font-size: 12px;
-            min-height: 18px;
-            font-weight: normal;
+        /* Content sections */
+        .birth-details {
+            text-align: center;
+            margin: 40px 0;
+            position: relative;
+            z-index: 2;
         }
 
-        .field-number {
-            position: absolute;
-            right: 0;
-            top: -15px;
-            font-size: 8px;
-            background: white;
-            padding: 0 3px;
-        }
-
-        /* Two column layout for parents */
         .parents-section {
             display: flex;
-            gap: 30px;
+            justify-content: space-between;
+            margin: 30px 0;
+            position: relative;
+            z-index: 2;
         }
 
-        .parent-column {
-            flex: 1;
+        .parent-name {
+            font-family: 'Dancing Script', cursive;
+            font-size: 28px;
+            font-weight: 700;
+            color: #DAA520;
+            margin: 10px 0;
         }
 
-        /* Certification section */
-        .certification-section {
-            margin-top: 30px;
-            border-top: 2px solid #000;
-            padding-top: 20px;
+        .birth-info {
+            font-size: 18px;
+            color: #2c1810;
+            margin: 15px 0;
+            line-height: 1.8;
         }
 
-        .signature-area {
+        .birth-date {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c1810;
+            margin: 20px 0;
+        }
+
+        .hospital-info {
+            font-size: 16px;
+            color: #5d4e37;
+            margin: 15px 0;
+            font-style: italic;
+        }
+
+        .measurements {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin: 30px 0;
+            font-size: 16px;
+            color: #2c1810;
+        }
+
+        /* Medical Symbol */
+        .medical-symbol {
+            text-align: center;
+            margin: 40px 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .caduceus {
+            font-size: 48px;
+            color: #DAA520;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Signatures */
+        .signatures-section {
             display: flex;
             justify-content: space-between;
-            margin-top: 40px;
+            margin-top: 60px;
+            padding-top: 30px;
+            position: relative;
+            z-index: 2;
         }
 
         .signature-block {
@@ -203,285 +260,169 @@ $attending_physician = $application['attending_physician'] ?? 'N/A';
         }
 
         .signature-line {
-            border-bottom: 1px solid #000;
-            height: 40px;
-            margin-bottom: 5px;
+            width: 180px;
+            height: 1px;
+            background: #2c1810;
+            margin: 40px auto 10px;
         }
 
         .signature-label {
-            font-size: 10px;
+            font-size: 14px;
+            color: #5d4e37;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        /* Watermark */
-        .watermark {
+        /* Footer branding */
+        .footer-brand {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 72px;
-            font-weight: bold;
-            color: rgba(0, 0, 0, 0.05);
-            z-index: 1;
-            pointer-events: none;
+            bottom: 30px;
+            right: 50px;
+            font-size: 12px;
+            color: #DAA520;
+            font-weight: 600;
+            z-index: 2;
         }
 
-        /* Print optimization */
+        /* Print styles */
         @media print {
             body {
-                margin: 0;
+                background: white;
                 padding: 0;
             }
             
             .certificate-container {
-                border: 3px solid #000;
+                box-shadow: none;
                 margin: 0;
+            }
+        }
+
+        /* Responsive adjustments */
+        @media screen and (max-width: 768px) {
+            .certificate-container {
+                width: 100%;
+                height: auto;
+                padding: 30px 20px;
+            }
+            
+            .certificate-title {
+                font-size: 36px;
+            }
+            
+            .child-name {
+                font-size: 42px;
+            }
+            
+            .parents-section {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .measurements {
+                flex-direction: column;
+                gap: 10px;
             }
         }
     </style>
 </head>
 <body>
     <div class="certificate-container">
-        <div class="watermark">OFFICIAL</div>
-        
-        <div class="file-number">
-            LOCAL FILE NO.<br>
-            <?= htmlspecialchars($certificate_number) ?>
-        </div>
+        <!-- Ornate border and decorations -->
+        <div class="ornate-border"></div>
+        <div class="corner-decoration top-left"></div>
+        <div class="corner-decoration top-right"></div>
+        <div class="corner-decoration bottom-left"></div>
+        <div class="corner-decoration bottom-right"></div>
 
+        <!-- Header -->
         <div class="certificate-header">
-            <div class="state-seal">
-                STATE<br>SEAL
-            </div>
-            <div class="department-name">Department of Health</div>
-            <div class="department-name">Division of Vital Statistics</div>
-            <div class="certificate-title">Certificate of Live Birth</div>
+            <h1 class="certificate-title">Birth Certificate</h1>
+            <p class="certificate-subtitle">This certifies that</p>
         </div>
 
-        <!-- Child Information -->
-        <div class="form-section">
-            <div class="section-title">Child Information</div>
-            
-            <div class="form-row">
-                <div class="form-field">
-                    <span class="field-number">1</span>
-                    <label class="field-label">Child's First Name</label>
-                    <div class="field-value"><?= htmlspecialchars($child_first_name) ?></div>
-                </div>
-                <div class="form-field">
-                    <span class="field-number">2</span>
-                    <label class="field-label">Middle Name</label>
-                    <div class="field-value"><?= htmlspecialchars($child_middle_name) ?></div>
-                </div>
-                <div class="form-field">
-                    <span class="field-number">3</span>
-                    <label class="field-label">Last Name</label>
-                    <div class="field-value"><?= htmlspecialchars($child_last_name) ?></div>
-                </div>
+        <!-- Child Name -->
+        <div class="child-name-section">
+            <div class="child-name">
+                <?= htmlspecialchars(trim($child_first_name . ' ' . ($child_middle_name ? $child_middle_name . ' ' : '') . $child_last_name)) ?>
             </div>
-
-            <div class="form-row">
-                <div class="form-field">
-                    <span class="field-number">4</span>
-                    <label class="field-label">Date of Birth (Month/Day/Year)</label>
-                    <div class="field-value"><?= htmlspecialchars(date('m/d/Y', strtotime($date_of_birth))) ?></div>
-                </div>
-                <div class="form-field">
-                    <span class="field-number">5</span>
-                    <label class="field-label">Time of Birth</label>
-                    <div class="field-value"><?= htmlspecialchars($time_of_birth) ?></div>
-                </div>
-                <div class="form-field">
-                    <span class="field-number">6</span>
-                    <label class="field-label">Sex</label>
-                    <div class="field-value"><?= htmlspecialchars(strtoupper($gender)) ?></div>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-field">
-                    <span class="field-number">7</span>
-                    <label class="field-label">Place of Birth (Hospital/Facility Name)</label>
-                    <div class="field-value"><?= htmlspecialchars($hospital_name) ?></div>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-field">
-                    <span class="field-number">8</span>
-                    <label class="field-label">City or Town of Birth</label>
-                    <div class="field-value"><?= htmlspecialchars($application['city_of_birth'] ?? $place_of_birth) ?></div>
-                </div>
-                <div class="form-field">
-                    <span class="field-number">9</span>
-                    <label class="field-label">County/Region of Birth</label>
-                    <div class="field-value"><?= htmlspecialchars($application['county_of_birth'] ?? 'Greater Accra Region') ?></div>
-                </div>
-            </div>
+            <div class="name-underline"></div>
         </div>
 
-        <!-- Parents Information -->
-        <div class="form-section">
-            <div class="section-title">Parents Information</div>
+        <!-- Birth Details -->
+        <div class="birth-details">
+            <div class="birth-info">was born to</div>
             
             <div class="parents-section">
-                <!-- Father -->
-                <div class="parent-column">
-                    <div style="font-weight: bold; margin-bottom: 10px; font-size: 12px;">FATHER</div>
-                    
-                    <div style="margin-bottom: 10px;">
-                        <span class="field-number">10</span>
-                        <label class="field-label">Father's First Name</label>
-                        <div class="field-value"><?= htmlspecialchars($father_first_name) ?></div>
-                    </div>
-                    
-                    <div style="margin-bottom: 10px;">
-                        <span class="field-number">11</span>
-                        <label class="field-label">Father's Last Name</label>
-                        <div class="field-value"><?= htmlspecialchars($father_last_name) ?></div>
-                    </div>
-                    
-                    <div style="margin-bottom: 10px;">
-                        <span class="field-number">12</span>
-                        <label class="field-label">Father's ID Number</label>
-                        <div class="field-value"><?= htmlspecialchars($father_national_id) ?></div>
-                    </div>
+                <div class="parent-name">
+                    <?= htmlspecialchars(trim($father_first_name . ' ' . $father_last_name)) ?>
                 </div>
+                <div style="align-self: center; font-size: 16px; color: #5d4e37;">and</div>
+                <div class="parent-name">
+                    <?= htmlspecialchars(trim($mother_first_name . ' ' . $mother_last_name)) ?>
+                </div>
+            </div>
 
-                <!-- Mother -->
-                <div class="parent-column">
-                    <div style="font-weight: bold; margin-bottom: 10px; font-size: 12px;">MOTHER</div>
-                    
-                    <div style="margin-bottom: 10px;">
-                        <span class="field-number">13</span>
-                        <label class="field-label">Mother's First Name</label>
-                        <div class="field-value"><?= htmlspecialchars($mother_first_name) ?></div>
-                    </div>
-                    
-                    <div style="margin-bottom: 10px;">
-                        <span class="field-number">14</span>
-                        <label class="field-label">Mother's Last Name</label>
-                        <div class="field-value"><?= htmlspecialchars($mother_last_name) ?></div>
-                    </div>
-                    
-                    <div style="margin-bottom: 10px;">
-                        <span class="field-number">15</span>
-                        <label class="field-label">Mother's ID Number</label>
-                        <div class="field-value"><?= htmlspecialchars($mother_national_id) ?></div>
-                    </div>
+            <div class="birth-date">
+                on <?= !empty($date_of_birth) && $date_of_birth !== 'N/A' ? date('j F, Y', strtotime($date_of_birth)) : 'Not specified' ?>
+            </div>
+
+            <div class="hospital-info">
+                at <?= htmlspecialchars($hospital_name) ?> in <?= htmlspecialchars($place_of_birth) ?>
+            </div>
+
+            <div class="measurements">
+                <div>
+                    <strong>Weight:</strong> 
+                    <?php
+                    if (is_numeric($weight_at_birth) && $weight_at_birth !== 'N/A') {
+                        $weightLbs = round($weight_at_birth * 2.20462, 1);
+                        echo htmlspecialchars($weightLbs) . " lbs";
+                    } else {
+                        echo "Not specified";
+                    }
+                    ?>
+                </div>
+                <div>
+                    <strong>Length:</strong> 
+                    <?php
+                    if (is_numeric($length_at_birth) && $length_at_birth !== 'N/A') {
+                        $lengthInches = round($length_at_birth / 2.54, 1);
+                        echo htmlspecialchars($lengthInches) . " in";
+                    } else {
+                        echo "Not specified";
+                    }
+                    ?>
                 </div>
             </div>
         </div>
 
-        <!-- Medical Information -->
-        <div class="form-section">
-            <div class="section-title">Medical and Health Information</div>
-            
-            <div class="form-row">
-                <div class="form-field">
-                    <span class="field-number">16</span>
-                    <label class="field-label">Weight at Birth</label>
-                    <div class="field-value">
-                        <?php
-                        // Convert kg to lbs and oz for display, but show original unit
-                        $weight = $weight_at_birth;
-                        if (is_numeric($weight)) {
-                            $weightLbs = round($weight * 2.20462, 1);
-                            echo htmlspecialchars($weight) . " kg ($weightLbs lbs)";
-                        } else {
-                            echo htmlspecialchars($weight);
-                        }
-                        ?>
-                    </div>
-                </div>
-                <div class="form-field">
-                    <span class="field-number">17</span>
-                    <label class="field-label">Length at Birth</label>
-                    <div class="field-value">
-                        <?php
-                        // Convert cm to inches for display, but show original unit
-                        $length = $length_at_birth;
-                        if (is_numeric($length)) {
-                            $lengthInches = round($length / 2.54, 1);
-                            echo htmlspecialchars($length) . " cm ($lengthInches in)";
-                        } else {
-                            echo htmlspecialchars($length);
-                        }
-                        ?>
-                    </div>
+        <!-- Medical Symbol -->
+        <div class="medical-symbol">
+            <div class="caduceus">⚕</div>
+        </div>
+
+        <!-- Signatures -->
+        <div class="signatures-section">
+            <div class="signature-block">
+                <div class="signature-line"></div>
+                <div class="signature-label">
+                    <?= htmlspecialchars($attending_physician) ?><br>
+                    Doctor on Duty
                 </div>
             </div>
-
-            <div class="form-row">
-                <div class="form-field">
-                    <span class="field-number">18</span>
-                    <label class="field-label">Attendant's Name (MD, DO, CNM, CPM, Other)</label>
-                    <div class="field-value"><?= htmlspecialchars($attending_physician) ?></div>
+            
+            <div class="signature-block">
+                <div class="signature-line"></div>
+                <div class="signature-label">
+                    Registrar<br>
+                    Medical Officer
                 </div>
             </div>
         </div>
 
-        <!-- Certification -->
-        <div class="certification-section">
-            <div class="section-title">Certification</div>
-            
-            <p style="font-size: 11px; margin-bottom: 20px;">
-                I hereby certify that this is a true and correct copy of the original Certificate of Live Birth on file 
-                in the Office of Vital Statistics, Department of Health.
-            </p>
-
-            <div class="signature-area">
-                <div class="signature-block">
-                    <div class="signature-line"></div>
-                    <div class="signature-label">State Registrar</div>
-                </div>
-                
-                <div style="text-align: center; padding-top: 20px;">
-                    <div style="border: 2px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 10px;">
-                        OFFICIAL<br>SEAL
-                    </div>
-                </div>
-                
-                <div class="signature-block">
-                    <div class="signature-line"></div>
-                    <div class="signature-label">Date Issued</div>
-                    <div style="font-size: 10px; margin-top: 5px;">
-                        <?= date('m/d/Y', strtotime($issued_at)) ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Data Validation Notice -->
-            <?php 
-            $hasCorrections = false;
-            $corrections = [];
-            
-            // Check for gender corrections
-            if (!empty($child_first_name)) {
-                $firstName = strtolower(trim($child_first_name));
-                $originalGender = $application['gender'] ?? '';
-                if (in_array($firstName, ['ama', 'akosua', 'adwoa', 'yaa', 'efua', 'aba', 'akua', 'afia']) && strtolower($originalGender) === 'male') {
-                    $corrections[] = "Gender corrected from Male to Female based on traditional name";
-                    $hasCorrections = true;
-                } elseif (in_array($firstName, ['kwame', 'kwaku', 'kwadwo', 'yaw', 'kofi', 'kwabena', 'kweku', 'kojo']) && strtolower($originalGender) === 'female') {
-                    $corrections[] = "Gender corrected from Female to Male based on traditional name";
-                    $hasCorrections = true;
-                }
-            }
-            
-            if ($hasCorrections): ?>
-            <div style="margin-top: 20px; padding: 10px; border: 1px solid #ff6b35; background: #fff3f0; font-size: 10px;">
-                <strong>REGISTRAR NOTES:</strong><br>
-                <?php foreach ($corrections as $correction): ?>
-                • <?= htmlspecialchars($correction) ?><br>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-
-            <div style="text-align: center; margin-top: 30px; font-size: 10px; border-top: 1px solid #000; padding-top: 10px;">
-                <strong>WARNING:</strong> Any person who willfully and knowingly makes any false statement in a birth certificate 
-                shall be guilty of a misdemeanor and upon conviction thereof shall be punished by a fine or imprisonment or both.
-            </div>
+        <!-- Footer -->
+        <div class="footer-brand">
+            Birth Registry
         </div>
     </div>
 </body>
