@@ -277,10 +277,10 @@
                                                 </div>
                                         </td>
                                         <td>
-                                            <span class="badge bg-<?= $priorityClass ?> <?= $priorityClass === 'warning' ? 'text-dark' : '' ?>">
-                                                <i class="fas fa-clock me-1"></i>
-                                                <?= $app['days_pending'] ?> days
-                                            </span>
+                                                                                            <span class="badge bg-<?= $priorityClass ?> <?= $priorityClass === 'warning' ? 'text-dark' : '' ?>">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    <?= (int)($app['days_pending'] ?? 0) ?> days
+                                                </span>
                                             <br>
                                             <small class="text-<?= $priorityClass ?>">
                                                 <?= ucfirst($priority) ?> Priority
