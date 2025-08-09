@@ -645,6 +645,25 @@ class RegistrarController
     private function approveApplication($applicationId, $reviewerId, $comments)
     {
         try {
+            // Check if db connection is valid
+            if (!$this->db) {
+                return ['success' => false, 'message' => 'Database connection error'];
+            }
+            
+            // Check if application exists and can be approved
+            $stmt = $this->db->prepare("SELECT status FROM birth_applications WHERE id = ?");
+            $stmt->execute([$applicationId]);
+            $status = $stmt->fetchColumn();
+            
+            if (!$status) {
+                return ['success' => false, 'message' => 'Application not found'];
+            }
+            
+            if ($status === 'approved' || $status === 'rejected') {
+                return ['success' => false, 'message' => 'Application already processed'];
+            }
+
+            // Start transaction
             $this->db->beginTransaction();
 
             // Update application status
@@ -681,12 +700,20 @@ class RegistrarController
             return [
                 'success' => true,
                 'message' => 'Application approved successfully',
-                'certificate_number' => $certificateNumber
+                'certificate_number' => $certificateNumber,
+                'application_id' => $applicationId
             ];
         } catch (Exception $e) {
-            $this->db->rollBack();
+            // Only roll back if a transaction is active
+            if ($this->db && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("Error approving application: " . $e->getMessage());
-            return ['success' => false, 'message' => 'Error approving application'];
+            return [
+                'success' => false, 
+                'message' => 'Error approving application: ' . $e->getMessage(),
+                'application_id' => $applicationId
+            ];
         }
     }
 
@@ -696,6 +723,25 @@ class RegistrarController
     private function rejectApplication($applicationId, $reviewerId, $comments)
     {
         try {
+            // Check if db connection is valid
+            if (!$this->db) {
+                return ['success' => false, 'message' => 'Database connection error'];
+            }
+            
+            // Check if application exists and can be rejected
+            $stmt = $this->db->prepare("SELECT status FROM birth_applications WHERE id = ?");
+            $stmt->execute([$applicationId]);
+            $status = $stmt->fetchColumn();
+            
+            if (!$status) {
+                return ['success' => false, 'message' => 'Application not found'];
+            }
+            
+            if ($status === 'approved' || $status === 'rejected') {
+                return ['success' => false, 'message' => 'Application already processed'];
+            }
+            
+            // Start transaction
             $this->db->beginTransaction();
 
             // Update application status
@@ -719,12 +765,20 @@ class RegistrarController
 
             return [
                 'success' => true,
-                'message' => 'Application rejected successfully'
+                'message' => 'Application rejected successfully',
+                'application_id' => $applicationId
             ];
         } catch (Exception $e) {
-            $this->db->rollBack();
+            // Only roll back if a transaction is active
+            if ($this->db && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("Error rejecting application: " . $e->getMessage());
-            return ['success' => false, 'message' => 'Error rejecting application'];
+            return [
+                'success' => false, 
+                'message' => 'Error rejecting application: ' . $e->getMessage(),
+                'application_id' => $applicationId
+            ];
         }
     }
 
