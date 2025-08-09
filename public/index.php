@@ -231,7 +231,13 @@ $routes = [
     '/profile' => 'App\Controllers\UserController@profile',
     '/profile/update' => 'App\Controllers\UserController@updateProfile',
     '/profile/change-password' => 'App\Controllers\UserController@changePassword',
-    '/settings' => 'App\Controllers\UserController@settings',
+    '/settings' => 'App\Controllers\SettingsController@index',
+    '/settings/update-profile' => 'App\Controllers\SettingsController@updateProfile',
+    '/settings/change-password' => 'App\Controllers\SettingsController@changePassword',
+    '/settings/delete-account' => 'App\Controllers\SettingsController@deleteAccount',
+    '/settings/applications' => 'App\Controllers\SettingsController@getApplications',
+    '/settings/applications/{id}' => 'App\Controllers\SettingsController@deleteApplication',
+    '/settings/export-data' => 'App\Controllers\SettingsController@exportData',
     '/user/delete-account' => 'App\Controllers\UserController@deleteAccount',
     
     // Notification routes
