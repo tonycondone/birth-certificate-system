@@ -194,6 +194,7 @@ $routes = [
     '/certificates/{id}' => 'App\Controllers\CertificateController@show',
     '/certificates/{id}/download' => 'App\Controllers\CertificateController@download',
     '/certificates/{id}/verify' => 'App\Controllers\CertificateController@verify',
+    '/certificates/email/{id}' => 'App\Controllers\CertificateController@emailCertificate',
     '/certificate/apply' => 'App\Controllers\CertificateController@apply',
     '/certificate/verify' => 'App\Controllers\CertificateController@verifyFromRequest',
     '/certificate/approve' => 'App\Controllers\CertificateController@approveApplication',
@@ -213,6 +214,12 @@ $routes = [
     '/verify/certificate/{number}' => 'App\Controllers\CertificateController@validateCertificate',
     '/verifications' => 'App\Controllers\CertificateController@verifications',
     '/verifications/history' => 'App\Controllers\CertificateController@verificationHistory',
+    
+    // Reports (dashboard)
+    '/dashboard/reports/daily' => 'App\Controllers\ReportsController@daily',
+    '/dashboard/reports/weekly' => 'App\Controllers\ReportsController@weekly',
+    '/dashboard/reports/monthly' => 'App\Controllers\ReportsController@monthly',
+    '/dashboard/registrar/approved' => 'App\Controllers\RegistrarController@approved',
     
     // Tracking routes
     '/track' => 'App\Controllers\TrackingController@showTrackingForm',
