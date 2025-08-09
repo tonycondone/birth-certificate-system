@@ -236,6 +236,14 @@ $routes = [
     
     // Notification routes
     '/notifications' => 'App\Controllers\NotificationController@index',
+    '/notifications/create' => 'App\Controllers\NotificationController@create',
+    '/notifications/{id}' => 'App\Controllers\NotificationController@show',
+    '/notifications/{id}/read' => 'App\Controllers\NotificationController@markAsRead',
+    '/notifications/{id}/delete' => 'App\Controllers\NotificationController@delete',
+    '/notifications/mark-all-read' => 'App\Controllers\NotificationController@markAllAsRead',
+    '/notifications/get-unread-count' => 'App\Controllers\NotificationController@getUnreadCount',
+    '/notifications/get-recent' => 'App\Controllers\NotificationController@getRecent',
+    '/notifications/broadcast' => 'App\Controllers\NotificationController@broadcast',
     '/notifications/{id}/mark-as-read' => 'App\Controllers\NotificationController@markAsRead',
     '/notifications/mark-all-as-read' => 'App\Controllers\NotificationController@markAllAsRead',
     
