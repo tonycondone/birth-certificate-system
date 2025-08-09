@@ -297,12 +297,12 @@ $attending_physician = $application['attending_physician'] ?? 'N/A';
                 <div class="form-field">
                     <span class="field-number">8</span>
                     <label class="field-label">City or Town of Birth</label>
-                    <div class="field-value"><?= htmlspecialchars($place_of_birth) ?></div>
+                    <div class="field-value"><?= htmlspecialchars($application['city_of_birth'] ?? $place_of_birth) ?></div>
                 </div>
                 <div class="form-field">
                     <span class="field-number">9</span>
-                    <label class="field-label">County of Birth</label>
-                    <div class="field-value"><?= htmlspecialchars($place_of_birth) ?></div>
+                    <label class="field-label">County/Region of Birth</label>
+                    <div class="field-value"><?= htmlspecialchars($application['county_of_birth'] ?? 'Greater Accra Region') ?></div>
                 </div>
             </div>
         </div>
