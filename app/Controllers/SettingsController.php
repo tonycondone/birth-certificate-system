@@ -15,7 +15,7 @@ class SettingsController
     {
         try {
             $this->db = Database::getConnection();
-            $this->notificationService = new NotificationService();
+            // $this->notificationService = new NotificationService();
         } catch (Exception $e) {
             error_log("SettingsController initialization error: " . $e->getMessage());
             $this->db = null;
