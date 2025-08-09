@@ -318,9 +318,15 @@ $pageTitle = $pageTitle ?? 'Certificate Details';
                             </a>
                             <?php endif; ?>
                             
+                            <?php if (!empty($certificate['certificate_number'])): ?>
                             <a href="/verify/<?= htmlspecialchars($certificate['certificate_number']) ?>" class="btn btn-outline-success" target="_blank">
                                 <i class="fa fa-check-circle me-2"></i>Verify Certificate
                             </a>
+                            <?php else: ?>
+                            <button class="btn btn-outline-secondary" disabled>
+                                <i class="fa fa-exclamation-triangle me-2"></i>Certificate Not Issued
+                            </button>
+                            <?php endif; ?>
                             
                             <a href="/certificates" class="btn btn-outline-secondary">
                                 <i class="fa fa-list me-2"></i>Back to Certificates
