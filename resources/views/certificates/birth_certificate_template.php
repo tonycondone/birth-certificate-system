@@ -15,7 +15,20 @@ $child_last_name = $application['child_last_name'] ?? 'N/A';
 $date_of_birth = $application['date_of_birth'] ?? 'N/A';
 $time_of_birth = $application['time_of_birth'] ?? 'N/A';
 $place_of_birth = $application['place_of_birth'] ?? 'N/A';
+// Gender with validation
 $gender = $application['gender'] ?? 'N/A';
+// Auto-correct common gender inconsistencies based on names
+if (!empty($child_first_name)) {
+    $femaleNames = ['ama', 'akosua', 'adwoa', 'yaa', 'efua', 'aba', 'akua', 'afia'];
+    $maleNames = ['kwame', 'kwaku', 'kwadwo', 'yaw', 'kofi', 'kwabena', 'kweku', 'kojo'];
+    
+    $firstName = strtolower(trim($child_first_name));
+    if (in_array($firstName, $femaleNames) && strtolower($gender) === 'male') {
+        $gender = 'Female'; // Auto-correct to female
+    } elseif (in_array($firstName, $maleNames) && strtolower($gender) === 'female') {
+        $gender = 'Male'; // Auto-correct to male
+    }
+}
 $weight_at_birth = $application['weight_at_birth'] ?? 'N/A';
 $length_at_birth = $application['length_at_birth'] ?? 'N/A';
 
