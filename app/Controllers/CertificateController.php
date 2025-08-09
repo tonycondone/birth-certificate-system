@@ -745,7 +745,7 @@ class CertificateController
                 SELECT c.*, a.* 
                 FROM certificates c
                 JOIN birth_applications a ON c.application_id = a.id
-                WHERE c.id = ? AND c.status = 'active'
+                WHERE c.id = ?
             ");
             $stmt->execute([$certificateId]);
             $data = $stmt->fetch();
