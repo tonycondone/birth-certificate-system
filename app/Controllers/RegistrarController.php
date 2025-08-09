@@ -168,6 +168,14 @@ class RegistrarController
             // Get pending applications for processing
             $applications = $this->getPendingApplications(50);
             
+            // Check for diagnostic mode
+            if (isset($_GET['diagnose']) && $_GET['diagnose'] === 'true') {
+                $diagnostic = $this->runDatabaseDiagnostics();
+                $applications = array_slice($applications, 0, 5); // Limit to 5 for diagnostic view
+                include BASE_PATH . '/resources/views/registrar/batch-process-diagnostic.php';
+                return;
+            }
+            
             include BASE_PATH . '/resources/views/registrar/batch-process.php';
             return;
         } else if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -191,6 +199,12 @@ class RegistrarController
             // Check if database connection is valid before processing
             if (!$this->db) {
                 throw new Exception('Database connection not available');
+            }
+            
+            // Run diagnostics if debug flag is set
+            $diagnosticInfo = null;
+            if (isset($_POST['debug']) && $_POST['debug'] === 'true') {
+                $diagnosticInfo = $this->runDatabaseDiagnostics();
             }
             
             // Verify if required tables exist
@@ -250,17 +264,89 @@ class RegistrarController
                 $response['errors'] = $detailedErrors;
             }
             
+            // Include diagnostic info if requested
+            if ($diagnosticInfo) {
+                $response['diagnostic'] = $diagnosticInfo;
+            }
+            
             echo json_encode($response);
             
         } catch (Exception $e) {
             error_log("Error in batch processing: " . $e->getMessage());
             http_response_code(500);
+            
+            // Run diagnostics to help identify the issue
+            $diagnosticInfo = null;
+            try {
+                $diagnosticInfo = $this->runDatabaseDiagnostics();
+            } catch (Exception $diagEx) {
+                error_log("Diagnostic error: " . $diagEx->getMessage());
+            }
+            
             echo json_encode([
                 'error' => 'Internal server error', 
                 'message' => $e->getMessage(),
-                'details' => 'Please check PHP error log for more information.'
+                'details' => 'Please check PHP error log for more information.',
+                'diagnostic' => $diagnosticInfo
             ]);
         }
+    }
+    
+    /**
+     * Run database diagnostics to help identify issues
+     */
+    private function runDatabaseDiagnostics()
+    {
+        $results = [
+            'database_connection' => false,
+            'tables' => [],
+            'schema' => [],
+            'test_query' => false
+        ];
+        
+        try {
+            // Test database connection
+            if ($this->db) {
+                $results['database_connection'] = true;
+                
+                // Check if required tables exist
+                $tables = ['birth_applications', 'certificates', 'users', 'notifications', 'activity_log'];
+                
+                foreach ($tables as $table) {
+                    $stmt = $this->db->query("SHOW TABLES LIKE '$table'");
+                    $tableExists = ($stmt->rowCount() > 0);
+                    
+                    $results['tables'][$table] = $tableExists;
+                    
+                    if ($tableExists) {
+                        // Check table schema
+                        $stmt = $this->db->query("DESCRIBE $table");
+                        $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                        $columnList = [];
+                        
+                        foreach ($columns as $column) {
+                            $columnList[$column['Field']] = [
+                                'type' => $column['Type'],
+                                'null' => $column['Null'],
+                                'key' => $column['Key'],
+                                'default' => $column['Default'],
+                                'extra' => $column['Extra']
+                            ];
+                        }
+                        
+                        $results['schema'][$table] = $columnList;
+                    }
+                }
+                
+                // Test a simple query
+                $stmt = $this->db->query("SELECT 1");
+                $results['test_query'] = ($stmt->fetchColumn() == 1);
+            }
+        } catch (Exception $e) {
+            $results['error'] = $e->getMessage();
+        }
+        
+        return $results;
     }
 
     /**
