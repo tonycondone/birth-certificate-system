@@ -273,7 +273,7 @@ $pageTitle = $pageTitle ?? 'Certificate Details';
                             <div class="col-md-6">
                                 <div class="info-label">Hospital/Institution</div>
                                 <div class="info-value">
-                                    <?= htmlspecialchars($certificate['hospital_name']) ?>
+                                    <?= htmlspecialchars($certificate['hospital_name'] ?? 'Not specified') ?>
                                 </div>
                             </div>
                             <?php if (!empty($certificate['attending_physician'])): ?>
