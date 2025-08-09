@@ -308,12 +308,12 @@
                                                         title="Quick Reject">
                                                     <i class="fas fa-times"></i>
                                                 </button>
-                                                <div class="btn-group btn-group-sm">
+                                                <div class="btn-group btn-group-sm position-static">
                                                     <button class="btn btn-outline-secondary dropdown-toggle action-btn" 
-                                                            data-bs-toggle="dropdown" title="More Actions">
+                                                            data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" title="More Actions">
                                                         <i class="fas fa-ellipsis-v"></i>
                                                     </button>
-                                                    <ul class="dropdown-menu">
+                                                    <ul class="dropdown-menu dropdown-menu-end shadow" style="z-index: 1055;">
                                                         <li>
                                                             <a class="dropdown-item" href="/applications/<?= $app['id'] ?>">
                                                                 <i class="fas fa-file-alt me-2"></i>View Details
