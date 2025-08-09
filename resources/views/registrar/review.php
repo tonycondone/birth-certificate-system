@@ -161,34 +161,72 @@ $pageTitle = $pageTitle ?? 'Review Application';
   function showAlert(kind, msg){
     alertHost.innerHTML = `<div class="alert alert-${kind} alert-dismissible fade show" role="alert">${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
   }
+  async function submitForm(extra={}){
+    const fd = new FormData(form);
+    Object.entries(extra).forEach(([k,v])=>fd.append(k,v));
+    const res = await fetch('/registrar/process', {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:fd});
+    return res.json();
+  }
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
     const action = e.submitter?.dataset?.action || 'approve';
-    const fd = new FormData(form);
-    fd.append('action', action);
-    const comments = (fd.get('comments')||'').toString().trim();
+    const comments = (document.getElementById('comments').value||'').trim();
     if(action==='reject' && !comments){
-      const fb = document.getElementById('commentsFeedback');
-      fb.textContent = 'Please provide a reason for rejection.';
+      document.getElementById('commentsFeedback').textContent='Please provide a reason for rejection.';
       document.getElementById('comments').classList.add('is-invalid');
       return;
     }
     document.getElementById('comments').classList.remove('is-invalid');
-    try{
-      const res = await fetch('/registrar/process', {
-        method: 'POST',
-        headers: { 'X-Requested-With':'XMLHttpRequest' },
-        body: fd
+    let data = await submitForm({action});
+    if(data && data.requires_override){
+      // Show override modal
+      const html = `<div class="modal fade" id="overrideModal" tabindex="-1">
+        <div class="modal-dialog"><div class="modal-content">
+          <div class="modal-header"><h5 class="modal-title">Payment Completed - Override Required</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Choose an action</label>
+              <select class="form-select" id="ovAction">
+                <option value="reinstate_approve">Reinstate and Approve (use existing payment)</option>
+                <option value="reject_refund">Reject and Refund</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Override Reason</label>
+              <textarea class="form-control" id="ovReason" rows="3" placeholder="Provide a reason"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="ovConfirm">Confirm Override</button>
+          </div>
+        </div></div></div>`;
+      const holder = document.createElement('div'); holder.innerHTML = html; document.body.appendChild(holder);
+      const modalEl = document.getElementById('overrideModal');
+      const modal = new bootstrap.Modal(modalEl); modal.show();
+      document.getElementById('ovConfirm').addEventListener('click', async ()=>{
+        const override_action = document.getElementById('ovAction').value;
+        const override_reason = document.getElementById('ovReason').value.trim();
+        if(!override_reason){ return alert('Override reason is required.'); }
+        try{
+          const result = await submitForm({action:'reject', override:'true', override_action, override_reason});
+          if(result && result.success){
+            modal.hide();
+            showAlert('success', result.message || 'Override completed.');
+            setTimeout(()=>{ window.location.href='/registrar/pending'; }, 800);
+          }else{
+            showAlert('danger', (result && (result.error||result.message)) || 'Override failed.');
+          }
+        }catch(err){ showAlert('danger', 'Network error.'); }
       });
-      const data = await res.json();
-      if(data && data.success){
-        showAlert('success', data.message || 'Action completed. Redirecting...');
-        setTimeout(()=>{ window.location.href = '/registrar/pending'; }, 800);
-      }else{
-        showAlert('danger', (data && (data.error||data.message)) || 'Action failed.');
-      }
-    }catch(err){
-      showAlert('danger', 'Network error. Please try again.');
+      return;
+    }
+    if(data && data.success){
+      showAlert('success', data.message || 'Action completed. Redirecting...');
+      setTimeout(()=>{ window.location.href = '/registrar/pending'; }, 800);
+    }else{
+      showAlert('danger', (data && (data.error||data.message)) || 'Action failed.');
     }
   });
 })();
