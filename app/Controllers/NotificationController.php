@@ -714,7 +714,7 @@ class NotificationController
                 SELECT 
                     COUNT(*) as total,
                     SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) as unread,
-                    SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END) as read,
+                    SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END) as `read`,
                     SUM(CASE WHEN type = 'urgent' OR priority = 'urgent' THEN 1 ELSE 0 END) as urgent,
                     SUM(CASE WHEN created_at >= NOW() - INTERVAL 24 HOUR THEN 1 ELSE 0 END) as today
                 FROM notifications
