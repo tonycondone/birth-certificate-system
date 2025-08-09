@@ -137,7 +137,7 @@ class TrackingController
                 LEFT JOIN users u ON ba.user_id = u.id
                 WHERE ba.application_number = ?
             ");
-            $stmt->execute([$trackingNumber, $trackingNumber]);
+            $stmt->execute([$trackingNumber]);
             $application = $stmt->fetch();
             
             if (!$application) {
