@@ -1210,6 +1210,10 @@ class CertificateController
         }
         
         try {
+            // Ensure database connection is available
+            if ($this->db === null) {
+                $this->db = Database::getConnection();
+            }
             // Get current user information
             $userId = $_SESSION['user_id'];
             $role = $_SESSION['role'] ?? '';
