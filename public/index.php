@@ -117,6 +117,7 @@ $routes = [
     '/dashboard/approved' => 'App\Controllers\DashboardController@approved',
     '/dashboard/reports' => 'App\Controllers\DashboardController@reports',
     '/dashboard/settings' => 'App\Controllers\DashboardController@settings',
+    '/dashboard/registrar/pending' => 'App\Controllers\RegistrarController@pendingApplications',
     '/dashboard/registrar/approved' => 'App\Controllers\RegistrarController@approved',
     '/dashboard/registrar/reports' => 'App\Controllers\RegistrarController@reports',
     '/dashboard/reports/daily' => 'App\Controllers\ReportsController@daily',
