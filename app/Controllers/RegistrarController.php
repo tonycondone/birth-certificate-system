@@ -650,6 +650,9 @@ class RegistrarController
                 return ['success' => false, 'message' => 'Database connection error'];
             }
             
+            // Ensure certificates table exists
+            $this->ensureCertificatesTableExists();
+            
             // Check if application exists and can be approved
             $stmt = $this->db->prepare("SELECT status FROM birth_applications WHERE id = ?");
             $stmt->execute([$applicationId]);
@@ -666,48 +669,60 @@ class RegistrarController
             // Start transaction
             $this->db->beginTransaction();
 
-            // Update application status
-            $stmt = $this->db->prepare("
-                UPDATE birth_applications 
-                SET status = 'approved', 
-                    reviewed_by = ?, 
-                    reviewed_at = NOW(), 
-                    review_notes = ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$reviewerId, $comments, $applicationId]);
-
-            // Generate certificate
-            $certificateNumber = $this->generateCertificateNumber();
-            $qrCodeHash = $this->generateQRCodeHash($certificateNumber);
-            
-            $stmt = $this->db->prepare("
-                INSERT INTO certificates (
-                    certificate_number, application_id, qr_code_hash, 
-                    issued_by, issued_at, status
-                ) VALUES (?, ?, ?, ?, NOW(), 'active')
-            ");
-            $stmt->execute([$certificateNumber, $applicationId, $qrCodeHash, $reviewerId]);
-
-            // Log activity
-            $this->logActivity($reviewerId, 'approve_application', "Approved application ID: {$applicationId}");
-
-            // Send notification
-            $this->sendNotification($applicationId, 'approved');
-
-            $this->db->commit();
-
-            return [
-                'success' => true,
-                'message' => 'Application approved successfully',
-                'certificate_number' => $certificateNumber,
-                'application_id' => $applicationId
-            ];
-        } catch (Exception $e) {
-            // Only roll back if a transaction is active
-            if ($this->db && $this->db->inTransaction()) {
-                $this->db->rollBack();
+            try {
+                // Update application status
+                $updateStmt = $this->db->prepare("
+                    UPDATE birth_applications 
+                    SET status = 'approved', 
+                        reviewed_by = ?, 
+                        reviewed_at = NOW(), 
+                        review_notes = ?
+                    WHERE id = ?
+                ");
+                $updateResult = $updateStmt->execute([$reviewerId, $comments, $applicationId]);
+                
+                if (!$updateResult) {
+                    throw new Exception("Failed to update application status");
+                }
+    
+                // Generate certificate
+                $certificateNumber = $this->generateCertificateNumber();
+                $qrCodeHash = $this->generateQRCodeHash($certificateNumber);
+                
+                $insertStmt = $this->db->prepare("
+                    INSERT INTO certificates (
+                        certificate_number, application_id, qr_code_hash, 
+                        issued_by, issued_at, status
+                    ) VALUES (?, ?, ?, ?, NOW(), 'active')
+                ");
+                $insertResult = $insertStmt->execute([$certificateNumber, $applicationId, $qrCodeHash, $reviewerId]);
+                
+                if (!$insertResult) {
+                    throw new Exception("Failed to create certificate record");
+                }
+    
+                // Log activity (don't throw exception if this fails)
+                $this->logActivity($reviewerId, 'approve_application', "Approved application ID: {$applicationId}");
+    
+                // Send notification (don't throw exception if this fails)
+                $this->sendNotification($applicationId, 'approved');
+    
+                $this->db->commit();
+    
+                return [
+                    'success' => true,
+                    'message' => 'Application approved successfully',
+                    'certificate_number' => $certificateNumber,
+                    'application_id' => $applicationId
+                ];
+            } catch (Exception $e) {
+                // Roll back the transaction if it's active
+                if ($this->db && $this->db->inTransaction()) {
+                    $this->db->rollBack();
+                }
+                throw $e; // Re-throw for outer catch block
             }
+        } catch (Exception $e) {
             error_log("Error approving application: " . $e->getMessage());
             return [
                 'success' => false, 
@@ -1040,6 +1055,36 @@ class RegistrarController
         } catch (Exception $e) {
             error_log("Error generating report: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Ensure certificates table exists
+     */
+    private function ensureCertificatesTableExists()
+    {
+        try {
+            $this->db->exec("
+                CREATE TABLE IF NOT EXISTS certificates (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    certificate_number VARCHAR(50) NOT NULL UNIQUE,
+                    application_id INT NOT NULL,
+                    qr_code_hash VARCHAR(255) NOT NULL,
+                    issued_by INT NOT NULL,
+                    issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    status ENUM('active', 'revoked', 'expired') DEFAULT 'active',
+                    revoked_at TIMESTAMP NULL DEFAULT NULL,
+                    revoked_by INT NULL DEFAULT NULL,
+                    revocation_reason TEXT NULL,
+                    INDEX idx_certificate_number (certificate_number),
+                    INDEX idx_application_id (application_id),
+                    INDEX idx_status (status)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+            return true;
+        } catch (Exception $e) {
+            error_log("Error creating certificates table: " . $e->getMessage());
+            return false;
         }
     }
 }
