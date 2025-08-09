@@ -297,6 +297,8 @@ $routes = [
     // Reports
     '/reports' => 'App\Controllers\ReportController@index',
     '/reports/export' => 'App\Controllers\ReportController@exportData',
+    '/reports/generate' => 'App\Controllers\ReportController@index',
+    '/reports/download/{id}' => 'App\Controllers\ReportController@exportData',
 ];
 
 // Comprehensive error handling for dependency injection
