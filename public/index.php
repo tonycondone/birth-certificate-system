@@ -260,6 +260,7 @@ $routes = [
     '/registrar/settings' => 'App\Controllers\AdminController@registrarSettings',
     '/registrar/certificates' => 'App\Controllers\CertificateController@listCertificates',
     '/registrar/certificates/download/{id}' => 'App\Controllers\CertificateController@download',
+    '/registrar/create-table' => 'App\Controllers\RegistrarController@createTable',
     
     // Feedback routes
     '/applications/{id}/feedback' => 'App\Controllers\FeedbackController@create',
