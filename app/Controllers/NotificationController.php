@@ -430,6 +430,52 @@ class NotificationController
         }
     }
     
+    /**
+     * Poll for real-time notification updates
+     */
+    public function poll()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            return;
+        }
+        
+        try {
+            $userId = $_SESSION['user_id'];
+            $since = isset($_GET['since']) ? intval($_GET['since']) : (time() - 60);
+            
+            // Get notifications created since the last poll
+            $stmt = $this->db->prepare("
+                SELECT id, title, message, type, priority, is_read, created_at,
+                       UNIX_TIMESTAMP(created_at) as timestamp
+                FROM notifications 
+                WHERE user_id = ? AND UNIX_TIMESTAMP(created_at) > ?
+                ORDER BY created_at DESC
+                LIMIT 10
+            ");
+            $stmt->execute([$userId, $since]);
+            $newNotifications = $stmt->fetchAll();
+            
+            // Get current unread count
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0");
+            $stmt->execute([$userId]);
+            $unreadCount = (int)$stmt->fetchColumn();
+            
+            echo json_encode([
+                'success' => true,
+                'new_notifications' => $newNotifications,
+                'unread_count' => $unreadCount,
+                'server_time' => time()
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error polling notifications: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Internal server error']);
+        }
+    }
+
     // PRIVATE HELPER METHODS
     
     /**
