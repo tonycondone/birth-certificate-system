@@ -1203,4 +1203,56 @@ class RegistrarController
             return false;
         }
     }
+
+    /**
+     * Create database table dynamically
+     */
+    public function createTable()
+    {
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'registrar') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            return;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+        
+        $table = $_GET['table'] ?? '';
+        
+        if (!in_array($table, ['certificates', 'activity_log', 'notifications'])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid table name']);
+            return;
+        }
+        
+        try {
+            switch ($table) {
+                case 'certificates':
+                    $result = $this->ensureCertificatesTableExists();
+                    break;
+                case 'activity_log':
+                    $result = $this->ensureActivityLogTableExists();
+                    break;
+                case 'notifications':
+                    $result = $this->ensureNotificationsTableExists();
+                    break;
+                default:
+                    $result = false;
+            }
+            
+            if ($result) {
+                echo json_encode(['success' => true, 'message' => "Table '$table' created successfully"]);
+            } else {
+                echo json_encode(['success' => false, 'message' => "Failed to create table '$table'"]);
+            }
+        } catch (Exception $e) {
+            error_log("Error creating table: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
 }
