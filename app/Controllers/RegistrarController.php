@@ -848,6 +848,7 @@ class RegistrarController
     private function logActivity($userId, $action, $description)
     {
         try {
+            // First make sure the activity log table exists
             $this->ensureActivityLogTableExists();
             
             $stmt = $this->db->prepare("
@@ -855,8 +856,11 @@ class RegistrarController
                 VALUES (?, ?, ?, NOW())
             ");
             $stmt->execute([$userId, $action, $description]);
+            return true;
         } catch (Exception $e) {
             error_log("Error logging activity: " . $e->getMessage());
+            // Don't throw exception - let the main transaction continue even if logging fails
+            return false;
         }
     }
 
@@ -866,6 +870,9 @@ class RegistrarController
     private function sendNotification($applicationId, $type)
     {
         try {
+            // Make sure notifications table exists
+            $this->ensureNotificationsTableExists();
+            
             // Get application user
             $stmt = $this->db->prepare("SELECT user_id FROM birth_applications WHERE id = ?");
             $stmt->execute([$applicationId]);
@@ -880,16 +887,20 @@ class RegistrarController
                 $message = $messages[$type] ?? 'Application status updated';
 
                 $stmt = $this->db->prepare("
-                    INSERT INTO notifications (user_id, type, message, application_id, created_at)
-                    VALUES (?, ?, ?, ?, NOW())
+                    INSERT INTO notifications (user_id, type, message, application_id, created_at, is_read)
+                    VALUES (?, ?, ?, ?, NOW(), 0)
                 ");
                 $stmt->execute([$userId, $type, $message, $applicationId]);
+                return true;
             }
+            return false;
         } catch (Exception $e) {
             error_log("Error sending notification: " . $e->getMessage());
+            // Don't throw exception - let the main transaction continue even if notification fails
+            return false;
         }
     }
-
+    
     /**
      * Ensure activity log table exists
      */
@@ -903,13 +914,41 @@ class RegistrarController
                     action VARCHAR(100) NOT NULL,
                     description TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                     INDEX idx_user_id (user_id),
                     INDEX idx_action (action)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             ");
+            return true;
         } catch (Exception $e) {
             error_log("Error creating activity log table: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Ensure notifications table exists
+     */
+    private function ensureNotificationsTableExists()
+    {
+        try {
+            $this->db->exec("
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    type VARCHAR(50) NOT NULL,
+                    message TEXT NOT NULL,
+                    application_id INT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_read TINYINT(1) DEFAULT 0,
+                    read_at TIMESTAMP NULL,
+                    INDEX idx_user_id (user_id),
+                    INDEX idx_is_read (is_read)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+            return true;
+        } catch (Exception $e) {
+            error_log("Error creating notifications table: " . $e->getMessage());
+            return false;
         }
     }
 
