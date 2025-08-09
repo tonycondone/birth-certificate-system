@@ -1380,21 +1380,39 @@ class RegistrarController
     private function refundLatestCompletedPayment(int $applicationId, int $adminId, string $reason): bool
     {
         try {
-            // Mark the latest completed payment as refunded
-            $this->db->beginTransaction();
-            $stmt = $this->db->prepare("SELECT id FROM payments WHERE application_id = ? AND LOWER(status) = 'completed' ORDER BY id DESC LIMIT 1");
+            // Find latest completed payment
+            $stmt = $this->db->prepare("SELECT id, amount, currency, gateway, reference FROM payments WHERE application_id = ? AND LOWER(status) = 'completed' ORDER BY id DESC LIMIT 1");
             $stmt->execute([$applicationId]);
-            $paymentId = $stmt->fetchColumn();
-            if (!$paymentId) {
-                $this->db->rollBack();
-                return false;
+            $payment = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if (!$payment) { return false; }
+
+            // Attempt gateway refund
+            $gatewayRefundId = null;
+            $refundOk = true;
+            try {
+                if (class_exists('App\\Services\\RefundService')) {
+                    $svc = new \App\Services\RefundService();
+                    $res = $svc->refund($payment, $reason);
+                    $refundOk = (bool)($res['success'] ?? false);
+                    $gatewayRefundId = $res['gateway_refund_id'] ?? null;
+                }
+            } catch (\Throwable $t) {
+                $refundOk = false;
+            }
+            if (!$refundOk) { return false; }
+
+            $this->db->beginTransaction();
+            // Update payment row
+            try {
+                $stmt = $this->db->prepare("UPDATE payments SET status = 'refunded', refunded_at = NOW(), refund_reason = ?, gateway_refund_id = ? WHERE id = ?");
+                $stmt->execute([$reason, $gatewayRefundId, $payment['id']]);
+            } catch (\Exception $e) {
+                // Fallback if columns missing
+                $stmt = $this->db->prepare("UPDATE payments SET status = 'refunded' WHERE id = ?");
+                $stmt->execute([$payment['id']]);
             }
 
-            $stmt = $this->db->prepare("UPDATE payments SET status = 'refunded', refunded_at = NOW(), refund_reason = ? WHERE id = ?");
-            $stmt->execute([$reason, $paymentId]);
-
-            $this->logActivity($adminId, 'payment_refund', "Refunded payment ID {$paymentId} for application {$applicationId}. Reason: {$reason}");
-
+            $this->logActivity($adminId, 'payment_refund', "Refunded payment ID {$payment['id']} for application {$applicationId}. Reason: {$reason}");
             $this->db->commit();
             return true;
         } catch (Exception $e) {
