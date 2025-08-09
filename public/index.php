@@ -252,6 +252,7 @@ $routes = [
     '/notifications/broadcast' => 'App\Controllers\NotificationController@broadcast',
     '/notifications/{id}/mark-as-read' => 'App\Controllers\NotificationController@markAsRead',
     '/notifications/mark-all-as-read' => 'App\Controllers\NotificationController@markAllAsRead',
+    '/notifications/poll' => 'App\Controllers\NotificationController@poll',
     
     // Payment routes
     '/paystack/webhook' => 'App\Controllers\PaymentController@webhook',
