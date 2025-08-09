@@ -269,10 +269,11 @@ class ApplicationController
             // If payments table missing, fall back to status rule: allow only pending/submitted
         }
 
-        if (!in_array(strtolower($application['status']), ['pending', 'submitted', 'processing'])) {
+        $allowedStatuses = ['pending','submitted','processing','rejected'];
+        if (!in_array(strtolower($application['status']), $allowedStatuses)) {
             http_response_code(409);
             header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'Only pending/in-progress applications can be deleted.']);
+            echo json_encode(['success' => false, 'error' => 'Only pending, in-progress, or rejected applications can be deleted.']);
             return;
         }
 
@@ -299,8 +300,14 @@ class ApplicationController
             $stmt->execute([$id]);
             $this->db->commit();
 
-            header('Content-Type: application/json');
-            echo json_encode(['success' => true]);
+            // If AJAX
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH'])==='xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true]);
+            } else {
+                $_SESSION['success'] = 'Application deleted successfully';
+                header('Location: /applications');
+            }
         } catch (\Exception $e) {
             if ($this->db && $this->db->inTransaction()) { $this->db->rollBack(); }
             error_log('Delete application error: ' . $e->getMessage());
