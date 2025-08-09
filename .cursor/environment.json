@@ -1,0 +1,9 @@
+{
+  "agentCanUpdateSnapshot": true,
+  "terminals": [
+    {
+      "name": "npx",
+      "command": "npx run dev"
+    }
+  ]
+}
