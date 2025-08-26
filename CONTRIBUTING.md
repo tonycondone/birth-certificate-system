@@ -1,11 +1,11 @@
 # Contributing to Digital Birth Certificate System
 
-Thank you for your interest in contributing to the Digital Birth Certificate System. Due to the sensitive nature of this project and its intellectual property protection, contributions are subject to strict guidelines and review processes.
+Thank you for your interest in contributing to the Digital Birth Certificate System. Due to the sensitive nature of my project and its intellectual property protection, contributions are subject to strict guidelines and review processes.
 
 ## Legal Notice
 
 This project is protected by:
-- Copyright © 2023 [Your Organization]
+- Copyright © 2023 | tonycondone - Stackflow
 - Patent Pending (Application in Process)
 - Proprietary License
 
