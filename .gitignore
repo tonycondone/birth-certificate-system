@@ -43,6 +43,7 @@ phpunit.xml.dist
 Thumbs.db
 *.cache
 *.log
+.gitignore
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -75,6 +76,10 @@ yarn.lock
 *.der
 *.p12
 *.pfx
+*.env
+.env.testing
+.env.production
+
 
 # Backup files
 *.bak
