@@ -127,29 +127,3 @@ The invention implements:
 ## Abstract of the Disclosure
 A digital birth certificate registration and verification system implementing a secure multi-stakeholder workflow with blockchain validation. The system provides automated document verification, digital certificate generation, and real-time status tracking. Key features include role-based access control, blockchain-based validation, and secure document management.
 
-## Next Steps for Filing
-
-1. Legal Review
-   - Consult with patent attorney
-   - Review prior art
-   - Refine claims
-   - Prepare formal drawings
-
-2. Filing Process
-   - Complete application forms
-   - Pay filing fees
-   - Submit to patent office
-   - Monitor application status
-
-3. Post-Filing
-   - Respond to office actions
-   - Maintain documentation
-   - Track deadlines
-   - Update stakeholders
-
-## Notes
-- Patent jurisdiction: [Country/Region]
-- Priority date: [Date]
-- Provisional application recommended
-- Consider international filing
-- Document all invention details
