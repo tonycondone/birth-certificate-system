@@ -1,4 +1,4 @@
-﻿# 🏥 Digital Birth Certificate Management System
+When# 🏥 Digital Birth Certificate Management System
 
 A comprehensive, secure, and user-friendly digital birth certificate management system built with PHP 8.4, featuring real-time notifications, elegant certificate templates, and robust verification capabilities.
 
@@ -99,6 +99,8 @@ php-xml
 php-fileinfo
 php-zip
 php-curl
+php-pdf
+
 ```
 
 ### Frontend Dependencies
