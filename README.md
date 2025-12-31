@@ -7,7 +7,7 @@ A comprehensive, secure, and user-friendly digital birth certificate management 
 ![Database](https://img.shields.io/badge/Database-MySQL%208.0+-orange)
 ![Frontend](https://img.shields.io/badge/Frontend-Bootstrap%205-purple)
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Clone the repository
@@ -30,7 +30,7 @@ php -S localhost:8000 -t public public/router.php
 - Email: `admin@example.com`
 - Password: `password`
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Features](#-features)
 - [System Requirements](#-system-requirements)
@@ -42,44 +42,44 @@ php -S localhost:8000 -t public public/router.php
 - [Troubleshooting](#-troubleshooting)
 - [Contributing](#-contributing)
 
-## ✨ Features
+## Features
 
-### 🎯 Core Features
+### Core Features
 - **Multi-Role User System**: Parent, Hospital, Registrar, and Admin roles
 - **Application Management**: Complete birth certificate application workflow
 - **Certificate Generation**: Professional, government-style certificate templates
 - **Real-time Verification**: QR code and number-based instant verification
 - **Document Management**: Secure file upload and storage system
 
-### 🔔 Notification System
+### Notification System
 - **Live Notifications**: Real-time notification bell with polling updates
 - **Browser Notifications**: Native browser notification support
 - **In-app Toasts**: Elegant toast notifications with sound alerts
 - **Email Notifications**: Automated email alerts for status changes
 - **Admin Broadcasting**: System-wide announcements and maintenance alerts
 
-### 👤 User Management
+### User Management
 - **Profile Management**: Complete user profile editing
 - **Password Security**: Secure password change functionality
 - **Account Deletion**: Self-service account deletion with safeguards
 - **Application History**: View and manage personal applications
 - **Data Export**: GDPR-compliant data export functionality
 
-### 📊 Dashboard & Reports
+### Dashboard & Reports
 - **Role-based Dashboards**: Customized dashboards for each user role
 - **Advanced Reporting**: Daily, weekly, and monthly reports with charts
 - **Application Tracking**: Real-time application status tracking
 - **Batch Processing**: Bulk approve/reject applications
 - **Statistics & Analytics**: Comprehensive system statistics
 
-### 🎨 Modern UI/UX
+### Improved UI
 - **Responsive Design**: Mobile-first, fully responsive interface
 - **Bootstrap 5**: Modern, accessible UI components
 - **Dark/Light Theme**: User preference-based theming
 - **Accessibility**: WCAG 2.1 AA compliant
 - **Progressive Web App**: PWA capabilities for mobile devices
 
-## 🛠 System Requirements
+## System Requirements
 
 ### Server Requirements
 - **PHP**: 8.4 or higher
@@ -170,7 +170,7 @@ open http://localhost:8000
 
 ## 👥 User Roles
 
-### 👨‍👩‍👧‍👦 Parent
+### Parent
 - Register and submit birth certificate applications
 - Upload required documents (birth notification, ID documents)
 - Track application status in real-time
@@ -178,13 +178,13 @@ open http://localhost:8000
 - Manage personal profile and applications
 - Delete rejected applications
 
-### 🏥 Hospital
+### Hospital
 - Verify birth records and medical information
 - Upload supporting medical documents
 - Review and validate birth applications
 - Communicate with registrars about applications
 
-### 📋 Registrar
+### Registrar
 - Review and process birth certificate applications
 - Approve or reject applications with detailed comments
 - Generate official birth certificates
@@ -192,7 +192,7 @@ open http://localhost:8000
 - Generate comprehensive reports
 - Manage application workflows
 
-### 👑 Admin
+### Admin
 - Full system administration capabilities
 - User management (create, edit, disable accounts)
 - System monitoring and audit logs
@@ -200,7 +200,7 @@ open http://localhost:8000
 - Generate system reports and analytics
 - Configure system settings
 
-## 🔒 Security Features
+## Security Features
 
 ### Authentication & Authorization
 - **Bcrypt Password Hashing**: Secure password storage
@@ -278,7 +278,7 @@ DELETE /notifications/{id}         - Delete notification
 GET    /notifications/poll         - Real-time polling
 ```
 
-## 📊 System Architecture
+## System Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -332,64 +332,13 @@ tail -f php_error.log
 tail -f /var/log/apache2/error.log
 ```
 
-## ✅ System Status & Recent Updates
 
-### 🎯 Current Version: 2.0.1 (August 2025)
-
-**All Critical Issues Resolved** ✅
-- Certificate verification system fully functional
-- Application deletion working properly  
-- User settings page completely rebuilt
-- Database integrity maintained
-- All approved certificates properly synced
-
-### 🔧 Recent Fixes Applied
-
-#### Certificate Verification
-- ✅ Fixed database query issues (removed non-existent hospitals table joins)
-- ✅ Updated certificate format validation (BC + 14 characters)
-- ✅ Synced all approved applications to certificates table
-- ✅ Added proper error handling and user feedback
-
-#### Application Management  
-- ✅ Fixed delete functionality with proper permission checks
-- ✅ Enhanced CSRF protection and session management
-- ✅ Added missing database tables (application_documents, application_progress, application_tracking)
-- ✅ Improved transaction safety for batch operations
-
-#### User Experience
-- ✅ Completely rebuilt settings page with full functionality
-- ✅ Added SweetAlert2 for better confirmation dialogs
-- ✅ Fixed "headers already sent" warnings in AJAX responses
-- ✅ Enhanced error messages and user feedback
-
-### 📊 Verified Working Features
-
-| Feature | Status | Test URL |
-|---------|--------|----------|
-| Certificate Verification | ✅ Working | `/certificates/verify?certificate_number=BC202508F7745C39` |
-| Application Deletion | ✅ Working | `/applications/{id}` (Delete button) |
-| Settings Management | ✅ Working | `/settings` |
-| Batch Processing | ✅ Working | `/registrar/batch-process` |
-| Tracking System | ✅ Working | `/track?number=TRK...` |
-| User Authentication | ✅ Working | `/login`, `/register` |
-
-### 🗄️ Database Schema
+### Database Schema
 - **Migration 027** applied: All certificate verification fixes
 - **19 active certificates** ready for verification
 - **10 approved applications** with valid certificate numbers
 - **All tracking numbers** generated and functional
 
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Development Workflow
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
 
 ### Code Standards
 - PSR-12 coding standards
