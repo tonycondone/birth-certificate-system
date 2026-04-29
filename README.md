@@ -178,7 +178,7 @@ open http://localhost:8000
 
 ## 👥 User Roles
 
-### 👨‍👩‍👧‍👦 Parent
+### Parent
 
 - Register and submit birth certificate applications
 - Upload required documents (birth notification, ID documents)
@@ -187,14 +187,14 @@ open http://localhost:8000
 - Manage personal profile and applications
 - Delete rejected applications
 
-### 🏥 Hospital
+### Hospital
 
 - Verify birth records and medical information
 - Upload supporting medical documents
 - Review and validate birth applications
 - Communicate with registrars about applications
 
-### 📋 Registrar
+### Registrar
 
 - Review and process birth certificate applications
 - Approve or reject applications with detailed comments
@@ -203,7 +203,7 @@ open http://localhost:8000
 - Generate comprehensive reports
 - Manage application workflows
 
-### 👑 Admin
+### Admin
 
 - Full system administration capabilities
 - User management (create, edit, disable accounts)
@@ -221,23 +221,7 @@ open http://localhost:8000
 - **Session Management**: Secure session handling
 - **CSRF Protection**: Cross-site request forgery prevention
 
-### Data Protection
 
-- **Input Validation**: Comprehensive server-side validation
-- **SQL Injection Prevention**: Prepared statements
-- **File Upload Security**: Type and size validation
-- **Data Encryption**: Sensitive data encryption
-
-### Audit & Monitoring
-
-- **Activity Logging**: Comprehensive audit trails
-- **Failed Login Tracking**: Brute force protection
-- **Certificate Verification Logging**: Verification attempt tracking
-- **System Monitoring**: Real-time system health monitoring
-
-## 🧪 Testing
-
-### Running Tests
 
 ```bash
 # Run PHP unit tests
@@ -250,53 +234,8 @@ npm test
 php run_tests.php
 ```
 
-### Test Coverage
 
-- **Unit Tests**: Core business logic
-- **Integration Tests**: Database interactions
-- **Feature Tests**: End-to-end workflows
-- **Security Tests**: Vulnerability scanning
 
-## 📡 API Documentation
-
-### Authentication Endpoints
-
-```
-POST /auth/login          - User login
-POST /auth/register       - User registration
-POST /auth/logout         - User logout
-GET  /auth/profile        - Get user profile
-```
-
-### Application Endpoints
-
-```
-GET    /applications           - List applications
-POST   /applications           - Create application
-GET    /applications/{id}      - Get application details
-PUT    /applications/{id}      - Update application
-DELETE /applications/{id}      - Delete application
-```
-
-### Certificate Endpoints
-
-```
-GET  /certificates            - List certificates
-GET  /certificates/{id}       - Get certificate details
-GET  /certificates/{id}/download - Download certificate
-POST /certificates/{id}/verify   - Verify certificate
-```
-
-### Notification Endpoints
-
-```
-GET    /notifications              - List notifications
-POST   /notifications              - Create notification
-GET    /notifications/{id}         - Get notification
-PUT    /notifications/{id}/read    - Mark as read
-DELETE /notifications/{id}         - Delete notification
-GET    /notifications/poll         - Real-time polling
-```
 
 ## System Architecture
 
