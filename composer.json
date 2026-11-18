@@ -9,7 +9,7 @@
         "ext-json": "*",
         "dompdf/dompdf": "^2.0",
         "phpmailer/phpmailer": "^6.8",
-        "firebase/php-jwt": "^6.4",
+        "firebase/php-jwt": "^7.0",
         "chillerlan/php-qrcode": "^4.3",
         "monolog/monolog": "^3.3",
         "vlucas/phpdotenv": "^5.5",
